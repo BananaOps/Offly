@@ -1,0 +1,19 @@
+apiVersion: v2
+name: offly
+description: Modern time off and absence management system with Go backend (gRPC + REST) and React frontend
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - time-off
+  - absence-management
+  - hr
+  - calendar
+maintainers:
+  - name: BananaOps
+home: https://github.com/BananaOps/offly
+dependencies:
+- condition: mongodb.enabled
+  name: mongodb
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 14.x.x

@@ -1,0 +1,56 @@
+apiVersion: skaffold/v2beta29
+kind: Config
+metadata:
+  name: offly-dev
+build:
+  artifacts:
+    - image: bananaops/offly
+      context: .
+      docker:
+        dockerfile: Dockerfile
+        buildArgs:
+          BUILDKIT_INLINE_CACHE: "1"
+          VITE_API_URL: "http://localhost:8080/api/v1"
+  tagPolicy:
+    sha256: {}
+  local:
+    push: false
+    useBuildkit: true
+deploy:
+  helm:
+    releases:
+      - name: offly-dev
+        chartPath: helm/offly
+        namespace: offly-dev
+        createNamespace: true
+        setValues:
+          replicaCount: 1
+          mongodb.enabled: true
+          mongodb.auth.enabled: false
+          ingress.enabled: false
+          resources.requests.cpu: "100m"
+          resources.requests.memory: "128Mi"
+          resources.limits.cpu: "500m"
+          resources.limits.memory: "256Mi"
+        setValueTemplates:
+          image.repository: "{{.IMAGE_REPO_bananaops_offly}}"
+          image.tag: "{{.IMAGE_TAG_bananaops_offly}}@{{.IMAGE_DIGEST_bananaops_offly}}"
+portForward:
+  - resourceType: service
+    resourceName: offly-dev
+    namespace: offly-dev
+    port: 8080
+    localPort: 8080
+    address: 0.0.0.0
+  - resourceType: service
+    resourceName: offly-dev
+    namespace: offly-dev
+    port: 50051
+    localPort: 50051
+    address: 0.0.0.0
+  - resourceType: service
+    resourceName: offly-dev-mongodb
+    namespace: offly-dev
+    port: 27017
+    localPort: 27017
+    address: 0.0.0.0

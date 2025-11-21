@@ -1,0 +1,27 @@
+# Skaffold local configuration
+# This file can be used to override default settings
+
+# Default repository for images
+default-repo: bananaops
+
+# Kube context to use
+# kube-context: minikube
+
+# Update check
+update-check: true
+
+# Collect metrics
+collect-metrics: false
+
+# Local cluster detection
+local-cluster: true
+
+# Insecure registries
+# insecure-registries:
+#   - localhost:5000
+
+# Debug helpers
+debug:
+  helpers:
+    - go
+    - nodejs

@@ -1,0 +1,236 @@
+version: '3'
+
+vars:
+  BACKEND_DIR: backend
+  FRONTEND_DIR: frontend
+
+tasks:
+  # Installation des dépendances
+  install:
+    desc: Installer toutes les dépendances (backend + frontend)
+    cmds:
+      - task: install:backend
+      - task: install:frontend
+
+  install:backend:
+    desc: Installer les dépendances Go
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - go mod tidy
+      - go install github.com/bufbuild/buf/cmd/buf@latest
+      - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+      - buf mod update
+
+  install:frontend:
+    desc: Installer les dépendances npm
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm install
+
+  # Génération du code protobuf
+  proto:
+    desc: Générer le code Go depuis les fichiers protobuf avec buf
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - buf mod update
+      - buf generate
+    sources:
+      - proto/**/*.proto
+    generates:
+      - proto/**/*.pb.go
+  
+  proto:lint:
+    desc: Linter les fichiers protobuf
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - buf lint
+  
+  proto:breaking:
+    desc: Vérifier les changements breaking dans protobuf
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - buf breaking --against '.git#branch=main'
+
+  # Formatage du code
+  format:
+    desc: Formater tout le code (backend + frontend)
+    cmds:
+      - task: format:backend
+      - task: format:frontend
+
+  format:backend:
+    desc: Formater le code Go
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - go fmt ./...
+      - gofmt -s -w .
+
+  format:frontend:
+    desc: Formater le code TypeScript/React
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npx prettier --write "src/**/*.{ts,tsx,css}"
+
+  # Linting
+  lint:
+    desc: Linter tout le code (backend + frontend)
+    cmds:
+      - task: lint:backend
+      - task: lint:frontend
+
+  lint:backend:
+    desc: Linter le code Go
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - golangci-lint run ./...
+
+  lint:frontend:
+    desc: Linter le code TypeScript/React
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npx eslint "src/**/*.{ts,tsx}"
+
+  # Build
+  build:
+    desc: Builder l'application complète
+    cmds:
+      - task: build:backend
+      - task: build:frontend
+
+  build:backend:
+    desc: Builder le backend Go
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - go build -o bin/server cmd/server/main.go
+
+  build:frontend:
+    desc: Builder le frontend React
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm run build
+
+  # Tests
+  test:
+    desc: Lancer tous les tests
+    cmds:
+      - task: test:backend
+
+  test:backend:
+    desc: Lancer les tests Go
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - go test -v ./...
+
+  # Démarrage de l'application
+  dev:
+    desc: Lancer l'application en mode développement (backend + frontend)
+    deps:
+      - mongo:start
+    cmds:
+      - task: dev:all
+
+  dev:all:
+    desc: Lancer backend et frontend en parallèle
+    deps:
+      - dev:backend
+      - dev:frontend
+
+  dev:backend:
+    desc: Lancer le serveur backend
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - go run cmd/server/main.go
+
+  dev:frontend:
+    desc: Lancer le serveur de développement frontend
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - npm run dev
+
+  # MongoDB
+  mongo:start:
+    desc: Démarrer MongoDB avec Docker
+    cmds:
+      - docker run -d --name absence-mongo -p 27017:27017 -e MONGO_INITDB_DATABASE=offly mongo:7
+    status:
+      - docker ps | grep absence-mongo
+
+  mongo:stop:
+    desc: Arrêter MongoDB
+    cmds:
+      - docker stop absence-mongo
+      - docker rm absence-mongo
+
+  mongo:logs:
+    desc: Voir les logs MongoDB
+    cmds:
+      - docker logs -f absence-mongo
+
+  # Nettoyage
+  clean:
+    desc: Nettoyer les fichiers générés
+    cmds:
+      - task: clean:backend
+      - task: clean:frontend
+
+  clean:backend:
+    desc: Nettoyer les fichiers générés du backend
+    dir: "{{.BACKEND_DIR}}"
+    cmds:
+      - rm -rf bin/
+      - go clean
+
+  clean:frontend:
+    desc: Nettoyer les fichiers générés du frontend
+    dir: "{{.FRONTEND_DIR}}"
+    cmds:
+      - rm -rf dist/
+      - rm -rf node_modules/
+
+  # Commande complète pour démarrer depuis zéro
+  setup:
+    desc: Configuration complète du projet (install + proto + format)
+    cmds:
+      - task: install
+      - task: proto
+      - task: format
+      - echo "✅ Projet configuré avec succès!"
+      - echo ""
+      - echo "Prochaines étapes:"
+      - echo "  1. task mongo:start  # Démarrer MongoDB"
+      - echo "  2. task dev          # Lancer l'application"
+
+  # Vérification avant commit
+  pre-commit:
+    desc: Vérifications avant commit (format + lint + test)
+    cmds:
+      - task: format
+      - task: lint
+      - task: test
+      - echo "✅ Prêt pour le commit!"
+
+  # Skaffold
+  skaffold:dev:
+    desc: Démarrer le développement avec Skaffold (Kubernetes)
+    cmds:
+      - skaffold dev -f skaffold.dev.yaml
+
+  skaffold:run:
+    desc: Déployer avec Skaffold
+    cmds:
+      - skaffold run
+
+  skaffold:delete:
+    desc: Supprimer le déploiement Skaffold
+    cmds:
+      - skaffold delete
+
+  skaffold:build:
+    desc: Builder les images avec Skaffold
+    cmds:
+      - skaffold build
+
+  skaffold:debug:
+    desc: Démarrer Skaffold en mode debug
+    cmds:
+      - skaffold debug -f skaffold.dev.yaml

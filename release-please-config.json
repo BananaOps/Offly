@@ -1,0 +1,29 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "package-name": "offly",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "draft": false,
+      "prerelease": false,
+      "include-component-in-tag": false,
+      "extra-files": [
+        {
+          "type": "yaml",
+          "path": "helm/offly/Chart.yaml",
+          "jsonpath": "$.version"
+        },
+        {
+          "type": "yaml",
+          "path": "helm/offly/Chart.yaml",
+          "jsonpath": "$.appVersion"
+        }
+      ]
+    }
+  },
+  "release-search-depth": 100,
+  "commit-search-depth": 500,
+  "sequential-calls": true
+}

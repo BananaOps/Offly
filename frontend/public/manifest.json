@@ -1,0 +1,17 @@
+{
+  "name": "Offly - Time Off Manager",
+  "short_name": "Offly",
+  "description": "Modern time off and absence management system",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F7FB",
+  "theme_color": "#6C4DFF",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

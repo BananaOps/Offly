@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: offly-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: offly
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - offly-network
+
+  offly:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api/v1
+    container_name: offly-app
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017
+    depends_on:
+      - mongodb
+    networks:
+      - offly-network
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+
+networks:
+  offly-network:
+    driver: bridge

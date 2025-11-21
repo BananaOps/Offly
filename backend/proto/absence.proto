@@ -1,0 +1,366 @@
+syntax = "proto3";
+
+package absence;
+
+option go_package = "absence-management/proto";
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+// Service de gestion des absences
+service AbsenceService {
+  rpc CreateAbsence(CreateAbsenceRequest) returns (Absence) {
+    option (google.api.http) = {
+      post: "/api/v1/absences"
+      body: "*"
+    };
+  }
+  
+  rpc GetAbsences(GetAbsencesRequest) returns (GetAbsencesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/absences"
+    };
+  }
+  
+  rpc UpdateAbsence(UpdateAbsenceRequest) returns (Absence) {
+    option (google.api.http) = {
+      put: "/api/v1/absences/{id}"
+      body: "*"
+    };
+  }
+  
+  rpc DeleteAbsence(DeleteAbsenceRequest) returns (DeleteAbsenceResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/absences/{id}"
+    };
+  }
+}
+
+// Service de gestion des utilisateurs
+service UserService {
+  rpc CreateUser(CreateUserRequest) returns (User) {
+    option (google.api.http) = {
+      post: "/api/v1/users"
+      body: "*"
+    };
+  }
+  
+  rpc GetUsers(GetUsersRequest) returns (GetUsersResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/users"
+    };
+  }
+  
+  rpc AssignUserToDepartment(AssignUserRequest) returns (User) {
+    option (google.api.http) = {
+      post: "/api/v1/users/{user_id}/department"
+      body: "*"
+    };
+  }
+  
+  rpc AssignUserToTeam(AssignUserRequest) returns (User) {
+    option (google.api.http) = {
+      post: "/api/v1/users/{user_id}/team"
+      body: "*"
+    };
+  }
+  
+  rpc UpdateUser(UpdateUserRequest) returns (User) {
+    option (google.api.http) = {
+      put: "/api/v1/users/{id}"
+      body: "*"
+    };
+  }
+  
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/users/{id}"
+    };
+  }
+}
+
+// Service de gestion des départements et équipes
+service OrganizationService {
+  rpc CreateDepartment(CreateDepartmentRequest) returns (Department) {
+    option (google.api.http) = {
+      post: "/api/v1/departments"
+      body: "*"
+    };
+  }
+  
+  rpc GetDepartments(GetDepartmentsRequest) returns (GetDepartmentsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/departments"
+    };
+  }
+  
+  rpc CreateTeam(CreateTeamRequest) returns (Team) {
+    option (google.api.http) = {
+      post: "/api/v1/teams"
+      body: "*"
+    };
+  }
+  
+  rpc GetTeams(GetTeamsRequest) returns (GetTeamsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/teams"
+    };
+  }
+  
+  rpc UpdateDepartment(UpdateDepartmentRequest) returns (Department) {
+    option (google.api.http) = {
+      put: "/api/v1/departments/{id}"
+      body: "*"
+    };
+  }
+  
+  rpc DeleteDepartment(DeleteDepartmentRequest) returns (DeleteDepartmentResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/departments/{id}"
+    };
+  }
+  
+  rpc UpdateTeam(UpdateTeamRequest) returns (Team) {
+    option (google.api.http) = {
+      put: "/api/v1/teams/{id}"
+      body: "*"
+    };
+  }
+  
+  rpc DeleteTeam(DeleteTeamRequest) returns (DeleteTeamResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/teams/{id}"
+    };
+  }
+}
+
+// Messages
+message Absence {
+  string id = 1;
+  string user_id = 2;
+  google.protobuf.Timestamp start_date = 3;
+  google.protobuf.Timestamp end_date = 4;
+  string reason = 5;
+  string status = 6;
+}
+
+message User {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  string department_id = 4;
+  string team_id = 5;
+  string country = 6;
+}
+
+message Department {
+  string id = 1;
+  string name = 2;
+}
+
+message Team {
+  string id = 1;
+  string name = 2;
+  string department_id = 3;
+}
+
+message CreateAbsenceRequest {
+  string user_id = 1;
+  google.protobuf.Timestamp start_date = 2;
+  google.protobuf.Timestamp end_date = 3;
+  string reason = 4;
+}
+
+message GetAbsencesRequest {
+  string user_id = 1;
+  google.protobuf.Timestamp start_date = 2;
+  google.protobuf.Timestamp end_date = 3;
+}
+
+message GetAbsencesResponse {
+  repeated Absence absences = 1;
+}
+
+message UpdateAbsenceRequest {
+  string id = 1;
+  google.protobuf.Timestamp start_date = 2;
+  google.protobuf.Timestamp end_date = 3;
+  string reason = 4;
+  string status = 5;
+}
+
+message DeleteAbsenceRequest {
+  string id = 1;
+}
+
+message DeleteAbsenceResponse {
+  bool success = 1;
+}
+
+message CreateUserRequest {
+  string name = 1;
+  string email = 2;
+  string country = 3;
+}
+
+message GetUsersRequest {}
+
+message GetUsersResponse {
+  repeated User users = 1;
+}
+
+message AssignUserRequest {
+  string user_id = 1;
+  string department_id = 2;
+  string team_id = 3;
+}
+
+message CreateDepartmentRequest {
+  string name = 1;
+}
+
+message GetDepartmentsRequest {}
+
+message GetDepartmentsResponse {
+  repeated Department departments = 1;
+}
+
+message CreateTeamRequest {
+  string name = 1;
+  string department_id = 2;
+}
+
+message GetTeamsRequest {
+  string department_id = 1;
+}
+
+message GetTeamsResponse {
+  repeated Team teams = 1;
+}
+
+message UpdateUserRequest {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  string country = 4;
+}
+
+message DeleteUserRequest {
+  string id = 1;
+}
+
+message DeleteUserResponse {
+  bool success = 1;
+}
+
+message UpdateDepartmentRequest {
+  string id = 1;
+  string name = 2;
+}
+
+message DeleteDepartmentRequest {
+  string id = 1;
+}
+
+message DeleteDepartmentResponse {
+  bool success = 1;
+}
+
+message UpdateTeamRequest {
+  string id = 1;
+  string name = 2;
+  string department_id = 3;
+}
+
+message DeleteTeamRequest {
+  string id = 1;
+}
+
+message DeleteTeamResponse {
+  bool success = 1;
+}
+
+
+// Service de gestion des jours fériés
+service HolidayService {
+  rpc CreateHoliday(CreateHolidayRequest) returns (Holiday) {
+    option (google.api.http) = {
+      post: "/api/v1/holidays"
+      body: "*"
+    };
+  }
+  
+  rpc GetHolidays(GetHolidaysRequest) returns (GetHolidaysResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/holidays"
+    };
+  }
+  
+  rpc UpdateHoliday(UpdateHolidayRequest) returns (Holiday) {
+    option (google.api.http) = {
+      put: "/api/v1/holidays/{id}"
+      body: "*"
+    };
+  }
+  
+  rpc DeleteHoliday(DeleteHolidayRequest) returns (DeleteHolidayResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/holidays/{id}"
+    };
+  }
+  
+  rpc ImportHolidays(ImportHolidaysRequest) returns (ImportHolidaysResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/holidays/import"
+      body: "*"
+    };
+  }
+}
+
+message Holiday {
+  string id = 1;
+  string date = 2;
+  string name = 3;
+  string country = 4;
+  int32 year = 5;
+}
+
+message CreateHolidayRequest {
+  string date = 1;
+  string name = 2;
+  string country = 3;
+  int32 year = 4;
+}
+
+message GetHolidaysRequest {
+  string country = 1;
+  int32 year = 2;
+}
+
+message GetHolidaysResponse {
+  repeated Holiday holidays = 1;
+}
+
+message UpdateHolidayRequest {
+  string id = 1;
+  string date = 2;
+  string name = 3;
+  string country = 4;
+  int32 year = 5;
+}
+
+message DeleteHolidayRequest {
+  string id = 1;
+}
+
+message DeleteHolidayResponse {
+  bool success = 1;
+}
+
+message ImportHolidaysRequest {
+  repeated CreateHolidayRequest holidays = 1;
+}
+
+message ImportHolidaysResponse {
+  int32 imported_count = 1;
+}
