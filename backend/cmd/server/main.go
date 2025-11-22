@@ -17,21 +17,14 @@ import (
 )
 
 func main() {
-	// Initialiser le storage (MongoDB ou Memory)
-	var store storage.Storage
+	// Initialiser le storage hybride (mémoire + MongoDB avec auto-reconnexion)
 	mongoURI := os.Getenv("MONGO_URI")
 	if mongoURI == "" {
 		mongoURI = "mongodb://localhost:27017"
 	}
 
-	mongoStore, err := storage.NewMongoStorage(mongoURI, "offly")
-	if err != nil {
-		log.Printf("Failed to connect to MongoDB: %v, using in-memory storage", err)
-		store = storage.NewMemoryStorage()
-	} else {
-		log.Println("Connected to MongoDB")
-		store = mongoStore
-	}
+	log.Printf("Initializing hybrid storage with MongoDB at %s...", mongoURI)
+	store := storage.NewHybridStorage(mongoURI, "offly")
 
 	// Démarrer le serveur gRPC
 	go startGRPCServer(store)
@@ -92,6 +85,13 @@ func startRESTGateway() error {
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
+	// Swagger UI
+	mainHandler.HandleFunc("/docs", serveSwaggerUI)
+	mainHandler.HandleFunc("/docs/", serveSwaggerUI)
+
+	// Serve OpenAPI spec
+	mainHandler.Handle("/openapi/", http.StripPrefix("/openapi/", http.FileServer(http.Dir("./proto"))))
+
 	// API routes
 	mainHandler.Handle("/api/", corsMiddleware(mux))
 
@@ -116,6 +116,44 @@ func spaHandler(staticHandler http.Handler) http.Handler {
 		// File exists, serve it
 		staticHandler.ServeHTTP(w, r)
 	})
+}
+
+func serveSwaggerUI(w http.ResponseWriter, r *http.Request) {
+	html := `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Offly API Documentation</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+    <style>
+        body { margin: 0; padding: 0; }
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+    <script>
+        window.onload = function() {
+            const ui = SwaggerUIBundle({
+                urls: [
+                    { url: "/openapi/absence.swagger.json", name: "Absence API" }
+                ],
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                layout: "StandaloneLayout"
+            });
+            window.ui = ui;
+        };
+    </script>
+</body>
+</html>`
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(html))
 }
 
 func corsMiddleware(h http.Handler) http.Handler {

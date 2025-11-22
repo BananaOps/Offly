@@ -234,3 +234,13 @@ tasks:
     desc: Démarrer Skaffold en mode debug
     cmds:
       - skaffold debug -f skaffold.dev.yaml
+
+  seed:
+    desc: Générer des données d'exemple avec k6
+    cmds:
+      - k6 run k6-seed-data.js
+
+  seed:k8s:
+    desc: Générer des données d'exemple pour Kubernetes (avec port-forward)
+    cmds:
+      - k6 run -e API_URL=http://localhost:8080 k6-seed-data.js

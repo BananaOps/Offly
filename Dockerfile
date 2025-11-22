@@ -53,6 +53,9 @@ WORKDIR /app
 # Copy backend binary
 COPY --from=backend-builder /app/bin/server ./server
 
+# Copy OpenAPI specs for Swagger UI
+COPY --from=backend-builder /app/proto/*.swagger.json ./proto/
+
 # Copy frontend build
 COPY --from=frontend-builder /app/frontend/dist ./web/dist
 

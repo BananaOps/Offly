@@ -59,15 +59,36 @@ type HolidayDoc struct {
 }
 
 func NewMongoStorage(uri, dbName string) (*MongoStorage, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	return NewMongoStorageWithRetry(uri, dbName, 5, 2*time.Second)
+}
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
-	if err != nil {
-		return nil, err
+func NewMongoStorageWithRetry(uri, dbName string, maxRetries int, initialDelay time.Duration) (*MongoStorage, error) {
+	var client *mongo.Client
+	var err error
+
+	delay := initialDelay
+
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+		client, err = mongo.Connect(ctx, options.Client().ApplyURI(uri))
+		if err == nil {
+			err = client.Ping(ctx, nil)
+			if err == nil {
+				cancel()
+				break
+			}
+		}
+
+		cancel()
+
+		if attempt < maxRetries {
+			time.Sleep(delay)
+			delay *= 2 // Backoff exponentiel
+		}
 	}
 
-	if err := client.Ping(ctx, nil); err != nil {
+	if err != nil {
 		return nil, err
 	}
 

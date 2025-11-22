@@ -155,8 +155,15 @@ Pour plus d'informations, consultez [SKAFFOLD.md](SKAFFOLD.md)
 
 ## API Endpoints
 
+### Documentation Interactive
+
+Accédez à la documentation Swagger UI complète sur :
+- **Swagger UI** : http://localhost:8080/docs
+- **OpenAPI Spec** : http://localhost:8080/openapi/absence.swagger.json
+
 ### REST API (port 8080)
 
+- `GET /api/v1/health` - Health check
 - `POST /api/v1/users` - Créer un utilisateur
 - `GET /api/v1/users` - Lister les utilisateurs
 - `POST /api/v1/departments` - Créer un département
@@ -167,6 +174,8 @@ Pour plus d'informations, consultez [SKAFFOLD.md](SKAFFOLD.md)
 - `GET /api/v1/absences` - Lister les absences
 - `PUT /api/v1/absences/{id}` - Modifier une absence
 - `DELETE /api/v1/absences/{id}` - Supprimer une absence
+- `POST /api/v1/holidays` - Créer un jour férié
+- `GET /api/v1/holidays` - Lister les jours fériés
 
 ### gRPC (port 50051)
 
@@ -174,6 +183,7 @@ Services disponibles:
 - `AbsenceService`
 - `UserService`
 - `OrganizationService`
+- `HolidayService`
 
 ## Développement
 
@@ -182,7 +192,33 @@ Services disponibles:
 1. **Avant de commencer**: `task setup`
 2. **Démarrer MongoDB**: `task mongo:start`
 3. **Développer**: `task dev`
-4. **Avant de commit**: `task pre-commit`
+4. **Générer des données de test**: `k6 run k6-seed-data.js`
+5. **Avant de commit**: `task pre-commit`
+
+### Générer des données d'exemple
+
+Utilisez le script k6 pour créer des données de test :
+
+```bash
+# Installer k6
+brew install k6  # macOS
+# ou voir k6-README.md pour autres OS
+
+# Générer les données
+k6 run k6-seed-data.js
+
+# Avec une URL personnalisée
+k6 run -e API_URL=http://offly.local k6-seed-data.js
+```
+
+Le script crée automatiquement :
+- 5 départements (Engineering, Product, Sales, Marketing, HR)
+- 10 équipes
+- 12 utilisateurs avec emails et pays
+- 29 jours fériés pour 2025 (FR, US, UK)
+- Absences aléatoires pour chaque utilisateur
+
+Voir [k6-README.md](k6-README.md) pour plus de détails.
 
 ### Modifier les définitions protobuf
 

@@ -19,3 +19,7 @@ plugins:
     opt:
       - paths=source_relative
       - generate_unbound_methods=true
+  - plugin: openapiv2
+    out: .
+    opt:
+      - openapi_naming_strategy=simple
