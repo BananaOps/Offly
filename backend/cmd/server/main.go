@@ -9,6 +9,7 @@ import (
 
 	"absence-management/internal/service"
 	"absence-management/internal/storage"
+	"absence-management/internal/auth"
 	pb "absence-management/proto"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -30,7 +31,7 @@ func main() {
 	go startGRPCServer(store)
 
 	// Démarrer la gateway REST
-	if err := startRESTGateway(); err != nil {
+	if err := startRESTGateway(store); err != nil {
 		log.Fatalf("Failed to start REST gateway: %v", err)
 	}
 }
@@ -54,7 +55,7 @@ func startGRPCServer(store storage.Storage) {
 	}
 }
 
-func startRESTGateway() error {
+func startRESTGateway(store storage.Storage) error {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -78,6 +79,17 @@ func startRESTGateway() error {
 	// Create main HTTP handler with API and static files
 	mainHandler := http.NewServeMux()
 
+	// OIDC optional verifier based on AUTH_ENABLED
+	authEnabled := os.Getenv("AUTH_ENABLED") == "true"
+	var v *auth.Verifier
+	if authEnabled {
+		var err error
+		v, err = auth.NewVerifierFromEnv()
+		if err != nil {
+			log.Printf("Failed to init OIDC verifier: %v", err)
+		}
+	}
+
 	// Health check endpoint
 	mainHandler.HandleFunc("/api/v1/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -93,6 +105,23 @@ func startRESTGateway() error {
 	mainHandler.Handle("/openapi/", http.StripPrefix("/openapi/", http.FileServer(http.Dir("./proto"))))
 
 	// API routes
+	// Auth config endpoint (always available for the frontend to know if SSO is enabled)
+	mainHandler.HandleFunc("/api/v1/auth/config", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		issuer := os.Getenv("AUTH_ISSUER_URL")
+		clientID := os.Getenv("AUTH_CLIENT_ID")
+		if issuer == "" {
+			issuer = ""
+		}
+		if clientID == "" {
+			clientID = ""
+		}
+		w.Write([]byte("{\"enabled\":" + map[bool]string{true:"true", false:"false"}[authEnabled] + ",\"issuerUrl\":\"" + issuer + "\",\"clientId\":\"" + clientID + "\"}"))
+	})
+
+	if authEnabled {
+		mainHandler.Handle("/api/v1/auth/ensure-user", corsMiddleware(auth.EnsureUserHandler(store, v)))
+	}
 	mainHandler.Handle("/api/", corsMiddleware(mux))
 
 	// Serve static files from web/dist
@@ -160,7 +189,7 @@ func corsMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)

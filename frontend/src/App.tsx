@@ -4,6 +4,7 @@ import { faCalendarDays, faUsers, faSitemap, faCalendarAlt, faBook } from '@fort
 import Logo from './components/Logo'
 import Banner from './components/Banner'
 import ThemeToggle from './components/ThemeToggle'
+import Login from './components/Login'
 import AbsenceGrid from './components/AbsenceGrid'
 import PresenceView from './components/PresenceView'
 import UserManagement from './components/UserManagement'
@@ -13,6 +14,7 @@ import Documentation from './components/Documentation'
 import Footer from './components/Footer'
 import { User, Department, Team } from './types'
 import { getUsers, getDepartments, getTeams } from './api'
+import { handleCallback, setAuthConfig, getAuthConfig } from './auth'
 
 function App() {
   const [activeTab, setActiveTab] = useState<'absences' | 'presences' | 'users' | 'organization' | 'holidays' | 'docs'>('absences')
@@ -21,7 +23,19 @@ function App() {
   const [teams, setTeams] = useState<Team[]>([])
 
   useEffect(() => {
-    loadData()
+    // Load auth config from backend, then handle possible OIDC callback
+    const init = async () => {
+      try {
+        const res = await fetch('/api/v1/auth/config')
+        if (res.ok) {
+          const cfg = await res.json()
+          setAuthConfig({ enabled: !!cfg.enabled, issuerUrl: cfg.issuerUrl || '', clientId: cfg.clientId || '' })
+        }
+      } catch {}
+      await handleCallback()
+      loadData()
+    }
+    init()
   }, [])
 
   const loadData = async () => {
@@ -120,7 +134,8 @@ function App() {
                 </button>
               </div>
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center gap-3">
+              {getAuthConfig().enabled && <Login />}
               <ThemeToggle />
             </div>
           </div>

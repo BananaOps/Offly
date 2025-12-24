@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getIdToken } from './auth'
 import { User, Department, Team, Absence } from './types'
 
 const api = axios.create({
@@ -6,6 +7,16 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+})
+
+// Attach Authorization header if id_token is present
+api.interceptors.request.use((config) => {
+  const token = getIdToken()
+  if (token) {
+    config.headers = config.headers || {}
+    ;(config.headers as any)['Authorization'] = `Bearer ${token}`
+  }
+  return config
 })
 
 export const getUsers = async (): Promise<User[]> => {
