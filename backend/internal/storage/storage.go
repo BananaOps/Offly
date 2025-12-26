@@ -42,6 +42,7 @@ type Holiday struct {
 type Storage interface {
 	CreateAbsence(absence *Absence) error
 	GetAbsences(userID string, startDate, endDate time.Time) ([]*Absence, error)
+	GetAbsenceByID(id string) (*Absence, error)
 	UpdateAbsence(absence *Absence) error
 	DeleteAbsence(id string) error
 

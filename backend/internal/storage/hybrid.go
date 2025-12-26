@@ -153,6 +153,10 @@ func (h *HybridStorage) GetAbsences(userID string, startDate, endDate time.Time)
 	return h.getStorage().GetAbsences(userID, startDate, endDate)
 }
 
+func (h *HybridStorage) GetAbsenceByID(id string) (*Absence, error) {
+	return h.getStorage().GetAbsenceByID(id)
+}
+
 func (h *HybridStorage) UpdateAbsence(absence *Absence) error {
 	if err := h.memory.UpdateAbsence(absence); err != nil {
 		return err

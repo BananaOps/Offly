@@ -6,6 +6,7 @@ import { faChevronLeft, faChevronRight, faCheck, faBuilding, faUserGroup, faExcl
 import { User, Department, Team, Absence, Holiday } from '../types'
 import { getAbsences, createAbsence, deleteAbsence } from '../api'
 import { getHolidaysForCountryAndYear } from '../utils/holidayManager'
+import { getCurrentUser, getAuthConfig, getCachedUserEmail } from '../auth'
 
 interface Props {
   users: User[]
@@ -35,6 +36,18 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
   const [modalData, setModalData] = useState<{ userId: string; startDate: Date; endDate: Date } | null>(null)
   const [showHolidayModal, setShowHolidayModal] = useState(false)
   const [holidayModalData, setHolidayModalData] = useState<{ name: string; country: string; date: Date } | null>(null)
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(() => {
+    // Get cached email instantly for immediate display
+    const ssoEnabled = getAuthConfig().enabled
+    return ssoEnabled ? getCachedUserEmail() : null
+  })
+  const [isSSO, setIsSSO] = useState(getAuthConfig().enabled)
+  const [userLoaded, setUserLoaded] = useState(false)
+
+  useEffect(() => {
+    // Update SSO status when auth config changes
+    setIsSSO(getAuthConfig().enabled)
+  }, [])
 
   const days = eachDayOfInterval({
     start: startOfMonth(currentDate),
@@ -45,12 +58,30 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
     loadAbsences()
   }, [currentDate])
 
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      const ssoEnabled = getAuthConfig().enabled
+      setIsSSO(ssoEnabled)
+      if (ssoEnabled) {
+        const user = await getCurrentUser()
+        if (user) {
+          setCurrentUserEmail(user.email)
+        }
+      }
+      setUserLoaded(true)
+    }
+    loadCurrentUser()
+  }, [])
+
+
+
   const loadAbsences = async () => {
     try {
+      // Use date-only strings so API converts to UTC day bounds
       const data = await getAbsences(
         undefined,
-        startOfMonth(currentDate).toISOString(),
-        endOfMonth(currentDate).toISOString()
+        formatDateLocal(startOfMonth(currentDate)),
+        formatDateLocal(endOfMonth(currentDate))
       )
       setAbsences(data)
     } catch (error) {
@@ -110,17 +141,39 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
     return { presentUsers, totalUsers, percentage }
   }
 
+  const dayStartUTC = (d: Date) => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0))
+  const dayEndUTC = (d: Date) => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59))
+
+  const overlapsDay = (start: Date, end: Date, day: Date) => {
+    const ds = dayStartUTC(day)
+    const de = dayEndUTC(day)
+    return !(end < ds || start > de)
+  }
+
   const hasAbsence = (userId: string, day: Date) => {
     return absences.some(absence => {
       const start = parseISO(absence.startDate)
       const end = parseISO(absence.endDate)
-      return absence.userId === userId && day >= start && day <= end
+      return absence.userId === userId && overlapsDay(start, end, day)
     })
   }
 
+  const canUserEdit = (userEmail: string): boolean => {
+    // In SSO mode, users can only edit their own absences
+    if (isSSO && currentUserEmail) {
+      return userEmail === currentUserEmail
+    }
+    // In non-SSO mode, anyone can edit
+    return true
+  }
+
+  const toUtcMidnightIso = (d: Date): string => {
+    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0)).toISOString()
+  }
+
   const handleCellClick = async (userId: string, day: Date, event: React.MouseEvent) => {
-    // Right click or Ctrl+Click for half day
-    if (event.button === 2 || event.ctrlKey) {
+    // Right click or modifier key (Ctrl/Cmd/Alt) for half day
+    if (event.button === 2 || event.ctrlKey || (event as any).metaKey || event.altKey) {
       event.preventDefault()
       setModalData({ userId, startDate: day, endDate: day })
       setShowAbsenceModal(true)
@@ -146,16 +199,17 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
     // Single day toggle
     const existing = absences.find(absence => {
       const start = parseISO(absence.startDate)
-      return absence.userId === userId && isSameDay(start, day)
+      const end = parseISO(absence.endDate)
+      return absence.userId === userId && overlapsDay(start, end, day)
     })
 
     if (existing) {
       await deleteAbsence(existing.id)
     } else {
-      // Normaliser la date à minuit UTC pour éviter les problèmes de timezone
-      const normalizedDate = new Date(day)
-      normalizedDate.setHours(0, 0, 0, 0)
-      await createAbsence(userId, normalizedDate.toISOString(), normalizedDate.toISOString(), 'Time Off')
+      // Create a full-day: 00:00 -> 23:59 (UTC)
+      const startIso = new Date(Date.UTC(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, 0)).toISOString()
+      const endIso = new Date(Date.UTC(day.getFullYear(), day.getMonth(), day.getDate(), 23, 59, 59)).toISOString()
+      await createAbsence(userId, startIso, endIso, 'Time Off')
     }
     loadAbsences()
   }
@@ -169,19 +223,27 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
         : type === 'morning' 
         ? '☀️ Time Off (Morning)' 
         : '🌙 Time Off (Afternoon)'
-      
-      // Normaliser les dates à minuit UTC pour éviter les problèmes de timezone
-      const normalizedStart = new Date(modalData.startDate)
-      normalizedStart.setHours(0, 0, 0, 0)
-      const normalizedEnd = new Date(modalData.endDate)
-      normalizedEnd.setHours(0, 0, 0, 0)
-      
-      await createAbsence(
-        modalData.userId,
-        normalizedStart.toISOString(),
-        normalizedEnd.toISOString(),
-        reason
-      )
+
+      let startIso: string
+      let endIso: string
+      const s = modalData.startDate
+      const e = modalData.endDate
+
+      if (type === 'morning') {
+        // 00:00 -> 11:59 same day
+        startIso = new Date(Date.UTC(s.getFullYear(), s.getMonth(), s.getDate(), 0, 0, 0)).toISOString()
+        endIso = new Date(Date.UTC(s.getFullYear(), s.getMonth(), s.getDate(), 11, 59, 59)).toISOString()
+      } else if (type === 'afternoon') {
+        // 12:00 -> 23:59 same day
+        startIso = new Date(Date.UTC(s.getFullYear(), s.getMonth(), s.getDate(), 12, 0, 0)).toISOString()
+        endIso = new Date(Date.UTC(s.getFullYear(), s.getMonth(), s.getDate(), 23, 59, 59)).toISOString()
+      } else {
+        // Full day(s): 00:00 start -> 23:59 end across range
+        startIso = new Date(Date.UTC(s.getFullYear(), s.getMonth(), s.getDate(), 0, 0, 0)).toISOString()
+        endIso = new Date(Date.UTC(e.getFullYear(), e.getMonth(), e.getDate(), 23, 59, 59)).toISOString()
+      }
+
+      await createAbsence(modalData.userId, startIso, endIso, reason)
       setShowAbsenceModal(false)
       setModalData(null)
       setRangeStart(null)
@@ -415,9 +477,20 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
                     </tr>
 
                     {/* Team Users */}
-                    {team.users.map(user => (
-                      <tr key={user.id} className="hover:bg-background dark:hover:bg-gray-700 transition-colors border-t border-gray-100 dark:border-gray-700 relative">
-                        <td className="px-12 py-3 whitespace-nowrap text-sm text-text dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-[2] border-r border-gray-200 dark:border-gray-700">
+                    {team.users.map(user => {
+                      const isCurrentUser = isSSO && currentUserEmail === user.email
+                      const canEdit = canUserEdit(user.email)
+                      return (
+                      <tr key={user.id} className={`transition-colors border-t border-gray-100 dark:border-gray-700 relative ${
+                        isCurrentUser 
+                          ? 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
+                          : 'hover:bg-background dark:hover:bg-gray-700'
+                      }`}>
+                        <td className={`px-12 py-3 whitespace-nowrap text-sm sticky left-0 z-[2] border-r border-gray-200 dark:border-gray-700 ${
+                          isCurrentUser 
+                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 font-semibold' 
+                            : 'bg-white dark:bg-gray-800 text-text dark:text-white'
+                        }`}>
                           <div className="font-medium flex items-center gap-2">
                             {user.country && (
                               <span className="text-base" title={user.country}>
@@ -425,6 +498,9 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
                               </span>
                             )}
                             {user.name}
+                            {isCurrentUser && (
+                              <span className="ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">You</span>
+                            )}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{user.email}</div>
                         </td>
@@ -432,7 +508,7 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
                           const absence = absences.find(a => {
                             const start = parseISO(a.startDate)
                             const end = parseISO(a.endDate)
-                            return a.userId === user.id && day >= start && day <= end
+                            return a.userId === user.id && overlapsDay(start, end, day)
                           })
                           const isHalfDay = absence?.reason.includes('Morning') || absence?.reason.includes('Afternoon')
                           const isMorning = absence?.reason.includes('Morning')
@@ -444,6 +520,7 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
                             <td
                               key={day.toISOString()}
                               onClick={(e) => {
+                                if (!canEdit) return
                                 if (holiday) {
                                   setHolidayModalData({ name: holiday.name, country: user.country!, date: day })
                                   setShowHolidayModal(true)
@@ -453,6 +530,7 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
                               }}
                               onContextMenu={(e) => {
                                 e.preventDefault()
+                                if (!canEdit) return
                                 if (holiday) {
                                   setHolidayModalData({ name: holiday.name, country: user.country!, date: day })
                                   setShowHolidayModal(true)
@@ -464,6 +542,8 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
                               className={`px-3 py-3 text-center transition-all border-l z-[1] relative ${
                                 isWeekendDay
                                   ? 'bg-gray-200 dark:bg-gray-700 cursor-not-allowed border-gray-300 dark:border-gray-600'
+                                  : !canEdit
+                                  ? 'cursor-not-allowed opacity-50'
                                   : holiday
                                   ? 'bg-yellow-50 dark:bg-yellow-900/20 cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800'
                                   : absence
@@ -498,7 +578,8 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
                           )
                         })}
                       </tr>
-                    ))}
+                    )
+                    })}
                   </React.Fragment>
                 ))}
 
@@ -513,31 +594,80 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
                         <td key={day.toISOString()} className={`border-l z-[1] ${isWeekend(day) ? 'bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600' : 'bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-700'}`}></td>
                       ))}
                     </tr>
-                    {group.usersWithoutTeam.map(user => (
-                      <tr key={user.id} className="hover:bg-background dark:hover:bg-gray-700 transition-colors border-t border-gray-100 dark:border-gray-700 relative">
-                        <td className="px-12 py-3 whitespace-nowrap text-sm text-text dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-[2] border-r border-gray-200 dark:border-gray-700">
-                          <div className="font-medium">{user.name}</div>
+                    {group.usersWithoutTeam.map(user => {
+                      const isCurrentUser = isSSO && currentUserEmail === user.email
+                      const canEdit = canUserEdit(user.email)
+                      return (
+                      <tr key={user.id} className={`transition-colors border-t border-gray-100 dark:border-gray-700 relative ${
+                        isCurrentUser 
+                          ? 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
+                          : 'hover:bg-background dark:hover:bg-gray-700'
+                      }`}>
+                        <td className={`px-12 py-3 whitespace-nowrap text-sm sticky left-0 z-[2] border-r border-gray-200 dark:border-gray-700 ${
+                          isCurrentUser 
+                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 font-semibold' 
+                            : 'bg-white dark:bg-gray-800 text-text dark:text-white'
+                        }`}>
+                          <div className="font-medium flex items-center gap-2">
+                            {user.name}
+                            {isCurrentUser && (
+                              <span className="ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">You</span>
+                            )}
+                          </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{user.email}</div>
                         </td>
-                        {days.map(day => (
+                        {days.map(day => {
+                          const absence = absences.find(a => {
+                            const start = parseISO(a.startDate)
+                            const end = parseISO(a.endDate)
+                            return a.userId === user.id && overlapsDay(start, end, day)
+                          })
+                          const isHalfDay = absence?.reason.includes('Morning') || absence?.reason.includes('Afternoon')
+                          const isMorning = absence?.reason.includes('Morning')
+                          const isWeekendDay = isWeekend(day)
+                          
+                          return (
                           <td
                             key={day.toISOString()}
-                            onClick={(e) => !isWeekend(day) && handleCellClick(user.id, day, e)}
+                            onClick={(e) => {
+                              if (!canEdit) return
+                              if (!isWeekendDay) handleCellClick(user.id, day, e)
+                            }}
+                            onContextMenu={(e) => {
+                              e.preventDefault()
+                              if (!canEdit) return
+                              if (!isWeekendDay) {
+                                setModalData({ userId: user.id, startDate: day, endDate: day })
+                                setShowAbsenceModal(true)
+                              }
+                            }}
                             className={`px-3 py-3 text-center transition-all border-l z-[1] ${
-                              isWeekend(day) 
-                                ? 'bg-gray-200 cursor-not-allowed border-gray-300' 
-                                : hasAbsence(user.id, day)
-                                ? 'bg-accent cursor-pointer hover:bg-opacity-80 border-gray-100'
-                                : 'cursor-pointer hover:bg-primary hover:bg-opacity-10 border-gray-100'
+                              isWeekendDay
+                                ? 'bg-gray-200 dark:bg-gray-700 cursor-not-allowed border-gray-300 dark:border-gray-600' 
+                                : !canEdit
+                                ? 'cursor-not-allowed opacity-50'
+                                : absence
+                                ? 'bg-accent cursor-pointer hover:bg-opacity-80 border-gray-100 dark:border-gray-700'
+                                : 'cursor-pointer hover:bg-primary hover:bg-opacity-10 border-gray-100 dark:border-gray-700'
                             }`}
                           >
-                            {!isWeekend(day) && hasAbsence(user.id, day) && (
-                              <FontAwesomeIcon icon={faCheck} className="text-text" />
+                            {!isWeekendDay && absence && (
+                              isHalfDay ? (
+                                <div className="flex items-center justify-center">
+                                  <FontAwesomeIcon 
+                                    icon={isMorning ? faSun : faMoon} 
+                                    className="text-white text-sm" 
+                                  />
+                                </div>
+                              ) : (
+                                <FontAwesomeIcon icon={faCheck} className="text-white" />
+                              )
                             )}
                           </td>
-                        ))}
+                        )})}
                       </tr>
-                    ))}
+                    )
+                    })}
                   </>
                 )}
               </React.Fragment>
@@ -585,7 +715,7 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
           </div>
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400 bg-background dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors">
-          <strong>Tips:</strong> Click to toggle single day • Right-click or Ctrl+Click for half-day options • Use "Range" mode to select multiple consecutive days
+          <strong>Tips:</strong> Click to toggle single day • Right-click or Ctrl/Cmd/Alt+Click for half-day options • Use "Range" mode to select multiple consecutive days
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"sync"
 	"time"
 )
@@ -41,20 +42,20 @@ func (s *MemoryStorage) GetAbsences(userID string, startDate, endDate time.Time)
 			continue
 		}
 
-		// Si des dates sont fournies, trouver les absences qui se chevauchent avec la période
-		// Une absence chevauche si: absence.start_date <= endDate ET absence.end_date >= startDate
+		// Find absences that overlap with the period
+		// Overlap: absence.start_date <= endDate AND absence.end_date >= startDate
 		if !startDate.IsZero() && !endDate.IsZero() {
-			// Vérifier le chevauchement
+			// Check overlap: NOT (end before range OR start after range)
 			if a.StartDate.After(endDate) || a.EndDate.Before(startDate) {
 				continue
 			}
 		} else if !startDate.IsZero() {
-			// Si seulement startDate est fourni, prendre les absences qui finissent après
+			// Only startDate provided: absences that end on or after start
 			if a.EndDate.Before(startDate) {
 				continue
 			}
 		} else if !endDate.IsZero() {
-			// Si seulement endDate est fourni, prendre les absences qui commencent avant
+			// Only endDate provided: absences that start on or before end
 			if a.StartDate.After(endDate) {
 				continue
 			}
@@ -70,6 +71,15 @@ func (s *MemoryStorage) UpdateAbsence(absence *Absence) error {
 	defer s.mu.Unlock()
 	s.absences[absence.ID] = absence
 	return nil
+}
+
+func (s *MemoryStorage) GetAbsenceByID(id string) (*Absence, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if a, ok := s.absences[id]; ok {
+		return a, nil
+	}
+	return nil, errors.New("absence not found")
 }
 
 func (s *MemoryStorage) DeleteAbsence(id string) error {

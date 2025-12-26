@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -140,7 +143,7 @@ func startRESTGateway(store storage.Storage) error {
 		if clientID == "" {
 			clientID = ""
 		}
-		w.Write([]byte("{\"enabled\":" + map[bool]string{true:"true", false:"false"}[authEnabled] + ",\"issuerUrl\":\"" + issuer + "\",\"clientId\":\"" + clientID + "\"}"))
+		w.Write([]byte("{\"enabled\":" + map[bool]string{true: "true", false: "false"}[authEnabled] + ",\"issuerUrl\":\"" + issuer + "\",\"clientId\":\"" + clientID + "\"}"))
 	})
 
 	if authEnabled {
@@ -275,27 +278,78 @@ func rbacMiddleware(store storage.Storage, v *auth.Verifier, next http.Handler) 
 		}
 
 		// Check if request is for user's own absences
-		if len(path) > len("/api/v1/absences") && path[:len("/api/v1/absences")] == "/api/v1/absences" {
+		if len(path) >= len("/api/v1/absences") && path[:len("/api/v1/absences")] == "/api/v1/absences" {
 			// For absences, we need to check if the absence belongs to the user
-			// This is a simplified check - in production you'd query the absence by ID and verify ownership
-			// For now, allow if it's a POST (create) or if userId query param matches
 			if r.Method == "POST" {
-				// Users can create their own absences
-				next.ServeHTTP(w, r)
+				// Read body to check if user is creating their own absence
+				bodyBytes, err := io.ReadAll(r.Body)
+				if err != nil {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusBadRequest)
+					w.Write([]byte(`{"error":"failed to read request body"}`))
+					return
+				}
+				// Restore body for later use
+				r.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+				// Parse JSON to check userId
+				var reqBody map[string]interface{}
+				if err := json.Unmarshal(bodyBytes, &reqBody); err != nil {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusBadRequest)
+					w.Write([]byte(`{"error":"invalid request body"}`))
+					return
+				}
+
+				// Check if userId in body matches authenticated user
+				if reqUserID, ok := reqBody["userId"].(string); ok && reqUserID == userID {
+					next.ServeHTTP(w, r)
+					return
+				}
+
+				// Deny if trying to create absence for another user
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusForbidden)
+				w.Write([]byte(`{"error":"can only create absences for yourself"}`))
 				return
 			}
-			// For PUT/DELETE, check query params or path for userId
-			queryUserID := r.URL.Query().Get("userId")
-			if queryUserID == userID {
-				next.ServeHTTP(w, r)
+			// For PUT/DELETE, verify that absence belongs to current user
+			if r.Method == "PUT" || r.Method == "DELETE" {
+				// Extract absence ID from path: /api/v1/absences/{id}
+				pathAfterPrefix := strings.TrimPrefix(path, "/api/v1/absences/")
+				idEnd := strings.IndexByte(pathAfterPrefix, '/')
+				absenceID := pathAfterPrefix
+				if idEnd > 0 {
+					absenceID = pathAfterPrefix[:idEnd]
+				}
+				if absenceID == "" {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusBadRequest)
+					w.Write([]byte(`{"error":"absence id missing in path"}`))
+					return
+				}
+				// Load absence and verify ownership
+				absence, err := store.GetAbsenceByID(absenceID)
+				if err == nil && absence != nil && absence.UserID == userID {
+					next.ServeHTTP(w, r)
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusForbidden)
+				w.Write([]byte(`{"error":"can only modify your own absences"}`))
 				return
 			}
 		}
 
 		// Deny access to organization/holiday modifications for non-admins
-		if len(path) > len("/api/v1/departments") && path[:len("/api/v1/departments")] == "/api/v1/departments" ||
-			len(path) > len("/api/v1/teams") && path[:len("/api/v1/teams")] == "/api/v1/teams" ||
-			len(path) > len("/api/v1/holidays") && path[:len("/api/v1/holidays")] == "/api/v1/holidays" {
+		if (len(path) >= len("/api/v1/departments") && path[:len("/api/v1/departments")] == "/api/v1/departments") ||
+			(len(path) >= len("/api/v1/teams") && path[:len("/api/v1/teams")] == "/api/v1/teams") ||
+			(len(path) >= len("/api/v1/holidays") && path[:len("/api/v1/holidays")] == "/api/v1/holidays") {
+			// Allow if user is admin
+			if auth.IsAdmin(r) {
+				next.ServeHTTP(w, r)
+				return
+			}
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusForbidden)
 			w.Write([]byte(`{"error":"admin access required to modify organization or holidays"}`))

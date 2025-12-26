@@ -141,13 +141,11 @@ func (s *MongoStorage) GetAbsences(userID string, startDate, endDate time.Time) 
 		filter["user_id"] = userID
 	}
 
-	// Si des dates sont fournies, trouver les absences qui se chevauchent avec la période
-	// Une absence chevauche si: absence.start_date <= endDate ET absence.end_date >= startDate
+	// Find absences that overlap with the period
+	// Overlap: absence.start_date <= endDate AND absence.end_date >= startDate
 	if !startDate.IsZero() && !endDate.IsZero() {
-		filter["$and"] = []bson.M{
-			{"start_date": bson.M{"$lte": endDate}},
-			{"end_date": bson.M{"$gte": startDate}},
-		}
+		filter["start_date"] = bson.M{"$lte": endDate}
+		filter["end_date"] = bson.M{"$gte": startDate}
 	} else if !startDate.IsZero() {
 		filter["end_date"] = bson.M{"$gte": startDate}
 	} else if !endDate.IsZero() {
@@ -177,6 +175,31 @@ func (s *MongoStorage) GetAbsences(userID string, startDate, endDate time.Time) 
 	}
 
 	return absences, nil
+}
+
+func (s *MongoStorage) GetAbsenceByID(id string) (*Absence, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	var doc AbsenceDoc
+	err = s.absences.FindOne(ctx, bson.M{"_id": objID}).Decode(&doc)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Absence{
+		ID:        doc.ID.Hex(),
+		UserID:    doc.UserID,
+		StartDate: doc.StartDate,
+		EndDate:   doc.EndDate,
+		Reason:    doc.Reason,
+		Status:    doc.Status,
+	}, nil
 }
 
 func (s *MongoStorage) UpdateAbsence(absence *Absence) error {

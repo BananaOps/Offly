@@ -48,17 +48,41 @@ export async function getCurrentUser(): Promise<{ name: string; email: string; r
     const resp = await fetch('/api/v1/auth/me', {
       credentials: 'include', // Send cookies
     })
-    if (!resp.ok) return null
+    if (!resp.ok) {
+      localStorage.removeItem('user_email')
+      localStorage.removeItem('user_role')
+      return null
+    }
     const data = await resp.json()
-    if (!data.authenticated) return null
-    return {
+    if (!data.authenticated) {
+      localStorage.removeItem('user_email')
+      localStorage.removeItem('user_role')
+      return null
+    }
+    const user = {
       name: data.name || data.email,
       email: data.email,
       role: data.role || 'user',
     }
+    // Cache email and role for instant display
+    localStorage.setItem('user_email', data.email)
+    localStorage.setItem('user_role', user.role)
+    return user
   } catch {
+    localStorage.removeItem('user_email')
+    localStorage.removeItem('user_role')
     return null
   }
+}
+
+// Get cached user email (instant, no network call)
+export function getCachedUserEmail(): string | null {
+  return localStorage.getItem('user_email')
+}
+
+// Check if current user is admin (instant, from cache)
+export function isAdmin(): boolean {
+  return localStorage.getItem('user_role') === 'admin'
 }
 
 // Logout by clearing backend cookie
@@ -71,5 +95,7 @@ export async function logout(): Promise<void> {
   } catch {
     // ignore
   }
+  localStorage.removeItem('user_email')
+  localStorage.removeItem('user_role')
   window.location.reload()
 }

@@ -31,14 +31,31 @@ function App() {
         if (res.ok) {
           const cfg = await res.json()
           setAuthConfig({ enabled: !!cfg.enabled, issuerUrl: cfg.issuerUrl || '', clientId: cfg.clientId || '' })
+          
+          // If auth enabled, fetch user info immediately to cache role
+          if (cfg.enabled) {
+            const { getCurrentUser } = await import('./auth')
+            await getCurrentUser()
+          }
         }
       } catch {}
       const authenticated = await handleCallback()
       setIsAuthenticated(authenticated || !!localStorage.getItem('id_token'))
+      // Wait a bit after authentication to ensure user is created
+      if (authenticated) {
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
       loadData()
     }
     init()
   }, [])
+
+  useEffect(() => {
+    // Reload data when authentication state changes
+    if (isAuthenticated) {
+      loadData()
+    }
+  }, [isAuthenticated])
 
   const loadData = async () => {
     try {

@@ -21,6 +21,7 @@ staticClients:
   secret: offly-secret
   redirectURIs:
     - 'http://localhost:8080/api/v1/auth/callback'
+  idTokensValidFor: 24h
 
 enablePasswordDB: true
 
@@ -33,6 +34,8 @@ staticPasswords:
    hash: "$2y$10$F1ZaKzFUTjnqMLONEPgaPe9nDpaweNoSi7jewau59Hni30KRGx/Om" # mdp: test
    username: "elie.copter"
    userID: "72c1f5f4-9b39-4f28-9b93-7a3d3a45e2c7"
+   groups:
+   - admin 
 
 logger:
   level: debug

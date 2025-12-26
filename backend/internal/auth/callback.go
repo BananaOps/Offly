@@ -105,16 +105,6 @@ func CallbackHandler(store storage.Storage, v *Verifier) http.HandlerFunc {
 			}
 		}
 
-		// Get groups from claims (used for role determination only)
-		var groupsFromToken []string
-		if groupsRaw, ok := claims["groups"].([]interface{}); ok {
-			for _, g := range groupsRaw {
-				if s, ok := g.(string); ok {
-					groupsFromToken = append(groupsFromToken, s)
-				}
-			}
-		}
-
 		// Check if user exists
 		users, _ := store.GetUsers()
 		var existing *storage.User
@@ -187,20 +177,21 @@ func MeHandler(v *Verifier) http.HandlerFunc {
 			name = email
 		}
 
-		var groups []string
-		if groupsRaw, ok := claims["groups"].([]interface{}); ok {
-			for _, g := range groupsRaw {
-				if s, ok := g.(string); ok {
-					groups = append(groups, s)
-				}
-			}
-		}
-
 		role := "user"
-		for _, g := range groups {
-			if g == "admin" {
-				role = "admin"
-				break
+		
+		// Check if user is admin based on AUTH_ADMIN_EMAILS env var
+		adminEmails := os.Getenv("AUTH_ADMIN_EMAILS")
+		if adminEmails == "" {
+			adminEmails = os.Getenv("ADMIN_EMAILS") // Fallback
+		}
+		
+		if adminEmails != "" {
+			adminList := strings.Split(adminEmails, ",")
+			for _, admin := range adminList {
+				if strings.TrimSpace(admin) == email {
+					role = "admin"
+					break
+				}
 			}
 		}
 
@@ -209,7 +200,6 @@ func MeHandler(v *Verifier) http.HandlerFunc {
 			"email":         email,
 			"name":          name,
 			"role":          role,
-			"groups":        groups,
 		})
 	}
 }

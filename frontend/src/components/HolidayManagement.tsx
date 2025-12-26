@@ -23,13 +23,25 @@ import {
   exportHolidays,
   importHolidays
 } from '../utils/holidayManager'
-import { getAuthConfig } from '../auth'
+import { getAuthConfig, getCurrentUser } from '../auth'
 
 export default function HolidayManagement() {
   const isSSO = getAuthConfig().enabled
+  const [isAdmin, setIsAdmin] = useState(false)
+  const canEdit = useMemo(() => !isSSO || isAdmin, [isSSO, isAdmin])
   const [holidays, setHolidays] = useState<Holiday[]>([])
   const [selectedCountry, setSelectedCountry] = useState('')
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (isSSO) {
+        const user = await getCurrentUser()
+        setIsAdmin(user?.role === 'admin')
+      }
+    }
+    checkAdmin()
+  }, [isSSO])
   
   const [newDate, setNewDate] = useState('')
   const [newName, setNewName] = useState('')
@@ -165,7 +177,7 @@ export default function HolidayManagement() {
           Holiday Management
         </h2>
         
-        {!isSSO && (
+        {canEdit && (
         <div className="flex gap-2">
           <button
             onClick={handleExport}
@@ -188,19 +200,19 @@ export default function HolidayManagement() {
         )}
       </div>
 
-      {isSSO && (
+      {isSSO && !canEdit && (
         <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
           <div className="flex items-start gap-3">
             <FontAwesomeIcon icon={faInfoCircle} className="text-blue-600 dark:text-blue-400 mt-0.5" />
             <div className="text-sm text-blue-800 dark:text-blue-300">
               <p className="font-semibold mb-1">SSO Authentication Mode</p>
-              <p>Holiday management is disabled when SSO is enabled. Holidays should be managed through your centralized configuration.</p>
+              <p>Holiday management is disabled when SSO is enabled. Holidays should be managed through your centralized configuration or by an administrator.</p>
             </div>
           </div>
         </div>
       )}
 
-      {!isSSO && (
+      {canEdit && (
       <div className="mb-6 p-6 bg-background dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
         <h3 className="text-lg font-semibold mb-4 text-text dark:text-white">Add New Holiday</h3>
         <div className="grid grid-cols-4 gap-4">
@@ -343,7 +355,7 @@ export default function HolidayManagement() {
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                  {!isSSO && (
+                  {canEdit && (
                   editingId === holiday.id ? (
                     <div className="flex justify-end gap-2">
                       <button

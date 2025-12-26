@@ -98,11 +98,25 @@ func (s *SQLiteStorage) CreateAbsence(absence *Absence) error {
 }
 
 func (s *SQLiteStorage) GetAbsences(userID string, startDate, endDate time.Time) ([]*Absence, error) {
-	query := `SELECT id, user_id, start_date, end_date, reason, status 
-			  FROM absences 
-			  WHERE user_id = ? AND start_date >= ? AND end_date <= ?`
+	var query string
+	var args []interface{}
 	
-	rows, err := s.db.Query(query, userID, startDate, endDate)
+	if userID == "" {
+		// Get all absences that overlap with date range
+		// Overlap: absence.start_date <= endDate AND absence.end_date >= startDate
+		query = `SELECT id, user_id, start_date, end_date, reason, status 
+				  FROM absences 
+				  WHERE start_date <= ? AND end_date >= ?`
+		args = []interface{}{endDate, startDate}
+	} else {
+		// Get absences for specific user that overlap with date range
+		query = `SELECT id, user_id, start_date, end_date, reason, status 
+				  FROM absences 
+				  WHERE user_id = ? AND start_date <= ? AND end_date >= ?`
+		args = []interface{}{userID, endDate, startDate}
+	}
+	
+	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +139,16 @@ func (s *SQLiteStorage) UpdateAbsence(absence *Absence) error {
 			  WHERE id = ?`
 	_, err := s.db.Exec(query, absence.UserID, absence.StartDate, absence.EndDate, absence.Reason, absence.Status, absence.ID)
 	return err
+}
+
+func (s *SQLiteStorage) GetAbsenceByID(id string) (*Absence, error) {
+	query := `SELECT id, user_id, start_date, end_date, reason, status FROM absences WHERE id = ?`
+	row := s.db.QueryRow(query, id)
+	a := &Absence{}
+	if err := row.Scan(&a.ID, &a.UserID, &a.StartDate, &a.EndDate, &a.Reason, &a.Status); err != nil {
+		return nil, err
+	}
+	return a, nil
 }
 
 func (s *SQLiteStorage) DeleteAbsence(id string) error {

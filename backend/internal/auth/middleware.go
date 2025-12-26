@@ -134,18 +134,30 @@ func GetUserID(r *http.Request) string {
 	return ""
 }
 
-// IsAdmin checks if the user has the admin group.
+// IsAdmin checks if the user email is in the admin list from environment variable.
 func IsAdmin(r *http.Request) bool {
-	groups := GetUserGroups(r)
-	adminGroup := os.Getenv("AUTH_ADMIN_GROUP")
-	if adminGroup == "" {
-		adminGroup = "admin"
+	adminEmails := os.Getenv("AUTH_ADMIN_EMAILS")
+	if adminEmails == "" {
+		adminEmails = os.Getenv("ADMIN_EMAILS") // Fallback
 	}
-	for _, g := range groups {
-		if g == adminGroup {
+	
+	if adminEmails == "" {
+		return false
+	}
+	
+	userEmail := GetUserEmail(r)
+	if userEmail == "" {
+		return false
+	}
+	
+	// Split comma-separated list of admin emails
+	adminList := strings.Split(adminEmails, ",")
+	for _, admin := range adminList {
+		if strings.TrimSpace(admin) == userEmail {
 			return true
 		}
 	}
+	
 	return false
 }
 
