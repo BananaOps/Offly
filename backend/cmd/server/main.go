@@ -265,14 +265,37 @@ func rbacMiddleware(store storage.Storage, v *auth.Verifier, next http.Handler) 
 		userID := auth.GetUserID(r)
 		path := r.URL.Path
 
-		// Check if request is for user's own profile
-		if r.Method == "PUT" && len(path) > len("/api/v1/users/") && path[:len("/api/v1/users/")] == "/api/v1/users/" {
-			pathUserID := path[len("/api/v1/users/"):]
-			if slashIdx := strings.IndexByte(pathUserID, '/'); slashIdx > 0 {
-				pathUserID = pathUserID[:slashIdx]
+		// Check if request is for user's own profile (including sub-resources like /users/{id}/department)
+		if strings.HasPrefix(path, "/api/v1/users/") {
+			// Extract user ID from path: /api/v1/users/{id} or /api/v1/users/{id}/...
+			pathAfterUsers := strings.TrimPrefix(path, "/api/v1/users/")
+			// Skip if it's just /users (POST to create new user)
+			if pathAfterUsers == "" || pathAfterUsers == "/" {
+				// This is POST /users to create a new user - deny for non-admins
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusForbidden)
+				w.Write([]byte(`{"error":"only admins can create users"}`))
+				return
 			}
-			if pathUserID == userID {
+			
+			pathUserID := pathAfterUsers
+			if slashIdx := strings.IndexByte(pathAfterUsers, '/'); slashIdx > 0 {
+				pathUserID = pathAfterUsers[:slashIdx]
+			}
+			
+			// Allow PUT/POST on own profile
+			if (r.Method == "PUT" || r.Method == "POST") && pathUserID == userID {
+				log.Printf("RBAC - %s user profile: currentUserID=%s, pathUserID=%s, match=true", r.Method, userID, pathUserID)
 				next.ServeHTTP(w, r)
+				return
+			}
+			
+			// Trying to modify someone else's profile
+			if r.Method == "PUT" || r.Method == "POST" {
+				log.Printf("RBAC - %s user profile: currentUserID=%s, pathUserID=%s, match=false - DENIED", r.Method, userID, pathUserID)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusForbidden)
+				w.Write([]byte(`{"error":"can only modify your own profile"}`))
 				return
 			}
 		}

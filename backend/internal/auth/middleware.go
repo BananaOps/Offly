@@ -12,9 +12,9 @@ import (
 type contextKey string
 
 const (
-	userEmailKey contextKey = "user_email"
+	userEmailKey  contextKey = "user_email"
 	userGroupsKey contextKey = "user_groups"
-	userIDKey contextKey = "user_id"
+	userIDKey     contextKey = "user_id"
 )
 
 // AuthMiddleware verifies token (from Bearer header or cookie) when AUTH_ENABLED=true and injects user info into request context.
@@ -43,7 +43,7 @@ func AuthMiddleware(v *Verifier, store storage.Storage, required bool) func(http
 			// Try to get token from Bearer header first, then from cookie
 			var claims map[string]interface{}
 			var err error
-			
+
 			authHeader := r.Header.Get("Authorization")
 			if authHeader != "" {
 				claims, err = v.VerifyBearer(r)
@@ -140,16 +140,16 @@ func IsAdmin(r *http.Request) bool {
 	if adminEmails == "" {
 		adminEmails = os.Getenv("ADMIN_EMAILS") // Fallback
 	}
-	
+
 	if adminEmails == "" {
 		return false
 	}
-	
+
 	userEmail := GetUserEmail(r)
 	if userEmail == "" {
 		return false
 	}
-	
+
 	// Split comma-separated list of admin emails
 	adminList := strings.Split(adminEmails, ",")
 	for _, admin := range adminList {
@@ -157,7 +157,7 @@ func IsAdmin(r *http.Request) bool {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
