@@ -74,69 +74,56 @@ function App() {
   return (
     <div className="min-h-screen bg-background dark:bg-gray-900 flex flex-col transition-colors">
       <Banner />
-      <nav className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors">
+      <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
                 <Logo className="h-10" />
               </div>
-              <div className="ml-8 flex space-x-4">
-                {/* Temporarily hidden - Attendance page
-                <button
-                  onClick={() => setActiveTab('presences')}
-                  className={`inline-flex items-center px-4 py-2 border-b-2 text-sm font-medium transition-colors ${
-                    activeTab === 'presences'
-                      ? 'border-primary text-primary dark:text-primary'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-text dark:hover:text-white'
-                  }`}
-                >
-                  <FontAwesomeIcon icon={faUserCheck} className="mr-2" />
-                  Attendance
-                </button>
-                */}
+              <div className="ml-8 flex gap-1">
                 <button
                   onClick={() => setActiveTab('absences')}
-                  className={`inline-flex items-center px-4 py-2 border-b-2 text-sm font-medium transition-colors ${
+                  className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     activeTab === 'absences'
-                      ? 'border-primary text-primary dark:text-primary'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-text dark:hover:text-white'
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200'
                   }`}
                 >
-                  <FontAwesomeIcon icon={faCalendarDays} className="mr-2" />
+                  <FontAwesomeIcon icon={faCalendarDays} className="mr-2 text-xs" />
                   Time Off
                 </button>
                 <button
                   onClick={() => setActiveTab('users')}
-                  className={`inline-flex items-center px-4 py-2 border-b-2 text-sm font-medium transition-colors ${
+                  className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     activeTab === 'users'
-                      ? 'border-primary text-primary dark:text-primary'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-text dark:hover:text-white'
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200'
                   }`}
                 >
-                  <FontAwesomeIcon icon={faUsers} className="mr-2" />
+                  <FontAwesomeIcon icon={faUsers} className="mr-2 text-xs" />
                   Users
                 </button>
                 <button
                   onClick={() => setActiveTab('organization')}
-                  className={`inline-flex items-center px-4 py-2 border-b-2 text-sm font-medium transition-colors ${
+                  className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     activeTab === 'organization'
-                      ? 'border-primary text-primary dark:text-primary'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-text dark:hover:text-white'
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200'
                   }`}
                 >
-                  <FontAwesomeIcon icon={faSitemap} className="mr-2" />
+                  <FontAwesomeIcon icon={faSitemap} className="mr-2 text-xs" />
                   Organization
                 </button>
                 <button
                   onClick={() => setActiveTab('holidays')}
-                  className={`inline-flex items-center px-4 py-2 border-b-2 text-sm font-medium transition-colors ${
+                  className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     activeTab === 'holidays'
-                      ? 'border-primary text-primary dark:text-primary'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-text dark:hover:text-white'
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-200'
                   }`}
                 >
-                  <FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />
+                  <FontAwesomeIcon icon={faCalendarAlt} className="mr-2 text-xs" />
                   Holidays
                 </button>
               </div>

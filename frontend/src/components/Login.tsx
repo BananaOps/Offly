@@ -43,27 +43,30 @@ export default function Login({ isAuthenticated, onAuthChange }: LoginProps) {
     <div className="flex items-center gap-3">
       {user ? (
         <>
-          <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-            <FontAwesomeIcon icon={faUser} className="text-gray-500 dark:text-gray-400" />
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setShowProfile(true)}
-              className="font-medium hover:text-primary dark:hover:text-primary transition-colors cursor-pointer"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
-              {user.name}
-            </button>
-            {user.role === 'admin' && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded text-xs font-semibold">
-                <FontAwesomeIcon icon={faShieldAlt} className="text-xs" />
-                Admin
+              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-sm font-semibold">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                {user.name}
               </span>
-            )}
+              {user.role === 'admin' && (
+                <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded text-xs font-medium">
+                  Admin
+                </span>
+              )}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
+            >
+              Logout
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            className="px-3 py-2 text-sm bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
-          >
-            Logout
-          </button>
           {showProfile && user.email && (
             <UserProfile userEmail={user.email} onClose={handleProfileClose} />
           )}
@@ -71,7 +74,7 @@ export default function Login({ isAuthenticated, onAuthChange }: LoginProps) {
       ) : (
         <button
           onClick={startLogin}
-          className="px-3 py-2 text-sm bg-primary text-white rounded hover:opacity-90"
+          className="px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
         >
           Login
         </button>

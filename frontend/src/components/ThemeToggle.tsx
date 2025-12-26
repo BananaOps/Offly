@@ -12,20 +12,19 @@ export default function ThemeToggle() {
   ]
 
   return (
-    <div className="flex bg-background dark:bg-gray-800 rounded-lg p-1 border-2 border-gray-200 dark:border-gray-700 shadow-sm">
+    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
       {themes.map(({ value, icon, label }) => (
         <button
           key={value}
           onClick={() => setTheme(value)}
-          className={`px-3 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+          className={`p-2 rounded-md transition-all ${
             theme === value
-              ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-md'
-              : 'text-gray-600 dark:text-gray-400 hover:text-text dark:hover:text-white'
+              ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
           title={label}
         >
-          <FontAwesomeIcon icon={icon} />
-          <span className="hidden sm:inline">{label}</span>
+          <FontAwesomeIcon icon={icon} className="text-sm" />
         </button>
       ))}
     </div>
