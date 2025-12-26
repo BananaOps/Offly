@@ -5,6 +5,10 @@ import { User, Department, Team } from '../types'
 import { createUser, assignUserToDepartment, assignUserToTeam, updateUser, deleteUser } from '../api'
 import { countries } from '../utils/holidayManager'
 import { getAuthConfig } from '../auth'
+import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
+import { Button } from './ui/button'
+import { Input } from './ui/input'
+import { Select } from './ui/select'
 
 interface Props {
   users: User[]
@@ -89,54 +93,50 @@ export default function UserManagement({ users, departments, teams, onUpdate }: 
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6 border border-gray-100 dark:border-gray-700 transition-colors">
-      <h2 className="text-2xl font-bold text-text dark:text-white mb-6 flex items-center">
-        <FontAwesomeIcon icon={faUserGroup} className="text-primary mr-3" />
-        Users
-      </h2>
-
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <FontAwesomeIcon icon={faUserGroup} className="text-blue-600 mr-3" />
+          Users
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
       {!getAuthConfig().enabled && (
-        <form onSubmit={handleCreateUser} className="mb-8 p-6 bg-background dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors">
+        <form onSubmit={handleCreateUser} className="mb-8 p-6 bg-gray-50/80 dark:bg-gray-900/50 rounded-2xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm transition-colors">
           <div className="grid grid-cols-3 gap-4 mb-4">
-            <input
+            <Input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Full name"
-              className="px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 text-text dark:text-white bg-white dark:bg-gray-800 transition-all"
               required
             />
-            <input
+            <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email"
-              className="px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 text-text dark:text-white bg-white dark:bg-gray-800 transition-all"
               required
             />
-            <select
+            <Select
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              className="px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 text-text dark:text-white bg-white dark:bg-gray-800 transition-all cursor-pointer"
             >
               <option value="">Select country</option>
               {countries.map(c => (
                 <option key={c.code} value={c.code}>{c.name}</option>
               ))}
-            </select>
+            </Select>
           </div>
-          <button
-            type="submit"
-            className="bg-gradient-to-r from-primary to-secondary text-white px-6 py-2.5 rounded-lg hover:shadow-lg transition-all shadow-md inline-flex items-center gap-2 font-medium hover:scale-105"
-          >
+          <Button type="submit" className="gap-2">
             <FontAwesomeIcon icon={faUserPlus} />
             Create User
-          </button>
+          </Button>
         </form>
       )}
 
       {getAuthConfig().enabled && (
-        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <div className="mb-6 p-4 bg-blue-50/80 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/50 rounded-2xl backdrop-blur-sm">
           <p className="text-sm text-blue-800 dark:text-blue-200">
             <FontAwesomeIcon icon={faUserGroup} className="mr-2" />
             SSO Authentication is enabled. Users are automatically created upon first login.
@@ -144,9 +144,9 @@ export default function UserManagement({ users, departments, teams, onUpdate }: 
         </div>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-background dark:bg-gray-900">
+      <div className="overflow-hidden rounded-2xl border border-gray-200/50 dark:border-gray-700/50">
+        <table className="min-w-full divide-y divide-gray-200/50 dark:divide-gray-700/50">
+          <thead className="bg-gray-50/80 dark:bg-gray-900/50 backdrop-blur-sm">
             <tr>
               <th className="px-6 py-4 text-left text-xs font-semibold text-text dark:text-gray-300 uppercase tracking-wider">
                 Name
@@ -294,6 +294,7 @@ export default function UserManagement({ users, departments, teams, onUpdate }: 
           </tbody>
         </table>
       </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }

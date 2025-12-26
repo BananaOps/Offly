@@ -5,6 +5,10 @@ import { Department, Team, User } from '../types'
 import { createDepartment, createTeam, updateDepartment, updateTeam, deleteDepartment, deleteTeam } from '../api'
 import { getAuthConfig, getCurrentUser } from '../auth'
 import OrganizationDiagram from './OrganizationDiagram'
+import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
+import { Button } from './ui/button'
+import { Input } from './ui/input'
+import { Select } from './ui/select'
 
 interface Props {
   users: User[]
@@ -127,38 +131,41 @@ export default function OrganizationManagement({ users, departments, teams, onUp
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6 border border-gray-100 dark:border-gray-700 transition-colors">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-text dark:text-white flex items-center">
-          <FontAwesomeIcon icon={faBuilding} className="text-primary mr-3" />
+    <Card>
+      <CardHeader>
+      <div className="flex items-center justify-between">
+        <CardTitle className="flex items-center">
+          <FontAwesomeIcon icon={faBuilding} className="text-blue-600 mr-3" />
           Organization
-        </h2>
+        </CardTitle>
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 bg-gray-100/80 dark:bg-gray-800/80 rounded-full p-1 backdrop-blur-sm">
           <button
             onClick={() => setActiveView('diagram')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
               activeView === 'diagram'
-                ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-md'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
             }`}
           >
-            <FontAwesomeIcon icon={faSitemap} className="mr-2" />
+            <FontAwesomeIcon icon={faSitemap} className="mr-2 text-xs" />
             Organization Chart
           </button>
           <button
             onClick={() => setActiveView('manage')}
-            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
               activeView === 'manage'
-                ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-md'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
             }`}
           >
-            <FontAwesomeIcon icon={faEdit} className="mr-2" />
+            <FontAwesomeIcon icon={faEdit} className="mr-2 text-xs" />
             Manage Structure
           </button>
         </div>
-      </div>
+        </div>
+      </CardHeader>
+      <CardContent>
 
       {activeView === 'diagram' ? (
         <OrganizationDiagram users={users} departments={departments} teams={teams} />
@@ -377,6 +384,7 @@ export default function OrganizationManagement({ users, departments, teams, onUp
       </div>
         </>
       )}
-    </div>
+      </CardContent>
+    </Card>
   )
 }

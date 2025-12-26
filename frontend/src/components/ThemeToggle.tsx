@@ -12,14 +12,14 @@ export default function ThemeToggle() {
   ]
 
   return (
-    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+    <div className="flex items-center bg-gray-100/80 dark:bg-gray-800/80 rounded-full p-1 backdrop-blur-sm">
       {themes.map(({ value, icon, label }) => (
         <button
           key={value}
           onClick={() => setTheme(value)}
-          className={`p-2 rounded-md transition-all ${
+          className={`p-1.5 rounded-full transition-all ${
             theme === value
-              ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
+              ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
           title={label}

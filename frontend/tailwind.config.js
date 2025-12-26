@@ -21,7 +21,21 @@ export default {
         'gradient-hero': 'linear-gradient(135deg, #6C4DFF 0%, #2ED1D1 100%)',
         'gradient-card': 'linear-gradient(145deg, rgba(108, 77, 255, 0.05) 0%, rgba(46, 209, 209, 0.05) 100%)',
       },
+      keyframes: {
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+      },
     },
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate")],
 }

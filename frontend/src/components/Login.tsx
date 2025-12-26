@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { startLogin, logout, getCurrentUser } from '../auth'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faUser, faShieldAlt } from '@fortawesome/free-solid-svg-icons'
 import UserProfile from './UserProfile'
+import { Button } from './ui/button'
+import { Badge } from './ui/badge'
+import { User } from 'lucide-react'
 
 interface LoginProps {
   isAuthenticated: boolean
@@ -40,29 +41,29 @@ export default function Login({ isAuthenticated, onAuthChange }: LoginProps) {
   }
   
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2">
       {user ? (
         <>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setShowProfile(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-gray-100/80 dark:bg-gray-800/80 hover:bg-gray-200/80 dark:hover:bg-gray-700/80 backdrop-blur-sm transition-all"
             >
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-sm font-semibold">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
                 {user.name.charAt(0).toUpperCase()}
               </div>
               <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
                 {user.name}
               </span>
               {user.role === 'admin' && (
-                <span className="px-1.5 py-0.5 bg-primary/10 text-primary rounded text-xs font-medium">
+                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full text-xs font-medium">
                   Admin
                 </span>
               )}
             </button>
             <button
               onClick={handleLogout}
-              className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 rounded-lg transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-red-50/80 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 rounded-full backdrop-blur-sm transition-all"
             >
               Logout
             </button>
@@ -74,7 +75,7 @@ export default function Login({ isAuthenticated, onAuthChange }: LoginProps) {
       ) : (
         <button
           onClick={startLogin}
-          className="px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+          className="px-4 py-1.5 text-sm font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full hover:shadow-lg hover:shadow-blue-500/30 transition-all"
         >
           Login
         </button>

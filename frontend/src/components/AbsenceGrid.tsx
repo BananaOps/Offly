@@ -7,6 +7,9 @@ import { User, Department, Team, Absence, Holiday } from '../types'
 import { getAbsences, createAbsence, deleteAbsence } from '../api'
 import { getHolidaysForCountryAndYear } from '../utils/holidayManager'
 import { getCurrentUser, getAuthConfig, getCachedUserEmail } from '../auth'
+import { Card, CardContent } from './ui/card'
+import { Button } from './ui/button'
+import { Select } from './ui/select'
 
 interface Props {
   users: User[]
@@ -347,37 +350,37 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6 border border-gray-100 dark:border-gray-700 transition-colors">
+    <div className="backdrop-blur-xl bg-white/90 dark:bg-gray-800/90 shadow-xl rounded-2xl p-8 border border-gray-200/50 dark:border-gray-700/50 transition-colors">
       <div className="mb-6 flex justify-between items-center flex-wrap gap-4">
         <div className="flex items-center gap-4">
           <button
             onClick={() => setCurrentDate(subMonths(currentDate, 1))}
-            className="p-2 rounded-lg bg-gradient-to-r from-primary to-secondary text-white hover:shadow-lg transition-all hover:scale-105"
+            className="p-2.5 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-lg hover:shadow-blue-500/30 transition-all"
           >
             <FontAwesomeIcon icon={faChevronLeft} />
           </button>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent capitalize">
+          <h2 className="text-3xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent capitalize">
             {format(currentDate, 'MMMM yyyy', { locale: enUS })}
           </h2>
           <button
             onClick={() => setCurrentDate(addMonths(currentDate, 1))}
-            className="p-2 rounded-lg bg-gradient-to-r from-primary to-secondary text-white hover:shadow-lg transition-all hover:scale-105"
+            className="p-2.5 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-lg hover:shadow-blue-500/30 transition-all"
           >
             <FontAwesomeIcon icon={faChevronRight} />
           </button>
         </div>
         
         <div className="flex items-center gap-3">
-          <div className="flex bg-background dark:bg-gray-900 rounded-lg p-1 border-2 border-gray-200 dark:border-gray-700 transition-colors">
+          <div className="flex bg-gray-100/80 dark:bg-gray-800/80 rounded-full p-1 backdrop-blur-sm transition-colors">
             <button
               onClick={() => {
                 setSelectionMode('single')
                 setRangeStart(null)
               }}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
                 selectionMode === 'single'
-                  ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-md'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-text dark:hover:text-white'
+                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
               <FontAwesomeIcon icon={faMousePointer} />
@@ -385,10 +388,10 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
             </button>
             <button
               onClick={() => setSelectionMode('range')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
                 selectionMode === 'range'
-                  ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-md'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-text dark:hover:text-white'
+                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
               }`}
             >
               <FontAwesomeIcon icon={faCalendarPlus} />
@@ -400,12 +403,12 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
           <div className="relative">
             <FontAwesomeIcon 
               icon={faBuilding} 
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-primary pointer-events-none"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600 pointer-events-none text-sm"
             />
             <select
               value={selectedDepartment}
               onChange={(e) => setSelectedDepartment(e.target.value)}
-              className="pl-10 pr-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 transition-all bg-white dark:bg-gray-700 text-text dark:text-white font-medium appearance-none cursor-pointer hover:border-primary"
+              className="pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium appearance-none cursor-pointer hover:border-blue-500 outline-none"
             >
               <option value="">All departments</option>
               {departments.map(dept => (
@@ -416,12 +419,12 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
           <div className="relative">
             <FontAwesomeIcon 
               icon={faUserGroup} 
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-600 pointer-events-none text-sm"
             />
             <select
               value={selectedTeam}
               onChange={(e) => setSelectedTeam(e.target.value)}
-              className="pl-10 pr-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 transition-all bg-white dark:bg-gray-700 text-text dark:text-white font-medium appearance-none cursor-pointer hover:border-secondary"
+              className="pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium appearance-none cursor-pointer hover:border-purple-500 outline-none"
             >
               <option value="">All teams</option>
               {teams.map(team => (
