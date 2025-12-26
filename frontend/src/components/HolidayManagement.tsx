@@ -10,7 +10,8 @@ import {
   faGlobe,
   faDownload,
   faUpload,
-  faFilter
+  faFilter,
+  faInfoCircle
 } from '@fortawesome/free-solid-svg-icons'
 import { Holiday } from '../types'
 import {
@@ -22,8 +23,10 @@ import {
   exportHolidays,
   importHolidays
 } from '../utils/holidayManager'
+import { getAuthConfig } from '../auth'
 
 export default function HolidayManagement() {
+  const isSSO = getAuthConfig().enabled
   const [holidays, setHolidays] = useState<Holiday[]>([])
   const [selectedCountry, setSelectedCountry] = useState('')
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
@@ -162,6 +165,7 @@ export default function HolidayManagement() {
           Holiday Management
         </h2>
         
+        {!isSSO && (
         <div className="flex gap-2">
           <button
             onClick={handleExport}
@@ -181,9 +185,22 @@ export default function HolidayManagement() {
             />
           </label>
         </div>
+        )}
       </div>
 
-      {/* Add new holiday */}
+      {isSSO && (
+        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="flex items-start gap-3">
+            <FontAwesomeIcon icon={faInfoCircle} className="text-blue-600 dark:text-blue-400 mt-0.5" />
+            <div className="text-sm text-blue-800 dark:text-blue-300">
+              <p className="font-semibold mb-1">SSO Authentication Mode</p>
+              <p>Holiday management is disabled when SSO is enabled. Holidays should be managed through your centralized configuration.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!isSSO && (
       <div className="mb-6 p-6 bg-background dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
         <h3 className="text-lg font-semibold mb-4 text-text dark:text-white">Add New Holiday</h3>
         <div className="grid grid-cols-4 gap-4">
@@ -222,6 +239,7 @@ export default function HolidayManagement() {
           </button>
         </div>
       </div>
+      )}
 
       {/* Filters */}
       <div className="mb-6 p-6 bg-background dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors">
@@ -325,7 +343,8 @@ export default function HolidayManagement() {
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                  {editingId === holiday.id ? (
+                  {!isSSO && (
+                  editingId === holiday.id ? (
                     <div className="flex justify-end gap-2">
                       <button
                         onClick={handleUpdate}
@@ -355,6 +374,7 @@ export default function HolidayManagement() {
                         <FontAwesomeIcon icon={faTrash} />
                       </button>
                     </div>
+                  )
                   )}
                 </td>
               </tr>

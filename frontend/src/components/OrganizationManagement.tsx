@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBuilding, faUserGroup, faPlus, faEdit, faTrash, faSave, faTimes } from '@fortawesome/free-solid-svg-icons'
+import { faBuilding, faUserGroup, faPlus, faEdit, faTrash, faSave, faTimes, faInfoCircle } from '@fortawesome/free-solid-svg-icons'
 import { Department, Team } from '../types'
 import { createDepartment, createTeam, updateDepartment, updateTeam, deleteDepartment, deleteTeam } from '../api'
+import { getAuthConfig } from '../auth'
 
 interface Props {
   departments: Department[]
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function OrganizationManagement({ departments, teams, onUpdate }: Props) {
+  const isSSO = getAuthConfig().enabled
   const [deptName, setDeptName] = useState('')
   const [teamName, setTeamName] = useState('')
   const [selectedDept, setSelectedDept] = useState('')
@@ -116,12 +118,25 @@ export default function OrganizationManagement({ departments, teams, onUpdate }:
         Organization
       </h2>
 
+      {isSSO && (
+        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="flex items-start gap-3">
+            <FontAwesomeIcon icon={faInfoCircle} className="text-blue-600 dark:text-blue-400 mt-0.5" />
+            <div className="text-sm text-blue-800 dark:text-blue-300">
+              <p className="font-semibold mb-1">SSO Authentication Mode</p>
+              <p>Department and team management is disabled when SSO is enabled. Organization structure should be managed through your identity provider.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-8">
         <div>
           <h3 className="text-lg font-semibold mb-4 text-text dark:text-white flex items-center">
             <FontAwesomeIcon icon={faBuilding} className="text-primary mr-2" />
             Departments
           </h3>
+          {!isSSO && (
           <form onSubmit={handleCreateDepartment} className="mb-6 p-4 bg-background dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors">
             <input
               type="text"
@@ -139,6 +154,7 @@ export default function OrganizationManagement({ departments, teams, onUpdate }:
               Create Department
             </button>
           </form>
+          )}
 
           <ul className="space-y-2">
             {departments.map(dept => (
@@ -174,6 +190,7 @@ export default function OrganizationManagement({ departments, teams, onUpdate }:
                       <FontAwesomeIcon icon={faBuilding} className="text-primary mr-3" />
                       <span className="font-medium text-text dark:text-white">{dept.name}</span>
                     </div>
+                    {!isSSO && (
                     <div className="flex gap-2">
                       <button
                         onClick={() => startEditDept(dept)}
@@ -190,6 +207,7 @@ export default function OrganizationManagement({ departments, teams, onUpdate }:
                         <FontAwesomeIcon icon={faTrash} />
                       </button>
                     </div>
+                    )}
                   </div>
                 )}
               </li>
@@ -202,6 +220,7 @@ export default function OrganizationManagement({ departments, teams, onUpdate }:
             <FontAwesomeIcon icon={faUserGroup} className="text-secondary mr-2" />
             Teams
           </h3>
+          {!isSSO && (
           <form onSubmit={handleCreateTeam} className="mb-6 p-4 bg-background dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors">
             <select
               value={selectedDept}
@@ -230,6 +249,7 @@ export default function OrganizationManagement({ departments, teams, onUpdate }:
               Create Team
             </button>
           </form>
+          )}
 
           <ul className="space-y-2">
             {teams.map(team => {
@@ -281,8 +301,9 @@ export default function OrganizationManagement({ departments, teams, onUpdate }:
                             <FontAwesomeIcon icon={faBuilding} className="mr-1 text-xs" />
                             {dept?.name}
                           </div>
-                        </div>
                       </div>
+                    </div>
+                      {!isSSO && (
                       <div className="flex gap-2">
                         <button
                           onClick={() => startEditTeam(team)}
@@ -299,6 +320,7 @@ export default function OrganizationManagement({ departments, teams, onUpdate }:
                           <FontAwesomeIcon icon={faTrash} />
                         </button>
                       </div>
+                      )}
                     </div>
                   )}
                 </li>
