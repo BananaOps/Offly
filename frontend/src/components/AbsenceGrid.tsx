@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths } from 'date-fns'
 import { enUS } from 'date-fns/locale'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -26,6 +26,7 @@ interface GroupedUsers {
 }
 
 export default function AbsenceGrid({ users, departments, teams }: Props) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [currentDate, setCurrentDate] = useState(new Date())
   const [absences, setAbsences] = useState<Absence[]>([])
   const [selectedDepartment, setSelectedDepartment] = useState<string>('')
@@ -72,6 +73,32 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
     }
     loadCurrentUser()
   }, [])
+
+  // Center scroll on today's column when viewing the current month
+  useEffect(() => {
+    const today = new Date()
+    if (
+      today.getFullYear() !== currentDate.getFullYear() ||
+      today.getMonth() !== currentDate.getMonth()
+    ) {
+      return
+    }
+
+    const container = scrollContainerRef.current
+    if (!container) return
+
+    // Wait for layout to settle
+    requestAnimationFrame(() => {
+      const dateStr = formatDateLocal(today)
+      const headerCell = container.querySelector(
+        `th[data-date="${dateStr}"]`
+      ) as HTMLElement | null
+      if (!headerCell) return
+
+      const targetLeft = headerCell.offsetLeft - container.clientWidth / 2 + headerCell.clientWidth / 2
+      container.scrollTo({ left: Math.max(targetLeft, 0), behavior: 'smooth' })
+    })
+  }, [currentDate])
 
 
 
@@ -405,26 +432,35 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+      <div ref={scrollContainerRef} className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-background dark:bg-gray-900">
             <tr className="relative">
               <th className="px-6 py-4 text-left text-xs font-semibold text-text dark:text-gray-300 uppercase tracking-wider sticky left-0 bg-background dark:bg-gray-900 z-[2] border-r border-gray-200 dark:border-gray-700">
                 User
               </th>
-              {days.map(day => (
-                <th 
-                  key={day.toISOString()} 
-                  className={`px-3 py-3 text-center text-xs font-medium border-l z-[1] ${
-                    isWeekend(day) 
-                      ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600' 
-                      : 'text-text dark:text-gray-300 border-gray-100 dark:border-gray-700'
-                  }`}
-                >
-                  <div className="uppercase">{format(day, 'EEE', { locale: enUS })}</div>
-                  <div className="text-base font-semibold mt-1">{format(day, 'd')}</div>
-                </th>
-              ))}
+              {days.map(day => {
+                const isTodayDay = isSameDay(day, new Date())
+                const baseWeekend = 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600'
+                const baseWeekday = 'text-text dark:text-gray-300 border-gray-100 dark:border-gray-700'
+                return (
+                  <th
+                    key={day.toISOString()}
+                    data-date={formatDateLocal(day)}
+                    className={`px-3 py-3 text-center text-xs font-medium border-l z-[1] ${
+                      isWeekend(day)
+                        ? baseWeekend
+                        : baseWeekday
+                    }`}
+                  >
+                    <div className="uppercase">{format(day, 'EEE', { locale: enUS })}</div>
+                    <div className={`text-base font-semibold mt-1 ${isTodayDay ? 'text-primary' : ''}`}>{format(day, 'd')}</div>
+                    {isTodayDay && (
+                      <div className="mt-1 w-1.5 h-1.5 bg-primary rounded-full mx-auto" />
+                    )}
+                  </th>
+                )
+              })}
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800">
@@ -591,7 +627,14 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
                         No Team ({group.usersWithoutTeam.length})
                       </td>
                       {days.map(day => (
-                        <td key={day.toISOString()} className={`border-l z-[1] ${isWeekend(day) ? 'bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600' : 'bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-700'}`}></td>
+                        <td
+                          key={day.toISOString()}
+                          className={`border-l z-[1] ${
+                            isWeekend(day)
+                              ? 'bg-gray-200 dark:bg-gray-700 border-gray-300 dark:border-gray-600'
+                              : 'bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-700'
+                          }`}
+                        ></td>
                       ))}
                     </tr>
                     {group.usersWithoutTeam.map(user => {
