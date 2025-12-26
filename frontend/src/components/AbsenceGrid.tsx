@@ -436,7 +436,7 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-background dark:bg-gray-900">
             <tr className="relative">
-              <th className="px-6 py-4 text-left text-xs font-semibold text-text dark:text-gray-300 uppercase tracking-wider sticky left-0 bg-background dark:bg-gray-900 z-[2] border-r border-gray-200 dark:border-gray-700">
+              <th className="px-6 py-4 text-left text-xs font-semibold text-text dark:text-gray-300 uppercase tracking-wider sticky left-0 bg-background dark:bg-gray-900 z-50 border-r border-gray-200 dark:border-gray-700">
                 User
               </th>
               {days.map(day => {
@@ -467,16 +467,14 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
             {groupedUsers.map(group => (
               <React.Fragment key={group.departmentId || 'no-dept'}>
                 {/* Department Header */}
-                <tr className="bg-gradient-to-r from-primary to-secondary bg-opacity-10 dark:bg-opacity-20">
-                  <td 
-                    colSpan={days.length + 1} 
-                    className="px-6 py-3 text-sm font-bold text-text dark:text-white bg-gradient-to-r from-primary to-secondary bg-opacity-10 dark:bg-opacity-20"
-                  >
-                    <div className="sticky left-6 z-[2] inline-block">
-                      <FontAwesomeIcon icon={faBuilding} className="text-white mr-2" />
-                      {group.departmentName}
-                    </div>
+                <tr className="border-t border-gray-200 dark:border-gray-700">
+                  <td className="px-8 py-2 text-xs font-bold text-text dark:text-white sticky left-0 z-50 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+                    <FontAwesomeIcon icon={faBuilding} className="text-secondary mr-2" />
+                    {group.departmentName}
                   </td>
+                  {days.map(day => (
+                    <td key={day.toISOString()} className="border-l border-gray-100 dark:border-gray-700 bg-secondary bg-opacity-5 dark:bg-opacity-10"></td>
+                  ))}
                 </tr>
 
                 {/* Teams */}
@@ -484,7 +482,7 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
                   <React.Fragment key={team.teamId}>
                     {/* Team Header with Availability Indicators */}
                     <tr className="bg-secondary bg-opacity-5 dark:bg-opacity-10 border-t border-gray-200 dark:border-gray-700">
-                      <td className="px-8 py-2 text-xs font-semibold text-text dark:text-white sticky left-0 z-20 bg-secondary bg-opacity-5 dark:bg-opacity-10 border-r border-gray-200 dark:border-gray-700">
+                      <td className="px-8 py-2 text-xs font-semibold text-text dark:text-white sticky left-0 z-50 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
                         <FontAwesomeIcon icon={faUserGroup} className="text-secondary mr-2" />
                         {team.teamName} ({team.users.length})
                       </td>
@@ -522,9 +520,9 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
                           ? 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
                           : 'hover:bg-background dark:hover:bg-gray-700'
                       }`}>
-                        <td className={`px-12 py-3 whitespace-nowrap text-sm sticky left-0 z-[2] border-r border-gray-200 dark:border-gray-700 ${
+                        <td className={`px-12 py-3 whitespace-nowrap text-sm sticky left-0 z-50 border-r border-gray-200 dark:border-gray-700 ${
                           isCurrentUser 
-                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 font-semibold' 
+                            ? 'bg-blue-50 dark:bg-blue-900 text-blue-900 dark:text-blue-100 font-semibold' 
                             : 'bg-white dark:bg-gray-800 text-text dark:text-white'
                         }`}>
                           <div className="font-medium flex items-center gap-2">
@@ -623,7 +621,7 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
                 {group.usersWithoutTeam.length > 0 && (
                   <>
                     <tr className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 relative">
-                      <td className="px-8 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 sticky left-0 z-[2] bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700">
+                      <td className="px-8 py-2 text-xs font-semibold text-gray-700 dark:text-white sticky left-0 z-50 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
                         No Team ({group.usersWithoutTeam.length})
                       </td>
                       {days.map(day => (
@@ -646,9 +644,9 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
                           ? 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
                           : 'hover:bg-background dark:hover:bg-gray-700'
                       }`}>
-                        <td className={`px-12 py-3 whitespace-nowrap text-sm sticky left-0 z-[2] border-r border-gray-200 dark:border-gray-700 ${
+                        <td className={`px-12 py-3 whitespace-nowrap text-sm sticky left-0 z-50 border-r border-gray-200 dark:border-gray-700 ${
                           isCurrentUser 
-                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 font-semibold' 
+                            ? 'bg-blue-50 dark:bg-blue-900 text-blue-900 dark:text-blue-100 font-semibold' 
                             : 'bg-white dark:bg-gray-800 text-text dark:text-white'
                         }`}>
                           <div className="font-medium flex items-center gap-2">
