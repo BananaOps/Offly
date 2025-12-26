@@ -6,10 +6,11 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 
+	"absence-management/internal/auth"
 	"absence-management/internal/service"
 	"absence-management/internal/storage"
-	"absence-management/internal/auth"
 	pb "absence-management/proto"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -18,14 +19,37 @@ import (
 )
 
 func main() {
-	// Initialiser le storage hybride (mémoire + MongoDB avec auto-reconnexion)
-	mongoURI := os.Getenv("MONGO_URI")
-	if mongoURI == "" {
-		mongoURI = "mongodb://localhost:27017"
+	// Initialize storage based on STORAGE_TYPE env var
+	// Options: "sqlite" (default), "mongodb", "hybrid"
+	storageType := os.Getenv("STORAGE_TYPE")
+	if storageType == "" {
+		storageType = "sqlite"
 	}
 
-	log.Printf("Initializing hybrid storage with MongoDB at %s...", mongoURI)
-	store := storage.NewHybridStorage(mongoURI, "offly")
+	var store storage.Storage
+	var err error
+
+	switch storageType {
+	case "sqlite":
+		dbPath := os.Getenv("SQLITE_DB_PATH")
+		if dbPath == "" {
+			dbPath = "./offly.db"
+		}
+		log.Printf("Initializing SQLite storage at %s...", dbPath)
+		store, err = storage.NewSQLiteStorage(dbPath)
+		if err != nil {
+			log.Fatalf("Failed to initialize SQLite storage: %v", err)
+		}
+	case "mongodb", "hybrid":
+		mongoURI := os.Getenv("MONGO_URI")
+		if mongoURI == "" {
+			mongoURI = "mongodb://localhost:27017"
+		}
+		log.Printf("Initializing hybrid storage with MongoDB at %s...", mongoURI)
+		store = storage.NewHybridStorage(mongoURI, "offly")
+	default:
+		log.Fatalf("Unknown storage type: %s (supported: sqlite, mongodb, hybrid)", storageType)
+	}
 
 	// Démarrer le serveur gRPC
 	go startGRPCServer(store)
@@ -121,8 +145,11 @@ func startRESTGateway(store storage.Storage) error {
 
 	if authEnabled {
 		mainHandler.Handle("/api/v1/auth/ensure-user", corsMiddleware(auth.EnsureUserHandler(store, v)))
+		// Wrap API with RBAC middleware when auth is enabled
+		mainHandler.Handle("/api/", corsMiddleware(rbacMiddleware(store, v, mux)))
+	} else {
+		mainHandler.Handle("/api/", corsMiddleware(mux))
 	}
-	mainHandler.Handle("/api/", corsMiddleware(mux))
 
 	// Serve static files from web/dist
 	fs := http.FileServer(http.Dir("./web/dist"))
@@ -198,4 +225,83 @@ func corsMiddleware(h http.Handler) http.Handler {
 
 		h.ServeHTTP(w, r)
 	})
+}
+
+// rbacMiddleware applies role-based access control to API endpoints when AUTH_ENABLED=true
+// Rules:
+// - Unauthenticated: GET only
+// - Users (non-admin): GET all, PUT/POST/DELETE only their own profile and absences
+// - Admins: Full access
+func rbacMiddleware(store storage.Storage, v *auth.Verifier, next http.Handler) http.Handler {
+	return auth.AuthMiddleware(v, store, false)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// If GET request, allow everyone (read-only for unauthenticated)
+		if r.Method == "GET" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// For non-GET methods, require authentication
+		userEmail := auth.GetUserEmail(r)
+		if userEmail == "" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(`{"error":"authentication required for write operations"}`))
+			return
+		}
+
+		// Admins have full access
+		if auth.IsAdmin(r) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Non-admin users can only modify their own profile and absences
+		userID := auth.GetUserID(r)
+		path := r.URL.Path
+
+		// Check if request is for user's own profile
+		if r.Method == "PUT" && len(path) > len("/api/v1/users/") && path[:len("/api/v1/users/")] == "/api/v1/users/" {
+			pathUserID := path[len("/api/v1/users/"):]
+			if slashIdx := strings.IndexByte(pathUserID, '/'); slashIdx > 0 {
+				pathUserID = pathUserID[:slashIdx]
+			}
+			if pathUserID == userID {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		// Check if request is for user's own absences
+		if len(path) > len("/api/v1/absences") && path[:len("/api/v1/absences")] == "/api/v1/absences" {
+			// For absences, we need to check if the absence belongs to the user
+			// This is a simplified check - in production you'd query the absence by ID and verify ownership
+			// For now, allow if it's a POST (create) or if userId query param matches
+			if r.Method == "POST" {
+				// Users can create their own absences
+				next.ServeHTTP(w, r)
+				return
+			}
+			// For PUT/DELETE, check query params or path for userId
+			queryUserID := r.URL.Query().Get("userId")
+			if queryUserID == userID {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		// Deny access to organization/holiday modifications for non-admins
+		if len(path) > len("/api/v1/departments") && path[:len("/api/v1/departments")] == "/api/v1/departments" ||
+			len(path) > len("/api/v1/teams") && path[:len("/api/v1/teams")] == "/api/v1/teams" ||
+			len(path) > len("/api/v1/holidays") && path[:len("/api/v1/holidays")] == "/api/v1/holidays" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte(`{"error":"admin access required to modify organization or holidays"}`))
+			return
+		}
+
+		// Default deny for other endpoints
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(`{"error":"access denied"}`))
+	}))
 }

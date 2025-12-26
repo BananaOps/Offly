@@ -56,7 +56,7 @@ export async function startLogin(): Promise<void> {
     client_id: clientId,
     redirect_uri: REDIRECT_URI,
     response_type: 'code',
-    scope: 'openid profile email',
+    scope: 'openid profile email groups',
     code_challenge: codeChallenge,
     code_challenge_method: 'S256',
   })
@@ -112,8 +112,64 @@ export async function handleCallback(): Promise<boolean> {
 export function logout(): void {
   localStorage.removeItem('id_token')
   localStorage.removeItem('access_token')
+  sessionStorage.removeItem('pkce_code_verifier')
+  window.location.reload()
 }
 
 export function getIdToken(): string | null {
   return localStorage.getItem('id_token')
+}
+
+function base64UrlDecode(str: string): string {
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/')
+  while (base64.length % 4) {
+    base64 += '='
+  }
+  return decodeURIComponent(
+    atob(base64)
+      .split('')
+      .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+      .join('')
+  )
+}
+
+export interface DecodedToken {
+  email?: string
+  name?: string
+  preferred_username?: string
+  given_name?: string
+  family_name?: string
+  groups?: string[]
+}
+
+export function decodeIdToken(): DecodedToken | null {
+  const token = getIdToken()
+  if (!token) return null
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const payload = JSON.parse(base64UrlDecode(parts[1]))
+    return payload
+  } catch {
+    return null
+  }
+}
+
+export function getCurrentUser(): { name: string; email: string; role: string } | null {
+  const decoded = decodeIdToken()
+  if (!decoded) return null
+  
+  const email = decoded.email || ''
+  let name = decoded.name || decoded.preferred_username || ''
+  
+  if (!name && (decoded.given_name || decoded.family_name)) {
+    name = [decoded.given_name, decoded.family_name].filter(Boolean).join(' ')
+  }
+  if (!name) name = email
+  
+  // Determine role from groups
+  const groups = decoded.groups || []
+  const role = groups.includes('admin') ? 'admin' : 'user'
+  
+  return { name, email, role }
 }

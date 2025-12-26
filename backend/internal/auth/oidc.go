@@ -1,16 +1,16 @@
 package auth
 
 import (
-    "context"
-    "errors"
-    "fmt"
-    "net/http"
-    "os"
-    "strings"
-    "time"
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"os"
+	"strings"
+	"time"
 
-    jwt "github.com/golang-jwt/jwt/v5"
-    "github.com/MicahParks/keyfunc/v3"
+	"github.com/MicahParks/keyfunc/v3"
+	jwt "github.com/golang-jwt/jwt/v5"
 )
 
 // Verifier validates OIDC JWTs against a JWKS and basic claims.

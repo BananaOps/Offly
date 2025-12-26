@@ -138,12 +138,14 @@ tasks:
   dev:backend:
     desc: Lancer le serveur backend
     dir: "{{.BACKEND_DIR}}"
+    dotenv: ['../.env']
     cmds:
       - go run cmd/server/main.go
 
   dev:frontend:
     desc: Lancer le serveur de développement frontend
     dir: "{{.FRONTEND_DIR}}"
+    dotenv: ['../.env']
     cmds:
       - npm run dev
 
