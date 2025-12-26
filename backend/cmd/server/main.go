@@ -144,6 +144,9 @@ func startRESTGateway(store storage.Storage) error {
 	})
 
 	if authEnabled {
+		mainHandler.Handle("/api/v1/auth/callback", auth.CallbackHandler(store, v))
+		mainHandler.Handle("/api/v1/auth/me", corsMiddleware(auth.MeHandler(v)))
+		mainHandler.Handle("/api/v1/auth/logout", corsMiddleware(auth.LogoutHandler()))
 		mainHandler.Handle("/api/v1/auth/ensure-user", corsMiddleware(auth.EnsureUserHandler(store, v)))
 		// Wrap API with RBAC middleware when auth is enabled
 		mainHandler.Handle("/api/", corsMiddleware(rbacMiddleware(store, v, mux)))

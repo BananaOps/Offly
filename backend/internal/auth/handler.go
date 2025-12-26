@@ -3,8 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"net/http"
-    "os"
-    "strings"
+	"strings"
 
 	"absence-management/internal/storage"
 
@@ -44,22 +43,17 @@ func EnsureUserHandler(store storage.Storage, v *Verifier) http.HandlerFunc {
             _ = json.NewEncoder(w).Encode(map[string]string{"error": "email claim missing"})
             return
         }
+        
+        // Use name from claims, fallback to username from email
         name, _ := claims["name"].(string)
         if name == "" {
-            // fallback to preferred_username or given_name + family_name
-            if pu, _ := claims["preferred_username"].(string); pu != "" {
-                name = pu
+            // Try preferred_username
+            if username, ok := claims["preferred_username"].(string); ok && username != "" {
+                name = username
             } else {
-                given, _ := claims["given_name"].(string)
-                family, _ := claims["family_name"].(string)
-                if given != "" || family != "" {
-                    if given != "" && family != "" {
-                        name = given + " " + family
-                    } else if given != "" {
-                        name = given
-                    } else {
-                        name = family
-                    }
+                // Extract username from email (e.g., vincent.team@bananaops.tech -> vincent.team)
+                if atIndex := strings.IndexByte(email, '@'); atIndex > 0 {
+                    name = email[:atIndex]
                 } else {
                     name = email
                 }
@@ -78,7 +72,7 @@ func EnsureUserHandler(store storage.Storage, v *Verifier) http.HandlerFunc {
 
         var u *storage.User
         if existing == nil {
-            // Create new user
+            // Create new user without department or team assignment
             u = &storage.User{
                 ID:    uuid.New().String(),
                 Name:  name,
@@ -90,103 +84,12 @@ func EnsureUserHandler(store storage.Storage, v *Verifier) http.HandlerFunc {
                 return
             }
         } else {
+            // Update existing user's name in case it changed
+            existing.Name = name
+            _ = store.UpdateUser(existing)
             u = existing
         }
 
-        // Read groups claim if present (Dex emits this when groups scope is requested).
-        var groupsFromToken []string
-        if groupsRaw, ok := claims["groups"].([]interface{}); ok {
-            for _, g := range groupsRaw {
-                if s, ok := g.(string); ok {
-                    groupsFromToken = append(groupsFromToken, s)
-                }
-            }
-        }
-
-        // Assign groups via Teams under a dedicated Department using env-configurable rules.
-        // Env:
-        // - AUTH_DOMAIN_DEPARTMENT: department name (default: bananaops.tech)
-        // - AUTH_ADMIN_EMAILS: comma-separated admin emails (fallback if groups claim not present)
-        // - AUTH_ADMIN_GROUP: group name from token claim for admin (default: admin)
-        // - AUTH_GROUP_ADMIN: admin team name (default: admin)
-        // - AUTH_GROUP_USER: user team name (default: user)
-        domainDept := os.Getenv("AUTH_DOMAIN_DEPARTMENT")
-        if domainDept == "" {
-            domainDept = "bananaops.tech"
-        }
-
-        // Determine if user is admin from groups claim or email list
-        adminGroupName := os.Getenv("AUTH_ADMIN_GROUP")
-        if adminGroupName == "" { adminGroupName = "admin" }
-        isAdmin := false
-        for _, g := range groupsFromToken {
-            if g == adminGroupName {
-                isAdmin = true
-                break
-            }
-        }
-        if !isAdmin {
-            // Fallback: check email list
-            adminList := os.Getenv("AUTH_ADMIN_EMAILS")
-            if adminList == "" {
-                adminList = "elie.copter@bananaops.tech"
-            }
-            adminEmails := map[string]struct{}{}
-            for _, e := range strings.Split(adminList, ",") {
-                e = strings.TrimSpace(e)
-                if e != "" {
-                    adminEmails[e] = struct{}{}
-                }
-            }
-            _, isAdmin = adminEmails[email]
-        }
-
-        adminTeamName := os.Getenv("AUTH_GROUP_ADMIN")
-        if adminTeamName == "" { adminTeamName = "admin" }
-        userTeamName := os.Getenv("AUTH_GROUP_USER")
-        if userTeamName == "" { userTeamName = "user" }
-
-        depts, _ := store.GetDepartments()
-        var dept *storage.Department
-            for _, d := range depts {
-                if d.Name == domainDept {
-                    dept = d
-                    break
-                }
-            }
-            if dept == nil {
-                dept = &storage.Department{ID: uuid.New().String(), Name: domainDept}
-                _ = store.CreateDepartment(dept)
-            }
-
-            teams, _ := store.GetTeams(dept.ID)
-            var userTeam *storage.Team
-            var adminTeam *storage.Team
-            for _, t := range teams {
-                if t.Name == userTeamName {
-                    userTeam = t
-                } else if t.Name == adminTeamName {
-                    adminTeam = t
-                }
-            }
-            if userTeam == nil {
-                userTeam = &storage.Team{ID: uuid.New().String(), Name: userTeamName, DepartmentID: dept.ID}
-                _ = store.CreateTeam(userTeam)
-            }
-            if adminTeam == nil {
-                adminTeam = &storage.Team{ID: uuid.New().String(), Name: adminTeamName, DepartmentID: dept.ID}
-                _ = store.CreateTeam(adminTeam)
-            }
-
-            // Assign department and team to the user.
-            u.DepartmentID = dept.ID
-            if isAdmin {
-                u.TeamID = adminTeam.ID
-            } else {
-                u.TeamID = userTeam.ID
-            }
-            _ = store.UpdateUser(u)
-
-            _ = json.NewEncoder(w).Encode(resp{ID: u.ID, Name: u.Name, Email: u.Email, Country: u.Country})
+        _ = json.NewEncoder(w).Encode(resp{ID: u.ID, Name: u.Name, Email: u.Email, Country: u.Country})
     }
 }

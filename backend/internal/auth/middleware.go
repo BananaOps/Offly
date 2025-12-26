@@ -17,7 +17,7 @@ const (
 	userIDKey contextKey = "user_id"
 )
 
-// AuthMiddleware verifies Bearer token when AUTH_ENABLED=true and injects user info into request context.
+// AuthMiddleware verifies token (from Bearer header or cookie) when AUTH_ENABLED=true and injects user info into request context.
 // If AUTH_ENABLED=false, passes through without auth.
 func AuthMiddleware(v *Verifier, store storage.Storage, required bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -40,7 +40,23 @@ func AuthMiddleware(v *Verifier, store storage.Storage, required bool) func(http
 				return
 			}
 
-			claims, err := v.VerifyBearer(r)
+			// Try to get token from Bearer header first, then from cookie
+			var claims map[string]interface{}
+			var err error
+			
+			authHeader := r.Header.Get("Authorization")
+			if authHeader != "" {
+				claims, err = v.VerifyBearer(r)
+			} else {
+				// Try cookie
+				cookie, cookieErr := r.Cookie("auth_token")
+				if cookieErr == nil && cookie.Value != "" {
+					claims, err = v.VerifyToken(cookie.Value)
+				} else {
+					err = cookieErr
+				}
+			}
+
 			if err != nil {
 				if required {
 					w.Header().Set("Content-Type", "application/json")

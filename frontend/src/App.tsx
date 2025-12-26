@@ -21,6 +21,7 @@ function App() {
   const [users, setUsers] = useState<User[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
   const [teams, setTeams] = useState<Team[]>([])
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
     // Load auth config from backend, then handle possible OIDC callback
@@ -32,7 +33,8 @@ function App() {
           setAuthConfig({ enabled: !!cfg.enabled, issuerUrl: cfg.issuerUrl || '', clientId: cfg.clientId || '' })
         }
       } catch {}
-      await handleCallback()
+      const authenticated = await handleCallback()
+      setIsAuthenticated(authenticated || !!localStorage.getItem('id_token'))
       loadData()
     }
     init()
@@ -135,7 +137,7 @@ function App() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {getAuthConfig().enabled && <Login />}
+              {getAuthConfig().enabled && <Login isAuthenticated={isAuthenticated} onAuthChange={setIsAuthenticated} />}
               <ThemeToggle />
             </div>
           </div>

@@ -4,6 +4,7 @@ import { faUserPlus, faBuilding, faUserGroup, faEdit, faTrash, faSave, faTimes, 
 import { User, Department, Team } from '../types'
 import { createUser, assignUserToDepartment, assignUserToTeam, updateUser, deleteUser } from '../api'
 import { countries } from '../utils/holidayManager'
+import { getAuthConfig } from '../auth'
 
 interface Props {
   users: User[]
@@ -94,43 +95,54 @@ export default function UserManagement({ users, departments, teams, onUpdate }: 
         Users
       </h2>
 
-      <form onSubmit={handleCreateUser} className="mb-8 p-6 bg-background dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors">
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Full name"
-            className="px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 text-text dark:text-white bg-white dark:bg-gray-800 transition-all"
-            required
-          />
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            className="px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 text-text dark:text-white bg-white dark:bg-gray-800 transition-all"
-            required
-          />
-          <select
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-            className="px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 text-text dark:text-white bg-white dark:bg-gray-800 transition-all cursor-pointer"
+      {!getAuthConfig().enabled && (
+        <form onSubmit={handleCreateUser} className="mb-8 p-6 bg-background dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors">
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Full name"
+              className="px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 text-text dark:text-white bg-white dark:bg-gray-800 transition-all"
+              required
+            />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              className="px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 text-text dark:text-white bg-white dark:bg-gray-800 transition-all"
+              required
+            />
+            <select
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              className="px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 text-text dark:text-white bg-white dark:bg-gray-800 transition-all cursor-pointer"
+            >
+              <option value="">Select country</option>
+              {countries.map(c => (
+                <option key={c.code} value={c.code}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="submit"
+            className="bg-gradient-to-r from-primary to-secondary text-white px-6 py-2.5 rounded-lg hover:shadow-lg transition-all shadow-md inline-flex items-center gap-2 font-medium hover:scale-105"
           >
-            <option value="">Select country</option>
-            {countries.map(c => (
-              <option key={c.code} value={c.code}>{c.name}</option>
-            ))}
-          </select>
+            <FontAwesomeIcon icon={faUserPlus} />
+            Create User
+          </button>
+        </form>
+      )}
+
+      {getAuthConfig().enabled && (
+        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            <FontAwesomeIcon icon={faUserGroup} className="mr-2" />
+            SSO Authentication is enabled. Users are automatically created upon first login.
+          </p>
         </div>
-        <button
-          type="submit"
-          className="bg-gradient-to-r from-primary to-secondary text-white px-6 py-2.5 rounded-lg hover:shadow-lg transition-all shadow-md inline-flex items-center gap-2 font-medium hover:scale-105"
-        >
-          <FontAwesomeIcon icon={faUserPlus} />
-          Create User
-        </button>
-      </form>
+      )}
 
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -203,64 +215,78 @@ export default function UserManagement({ users, departments, teams, onUpdate }: 
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <select
-                    value={user.departmentId || ''}
-                    onChange={(e) => handleAssignDepartment(user.id, e.target.value)}
-                    className="px-3 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 text-sm transition-all cursor-pointer hover:border-primary bg-white dark:bg-gray-700 text-text dark:text-white"
-                  >
-                    <option value="">None</option>
-                    {departments.map(dept => (
-                      <option key={dept.id} value={dept.id}>{dept.name}</option>
-                    ))}
-                  </select>
+                  {getAuthConfig().enabled ? (
+                    <span className="text-gray-600 dark:text-gray-400">
+                      {user.departmentId ? departments.find(d => d.id === user.departmentId)?.name : '-'}
+                    </span>
+                  ) : (
+                    <select
+                      value={user.departmentId || ''}
+                      onChange={(e) => handleAssignDepartment(user.id, e.target.value)}
+                      className="px-3 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 text-sm transition-all cursor-pointer hover:border-primary bg-white dark:bg-gray-700 text-text dark:text-white"
+                    >
+                      <option value="">None</option>
+                      {departments.map(dept => (
+                        <option key={dept.id} value={dept.id}>{dept.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <select
-                    value={user.teamId || ''}
-                    onChange={(e) => handleAssignTeam(user.id, e.target.value)}
-                    className="px-3 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 text-sm transition-all cursor-pointer hover:border-secondary bg-white dark:bg-gray-700 text-text dark:text-white"
-                  >
-                    <option value="">None</option>
-                    {teams.filter(t => !user.departmentId || t.departmentId === user.departmentId).map(team => (
-                      <option key={team.id} value={team.id}>{team.name}</option>
-                    ))}
-                  </select>
+                  {getAuthConfig().enabled ? (
+                    <span className="text-gray-600 dark:text-gray-400">
+                      {user.teamId ? teams.find(t => t.id === user.teamId)?.name : '-'}
+                    </span>
+                  ) : (
+                    <select
+                      value={user.teamId || ''}
+                      onChange={(e) => handleAssignTeam(user.id, e.target.value)}
+                      className="px-3 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 text-sm transition-all cursor-pointer hover:border-secondary bg-white dark:bg-gray-700 text-text dark:text-white"
+                    >
+                      <option value="">None</option>
+                      {teams.filter(t => !user.departmentId || t.departmentId === user.departmentId).map(team => (
+                        <option key={team.id} value={team.id}>{team.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                  {editingUser === user.id ? (
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => handleUpdateUser(user.id)}
-                        className="px-3 py-1.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded transition-all shadow-md hover:shadow-lg"
-                        title="Save"
-                      >
-                        <FontAwesomeIcon icon={faSave} />
-                      </button>
-                      <button
-                        onClick={cancelEdit}
-                        className="px-3 py-1.5 bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-700 hover:to-gray-600 text-white rounded transition-all shadow-md hover:shadow-lg"
-                        title="Cancel"
-                      >
-                        <FontAwesomeIcon icon={faTimes} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => startEdit(user)}
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                        title="Edit"
-                      >
-                        <FontAwesomeIcon icon={faEdit} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                        title="Delete"
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button>
-                    </div>
+                  {!getAuthConfig().enabled && (
+                    editingUser === user.id ? (
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleUpdateUser(user.id)}
+                          className="px-3 py-1.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded transition-all shadow-md hover:shadow-lg"
+                          title="Save"
+                        >
+                          <FontAwesomeIcon icon={faSave} />
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="px-3 py-1.5 bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-700 hover:to-gray-600 text-white rounded transition-all shadow-md hover:shadow-lg"
+                          title="Cancel"
+                        >
+                          <FontAwesomeIcon icon={faTimes} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => startEdit(user)}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                          title="Edit"
+                        >
+                          <FontAwesomeIcon icon={faEdit} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                          title="Delete"
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      </div>
+                    )
                   )}
                 </td>
               </tr>

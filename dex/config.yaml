@@ -15,41 +15,23 @@ telemetry:
 oauth2:
   skipApprovalScreen: false
 
-connectors:
-- type: mockCallback
-  id: mock-elie
-  name: Elie (Admin)
-  config:
-    username: "e.copter"
-    email: "elie.copter@bananaops.tech"
-    groups:
-      - "admin"
-- type: mockCallback
-  id: mock-vincent
-  name: Vincent (User)
-  config:
-    username: "v.team"
-    email: "vincent.team@bananaops.tech"
-    groups:
-      - "user"
-
 staticClients:
 - id: offly
   name: Offly Local
   secret: offly-secret
   redirectURIs:
-    - 'http://localhost:3000/'
+    - 'http://localhost:8080/api/v1/auth/callback'
 
 enablePasswordDB: true
 
 staticPasswords:
  - email: "vincent.team@bananaops.tech"
    hash: "$2y$10$F1ZaKzFUTjnqMLONEPgaPe9nDpaweNoSi7jewau59Hni30KRGx/Om" # mdp: test
-   username: "v.team"
+   username: "vincent.team"
    userID: "3a2c9e92-6f8a-4d1e-a4f3-9f9d2b1c7d11"
  - email: "elie.copter@bananaops.tech"
    hash: "$2y$10$F1ZaKzFUTjnqMLONEPgaPe9nDpaweNoSi7jewau59Hni30KRGx/Om" # mdp: test
-   username: "e.copter"
+   username: "elie.copter"
    userID: "72c1f5f4-9b39-4f28-9b93-7a3d3a45e2c7"
 
 logger:
