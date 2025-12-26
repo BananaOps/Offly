@@ -166,6 +166,7 @@ function App() {
         )}
         {activeTab === 'organization' && (
           <OrganizationManagement 
+            users={users}
             departments={departments}
             teams={teams}
             onUpdate={loadData}

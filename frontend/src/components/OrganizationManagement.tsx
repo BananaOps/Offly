@@ -1,20 +1,23 @@
 import { useState, useEffect, useMemo } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBuilding, faUserGroup, faPlus, faEdit, faTrash, faSave, faTimes, faInfoCircle } from '@fortawesome/free-solid-svg-icons'
-import { Department, Team } from '../types'
+import { faBuilding, faUserGroup, faPlus, faEdit, faTrash, faSave, faTimes, faInfoCircle, faSitemap } from '@fortawesome/free-solid-svg-icons'
+import { Department, Team, User } from '../types'
 import { createDepartment, createTeam, updateDepartment, updateTeam, deleteDepartment, deleteTeam } from '../api'
 import { getAuthConfig, getCurrentUser } from '../auth'
+import OrganizationDiagram from './OrganizationDiagram'
 
 interface Props {
+  users: User[]
   departments: Department[]
   teams: Team[]
   onUpdate: () => void
 }
 
-export default function OrganizationManagement({ departments, teams, onUpdate }: Props) {
+export default function OrganizationManagement({ users, departments, teams, onUpdate }: Props) {
   const isSSO = getAuthConfig().enabled
   const [isAdmin, setIsAdmin] = useState(false)
   const canEdit = useMemo(() => !isSSO || isAdmin, [isSSO, isAdmin])
+  const [activeView, setActiveView] = useState<'manage' | 'diagram'>('diagram')
   const [deptName, setDeptName] = useState('')
   const [teamName, setTeamName] = useState('')
   const [selectedDept, setSelectedDept] = useState('')
@@ -125,11 +128,42 @@ export default function OrganizationManagement({ departments, teams, onUpdate }:
 
   return (
     <div className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6 border border-gray-100 dark:border-gray-700 transition-colors">
-      <h2 className="text-2xl font-bold text-text dark:text-white mb-6 flex items-center">
-        <FontAwesomeIcon icon={faBuilding} className="text-primary mr-3" />
-        Organization
-      </h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-text dark:text-white flex items-center">
+          <FontAwesomeIcon icon={faBuilding} className="text-primary mr-3" />
+          Organization
+        </h2>
+        
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveView('diagram')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              activeView === 'diagram'
+                ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-md'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+          >
+            <FontAwesomeIcon icon={faSitemap} className="mr-2" />
+            Organization Chart
+          </button>
+          <button
+            onClick={() => setActiveView('manage')}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              activeView === 'manage'
+                ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-md'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+          >
+            <FontAwesomeIcon icon={faEdit} className="mr-2" />
+            Manage Structure
+          </button>
+        </div>
+      </div>
 
+      {activeView === 'diagram' ? (
+        <OrganizationDiagram users={users} departments={departments} teams={teams} />
+      ) : (
+        <>
       {isSSO && !canEdit && (
         <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
           <div className="flex items-start gap-3">
@@ -341,6 +375,8 @@ export default function OrganizationManagement({ departments, teams, onUpdate }:
           </ul>
         </div>
       </div>
+        </>
+      )}
     </div>
   )
 }
