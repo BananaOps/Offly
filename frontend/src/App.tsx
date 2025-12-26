@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCalendarDays, faUsers, faSitemap, faCalendarAlt, faBook } from '@fortawesome/free-solid-svg-icons'
+import { faCalendarDays, faUsers, faSitemap, faCalendarAlt } from '@fortawesome/free-solid-svg-icons'
 import Logo from './components/Logo'
 import Banner from './components/Banner'
 import ThemeToggle from './components/ThemeToggle'
@@ -10,14 +10,13 @@ import PresenceView from './components/PresenceView'
 import UserManagement from './components/UserManagement'
 import OrganizationManagement from './components/OrganizationManagement'
 import HolidayManagement from './components/HolidayManagement'
-import Documentation from './components/Documentation'
 import Footer from './components/Footer'
 import { User, Department, Team } from './types'
 import { getUsers, getDepartments, getTeams } from './api'
 import { handleCallback, setAuthConfig, getAuthConfig } from './auth'
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'absences' | 'presences' | 'users' | 'organization' | 'holidays' | 'docs'>('absences')
+  const [activeTab, setActiveTab] = useState<'absences' | 'presences' | 'users' | 'organization' | 'holidays'>('absences')
   const [users, setUsers] = useState<User[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
   const [teams, setTeams] = useState<Team[]>([])
@@ -140,17 +139,6 @@ function App() {
                   <FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />
                   Holidays
                 </button>
-                <button
-                  onClick={() => setActiveTab('docs')}
-                  className={`inline-flex items-center px-4 py-2 border-b-2 text-sm font-medium transition-colors ${
-                    activeTab === 'docs'
-                      ? 'border-primary text-primary dark:text-primary'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-text dark:hover:text-white'
-                  }`}
-                >
-                  <FontAwesomeIcon icon={faBook} className="mr-2" />
-                  Docs
-                </button>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -186,9 +174,7 @@ function App() {
         {activeTab === 'holidays' && (
           <HolidayManagement />
         )}
-        {activeTab === 'docs' && (
-          <Documentation />
-        )}
+
       </main>
 
       <Footer />

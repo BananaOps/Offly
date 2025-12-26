@@ -20,9 +20,9 @@ export const countries = [
 ]
 
 // Charger les jours fériés depuis l'API
-export const loadHolidays = async (): Promise<Holiday[]> => {
+export const loadHolidays = async (country?: string, year?: number): Promise<Holiday[]> => {
   try {
-    return await holidayApi.getHolidays()
+    return await holidayApi.getHolidays(country, year)
   } catch (error) {
     console.error('Error loading holidays:', error)
     return []

@@ -57,7 +57,7 @@ export default function HolidayManagement() {
   }, [])
 
   const loadData = async () => {
-    const data = await loadHolidays()
+    const data = await loadHolidays(selectedCountry || undefined, selectedYear)
     setHolidays(data)
   }
 

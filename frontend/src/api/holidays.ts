@@ -6,6 +6,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Send cookies with requests
 })
 
 export const getHolidays = async (country?: string, year?: number): Promise<Holiday[]> => {

@@ -287,8 +287,25 @@ func (s *SQLiteStorage) CreateHoliday(holiday *Holiday) error {
 }
 
 func (s *SQLiteStorage) GetHolidays(country string, year int) ([]*Holiday, error) {
-	query := `SELECT id, date, name, country, year FROM holidays WHERE country = ? AND year = ?`
-	rows, err := s.db.Query(query, country, year)
+	var query string
+	var args []interface{}
+
+	switch {
+	case country != "" && year > 0:
+		query = `SELECT id, date, name, country, year FROM holidays WHERE country = ? AND year = ?`
+		args = []interface{}{country, year}
+	case country != "" && year == 0:
+		query = `SELECT id, date, name, country, year FROM holidays WHERE country = ?`
+		args = []interface{}{country}
+	case country == "" && year > 0:
+		query = `SELECT id, date, name, country, year FROM holidays WHERE year = ?`
+		args = []interface{}{year}
+	default:
+		query = `SELECT id, date, name, country, year FROM holidays`
+		args = []interface{}{}
+	}
+
+	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}

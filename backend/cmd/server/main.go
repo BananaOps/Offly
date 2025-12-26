@@ -277,19 +277,19 @@ func rbacMiddleware(store storage.Storage, v *auth.Verifier, next http.Handler) 
 				w.Write([]byte(`{"error":"only admins can create users"}`))
 				return
 			}
-			
+
 			pathUserID := pathAfterUsers
 			if slashIdx := strings.IndexByte(pathAfterUsers, '/'); slashIdx > 0 {
 				pathUserID = pathAfterUsers[:slashIdx]
 			}
-			
+
 			// Allow PUT/POST on own profile
 			if (r.Method == "PUT" || r.Method == "POST") && pathUserID == userID {
 				log.Printf("RBAC - %s user profile: currentUserID=%s, pathUserID=%s, match=true", r.Method, userID, pathUserID)
 				next.ServeHTTP(w, r)
 				return
 			}
-			
+
 			// Trying to modify someone else's profile
 			if r.Method == "PUT" || r.Method == "POST" {
 				log.Printf("RBAC - %s user profile: currentUserID=%s, pathUserID=%s, match=false - DENIED", r.Method, userID, pathUserID)
