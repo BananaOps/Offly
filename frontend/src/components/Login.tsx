@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react'
 import { startLogin, logout, getCurrentUser } from '../auth'
 import UserProfile from './UserProfile'
-import { Button } from './ui/button'
-import { Badge } from './ui/badge'
-import { User } from 'lucide-react'
 
 interface LoginProps {
   isAuthenticated: boolean

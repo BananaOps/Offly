@@ -6,9 +6,6 @@ import { createDepartment, createTeam, updateDepartment, updateTeam, deleteDepar
 import { getAuthConfig, getCurrentUser } from '../auth'
 import OrganizationDiagram from './OrganizationDiagram'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
-import { Button } from './ui/button'
-import { Input } from './ui/input'
-import { Select } from './ui/select'
 
 interface Props {
   users: User[]

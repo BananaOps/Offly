@@ -3,6 +3,8 @@ kind: Config
 metadata:
   name: offly
 build:
+  platforms:
+    - linux/amd64
   artifacts:
     - image: bananaops/offly
       context: .
@@ -12,8 +14,7 @@ build:
           BUILDKIT_INLINE_CACHE: "1"
           VITE_API_URL: "/api/v1"
   tagPolicy:
-    gitCommit:
-      variant: AbbrevCommitSha
+    gitCommit: {}
 deploy:
   helm:
     releases:

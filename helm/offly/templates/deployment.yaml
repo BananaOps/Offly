@@ -54,6 +54,8 @@ spec:
             periodSeconds: 5
             failureThreshold: 3
           env:
+            - name: STORAGE_TYPE
+              value: {{ .Values.env.storageType | quote }}
             - name: MONGO_URI
               value: "mongodb://{{ .Values.env.db.host }}:{{ .Values.env.db.port }}/{{ .Values.env.db.name }}"
             - name: GRPC_PORT

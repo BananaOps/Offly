@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -15,6 +17,15 @@ type SQLiteStorage struct {
 
 // NewSQLiteStorage creates a new SQLite storage with initialized schema
 func NewSQLiteStorage(dbPath string) (*SQLiteStorage, error) {
+	if dbPath != "" && dbPath != ":memory:" {
+		dbDir := filepath.Dir(dbPath)
+		if dbDir != "." && dbDir != "" {
+			if err := os.MkdirAll(dbDir, 0o755); err != nil {
+				return nil, fmt.Errorf("failed to create sqlite directory %s: %w", dbDir, err)
+			}
+		}
+	}
+
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open sqlite database: %w", err)

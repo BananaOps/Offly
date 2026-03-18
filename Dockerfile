@@ -24,8 +24,8 @@ FROM golang:1.25-alpine AS backend-builder
 
 WORKDIR /app
 
-# Install build dependencies
-RUN apk add --no-cache git protobuf-dev
+# Install build dependencies (gcc + musl-dev + sqlite-dev required for CGO/sqlite3)
+RUN apk add --no-cache git protobuf-dev gcc musl-dev sqlite-dev
 
 # Copy backend go modules
 COPY backend/go.mod backend/go.sum ./
@@ -39,16 +39,20 @@ ARG VERSION=dev
 ARG BUILD_DATE
 ARG VCS_REF
 
-RUN CGO_ENABLED=0 GOOS=linux go build \
+RUN CGO_ENABLED=1 GOOS=linux go build \
     -ldflags="-w -s -X main.Version=${VERSION} -X main.BuildDate=${BUILD_DATE} -X main.GitCommit=${VCS_REF}" \
     -o /app/bin/server cmd/server/main.go
 
 # Stage 3: Final image
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates tzdata
+RUN apk --no-cache add ca-certificates tzdata sqlite-libs
 
 WORKDIR /app
+
+RUN mkdir -p /app/data && chown -R nobody:nobody /app
+
+ENV SQLITE_DB_PATH=/app/data/offly.db
 
 # Copy backend binary
 COPY --from=backend-builder /app/bin/server ./server

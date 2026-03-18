@@ -7,9 +7,6 @@ import { User, Department, Team, Absence, Holiday } from '../types'
 import { getAbsences, createAbsence, deleteAbsence } from '../api'
 import { getHolidaysForCountryAndYear } from '../utils/holidayManager'
 import { getCurrentUser, getAuthConfig, getCachedUserEmail } from '../auth'
-import { Card, CardContent } from './ui/card'
-import { Button } from './ui/button'
-import { Select } from './ui/select'
 
 interface Props {
   users: User[]
@@ -46,7 +43,6 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
     return ssoEnabled ? getCachedUserEmail() : null
   })
   const [isSSO, setIsSSO] = useState(getAuthConfig().enabled)
-  const [userLoaded, setUserLoaded] = useState(false)
 
   useEffect(() => {
     // Update SSO status when auth config changes
@@ -72,7 +68,6 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
           setCurrentUserEmail(user.email)
         }
       }
-      setUserLoaded(true)
     }
     loadCurrentUser()
   }, [])
@@ -195,10 +190,6 @@ export default function AbsenceGrid({ users, departments, teams }: Props) {
     }
     // In non-SSO mode, anyone can edit
     return true
-  }
-
-  const toUtcMidnightIso = (d: Date): string => {
-    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0)).toISOString()
   }
 
   const handleCellClick = async (userId: string, day: Date, event: React.MouseEvent) => {
