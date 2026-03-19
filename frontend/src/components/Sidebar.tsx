@@ -45,7 +45,7 @@ export default function Sidebar({
   return (
     <aside
       className={`
-        relative flex flex-col flex-shrink-0 h-full overflow-y-auto z-30
+        relative flex flex-col flex-shrink-0 h-full z-30
         transition-all duration-300 ease-in-out
         bg-slate-900 dark:bg-slate-950
         border-r border-slate-700/60
@@ -72,7 +72,7 @@ export default function Sidebar({
       </div>
 
       {/* Nav items */}
-      <nav className="flex-1 flex flex-col gap-0.5 px-2 py-2 overflow-y-auto">
+      <nav className="flex-1 flex flex-col gap-0.5 px-2 py-2 overflow-y-auto min-h-0">
         {navItems.map(({ id, label, emoji }) => {
           const active = activeTab === id
           return (
