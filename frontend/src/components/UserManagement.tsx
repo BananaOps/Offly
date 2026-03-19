@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faUserPlus, faBuilding, faUserGroup, faEdit, faTrash, faSave, faTimes, faGlobe } from '@fortawesome/free-solid-svg-icons'
-import { User, Department, Team } from '../types'
-import { createUser, assignUserToDepartment, assignUserToTeam, updateUser, deleteUser } from '../api'
+import { faUserPlus, faUserGroup, faEdit, faTrash, faSave, faTimes, faGlobe } from '@fortawesome/free-solid-svg-icons'
+import { User, Team, JOB_PROFILES, JobProfile } from '../types'
+import { createUser, assignUserToTeam, updateUser, deleteUser } from '../api'
 import { countries } from '../utils/holidayManager'
 import { getAuthConfig } from '../auth'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
@@ -12,12 +12,11 @@ import { Select } from './ui/select'
 
 interface Props {
   users: User[]
-  departments: Department[]
   teams: Team[]
   onUpdate: () => void
 }
 
-export default function UserManagement({ users, departments, teams, onUpdate }: Props) {
+export default function UserManagement({ users, teams, onUpdate }: Props) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [country, setCountry] = useState('')
@@ -25,6 +24,7 @@ export default function UserManagement({ users, departments, teams, onUpdate }: 
   const [editName, setEditName] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editCountry, setEditCountry] = useState('')
+  const [editJobProfile, setEditJobProfile] = useState<JobProfile | ''>('')
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,15 +36,6 @@ export default function UserManagement({ users, departments, teams, onUpdate }: 
       onUpdate()
     } catch (error) {
       console.error('Error creating user:', error)
-    }
-  }
-
-  const handleAssignDepartment = async (userId: string, departmentId: string) => {
-    try {
-      await assignUserToDepartment(userId, departmentId)
-      onUpdate()
-    } catch (error) {
-      console.error('Error assigning department:', error)
     }
   }
 
@@ -62,6 +53,7 @@ export default function UserManagement({ users, departments, teams, onUpdate }: 
     setEditName(user.name)
     setEditEmail(user.email)
     setEditCountry(user.country || '')
+    setEditJobProfile(user.jobProfile || '')
   }
 
   const cancelEdit = () => {
@@ -69,11 +61,12 @@ export default function UserManagement({ users, departments, teams, onUpdate }: 
     setEditName('')
     setEditEmail('')
     setEditCountry('')
+    setEditJobProfile('')
   }
 
   const handleUpdateUser = async (userId: string) => {
     try {
-      await updateUser(userId, editName, editEmail, editCountry)
+      await updateUser(userId, editName, editEmail, editCountry, editJobProfile || undefined)
       setEditingUser(null)
       onUpdate()
     } catch (error) {
@@ -158,13 +151,12 @@ export default function UserManagement({ users, departments, teams, onUpdate }: 
                 <FontAwesomeIcon icon={faGlobe} className="text-accent mr-2" />
                 Country
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-text dark:text-gray-300 uppercase tracking-wider flex items-center gap-2">
-                <FontAwesomeIcon icon={faBuilding} className="text-primary" />
-                Department
-              </th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-text dark:text-gray-300 uppercase tracking-wider">
                 <FontAwesomeIcon icon={faUserGroup} className="text-secondary mr-2" />
                 Team
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-text dark:text-gray-300 uppercase tracking-wider">
+                Profile
               </th>
               <th className="px-6 py-4 text-right text-xs font-semibold text-text dark:text-gray-300 uppercase tracking-wider">
                 Actions
@@ -217,24 +209,6 @@ export default function UserManagement({ users, departments, teams, onUpdate }: 
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   {getAuthConfig().enabled ? (
                     <span className="text-gray-600 dark:text-gray-400">
-                      {user.departmentId ? departments.find(d => d.id === user.departmentId)?.name : '-'}
-                    </span>
-                  ) : (
-                    <select
-                      value={user.departmentId || ''}
-                      onChange={(e) => handleAssignDepartment(user.id, e.target.value)}
-                      className="px-3 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 text-sm transition-all cursor-pointer hover:border-primary bg-white dark:bg-gray-700 text-text dark:text-white"
-                    >
-                      <option value="">None</option>
-                      {departments.map(dept => (
-                        <option key={dept.id} value={dept.id}>{dept.name}</option>
-                      ))}
-                    </select>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  {getAuthConfig().enabled ? (
-                    <span className="text-gray-600 dark:text-gray-400">
                       {user.teamId ? teams.find(t => t.id === user.teamId)?.name : '-'}
                     </span>
                   ) : (
@@ -244,10 +218,31 @@ export default function UserManagement({ users, departments, teams, onUpdate }: 
                       className="px-3 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 text-sm transition-all cursor-pointer hover:border-secondary bg-white dark:bg-gray-700 text-text dark:text-white"
                     >
                       <option value="">None</option>
-                      {teams.filter(t => !user.departmentId || t.departmentId === user.departmentId).map(team => (
+                      {teams.map(team => (
                         <option key={team.id} value={team.id}>{team.name}</option>
                       ))}
                     </select>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  {editingUser === user.id ? (
+                    <select
+                      value={editJobProfile}
+                      onChange={e => setEditJobProfile(e.target.value as JobProfile)}
+                      className="px-2 py-1 rounded border border-blue-400 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none text-xs"
+                    >
+                      <option value="">None</option>
+                      {JOB_PROFILES.map(p => (
+                        <option key={p.value} value={p.value}>{p.label}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
+                      {user.jobProfile
+                        ? JOB_PROFILES.find(p => p.value === user.jobProfile)?.label ?? user.jobProfile
+                        : <span className="text-slate-400">—</span>
+                      }
+                    </span>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm">

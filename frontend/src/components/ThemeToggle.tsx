@@ -12,14 +12,13 @@ export default function ThemeToggle({ compact = false }: { compact?: boolean }) 
   ]
 
   if (compact) {
-    // Collapsed sidebar: show only the active theme icon as a single toggle button
     const active = themes.find(t => t.value === theme) ?? themes[0]
     const next = themes[(themes.findIndex(t => t.value === theme) + 1) % themes.length]
     return (
       <button
         onClick={() => setTheme(next.value)}
         title={`Switch to ${next.label}`}
-        className="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-100/80 dark:bg-gray-800/80 text-blue-500 dark:text-blue-400 hover:bg-gray-200/80 dark:hover:bg-gray-700/80 transition-all"
+        className="w-9 h-9 flex items-center justify-center rounded-md bg-slate-700 text-blue-400 hover:bg-slate-600 hover:text-blue-300 transition-colors"
       >
         <FontAwesomeIcon icon={active.icon} className="text-sm" />
       </button>
@@ -27,19 +26,19 @@ export default function ThemeToggle({ compact = false }: { compact?: boolean }) 
   }
 
   return (
-    <div className="flex items-center bg-gray-100/80 dark:bg-gray-800/80 rounded-full p-1 backdrop-blur-sm w-full justify-center">
+    <div className="flex items-center bg-slate-700 rounded-md p-0.5 w-full">
       {themes.map(({ value, icon, label }) => (
         <button
           key={value}
           onClick={() => setTheme(value)}
-          className={`p-1.5 rounded-full transition-all flex-1 flex justify-center ${
+          className={`p-1.5 rounded transition-colors flex-1 flex justify-center text-xs ${
             theme === value
-              ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              ? 'bg-blue-600 text-white shadow-sm'
+              : 'text-slate-400 hover:text-slate-200'
           }`}
           title={label}
         >
-          <FontAwesomeIcon icon={icon} className="text-sm" />
+          <FontAwesomeIcon icon={icon} />
         </button>
       ))}
     </div>

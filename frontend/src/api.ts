@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { User, Department, Team, Absence } from './types'
+import { User, Team, Absence } from './types'
 
 const api = axios.create({
   baseURL: '/api/v1',
@@ -19,34 +19,18 @@ export const createUser = async (name: string, email: string, country?: string):
   return response.data
 }
 
-export const assignUserToDepartment = async (userId: string, departmentId: string): Promise<User> => {
-  const response = await api.post(`/users/${userId}/department`, { userId, departmentId })
-  return response.data
-}
-
 export const assignUserToTeam = async (userId: string, teamId: string): Promise<User> => {
   const response = await api.post(`/users/${userId}/team`, { userId, teamId })
   return response.data
 }
 
-export const getDepartments = async (): Promise<Department[]> => {
-  const response = await api.get('/departments')
-  return response.data.departments || []
-}
-
-export const createDepartment = async (name: string): Promise<Department> => {
-  const response = await api.post('/departments', { name })
-  return response.data
-}
-
-export const getTeams = async (departmentId?: string): Promise<Team[]> => {
-  const params = departmentId ? { departmentId } : {}
-  const response = await api.get('/teams', { params })
+export const getTeams = async (): Promise<Team[]> => {
+  const response = await api.get('/teams')
   return response.data.teams || []
 }
 
-export const createTeam = async (name: string, departmentId: string): Promise<Team> => {
-  const response = await api.post('/teams', { name, departmentId })
+export const createTeam = async (name: string): Promise<Team> => {
+  const response = await api.post('/teams', { name })
   return response.data
 }
 
@@ -105,8 +89,8 @@ export const deleteAbsence = async (id: string): Promise<void> => {
 }
 
 // User update and delete
-export const updateUser = async (id: string, name: string, email: string, country?: string): Promise<User> => {
-  const response = await api.put(`/users/${id}`, { id, name, email, country })
+export const updateUser = async (id: string, name: string, email: string, country?: string, jobProfile?: string): Promise<User> => {
+  const response = await api.put(`/users/${id}`, { id, name, email, country, jobProfile })
   return response.data
 }
 
@@ -114,19 +98,9 @@ export const deleteUser = async (id: string): Promise<void> => {
   await api.delete(`/users/${id}`)
 }
 
-// Department update and delete
-export const updateDepartment = async (id: string, name: string): Promise<Department> => {
-  const response = await api.put(`/departments/${id}`, { id, name })
-  return response.data
-}
-
-export const deleteDepartment = async (id: string): Promise<void> => {
-  await api.delete(`/departments/${id}`)
-}
-
 // Team update and delete
-export const updateTeam = async (id: string, name: string, departmentId: string): Promise<Team> => {
-  const response = await api.put(`/teams/${id}`, { id, name, departmentId })
+export const updateTeam = async (id: string, name: string): Promise<Team> => {
+  const response = await api.put(`/teams/${id}`, { id, name })
   return response.data
 }
 

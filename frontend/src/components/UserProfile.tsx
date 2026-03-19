@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faUser, faEnvelope, faGlobe, faBuilding, faUserGroup, faTimes, faSave } from '@fortawesome/free-solid-svg-icons'
-import { User, Department, Team } from '../types'
-import { getUsers, getDepartments, getTeams, updateUser, assignUserToDepartment, assignUserToTeam } from '../api'
+import { faUser, faEnvelope, faGlobe, faUserGroup, faTimes, faSave } from '@fortawesome/free-solid-svg-icons'
+import { User, Team } from '../types'
+import { getUsers, getTeams, updateUser, assignUserToTeam } from '../api'
 import { countries } from '../utils/holidayManager'
 
 interface UserProfileProps {
@@ -12,10 +12,8 @@ interface UserProfileProps {
 
 export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
   const [user, setUser] = useState<User | null>(null)
-  const [departments, setDepartments] = useState<Department[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [country, setCountry] = useState('')
-  const [departmentId, setDepartmentId] = useState('')
   const [teamId, setTeamId] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -25,9 +23,8 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
 
   const loadData = async () => {
     try {
-      const [usersData, departmentsData, teamsData] = await Promise.all([
+      const [usersData, teamsData] = await Promise.all([
         getUsers(),
-        getDepartments(),
         getTeams()
       ])
       
@@ -35,11 +32,9 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
       if (currentUser) {
         setUser(currentUser)
         setCountry(currentUser.country || '')
-        setDepartmentId(currentUser.departmentId || '')
         setTeamId(currentUser.teamId || '')
       }
       
-      setDepartments(departmentsData)
       setTeams(teamsData)
       setLoading(false)
     } catch (error) {
@@ -52,15 +47,8 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
     if (!user) return
 
     try {
-      // Update country
       await updateUser(user.id, user.name, user.email, country)
       
-      // Update department
-      if (departmentId !== user.departmentId) {
-        await assignUserToDepartment(user.id, departmentId)
-      }
-      
-      // Update team
       if (teamId !== user.teamId) {
         await assignUserToTeam(user.id, teamId)
       }
@@ -85,7 +73,7 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
     return null
   }
 
-  const availableTeams = teams.filter(t => !departmentId || t.departmentId === departmentId)
+
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -150,30 +138,6 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
             </select>
           </div>
 
-          {/* Department */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <FontAwesomeIcon icon={faBuilding} className="mr-2 text-primary" />
-              Department
-            </label>
-            <select
-              value={departmentId}
-              onChange={(e) => {
-                setDepartmentId(e.target.value)
-                // Reset team if department changes
-                if (e.target.value !== departmentId) {
-                  setTeamId('')
-                }
-              }}
-              className="w-full px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 bg-white dark:bg-gray-700 text-gray-900 dark:text-white cursor-pointer transition-all"
-            >
-              <option value="">None</option>
-              {departments.map(dept => (
-                <option key={dept.id} value={dept.id}>{dept.name}</option>
-              ))}
-            </select>
-          </div>
-
           {/* Team */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -183,17 +147,13 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
             <select
               value={teamId}
               onChange={(e) => setTeamId(e.target.value)}
-              disabled={!departmentId}
-              className="w-full px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 bg-white dark:bg-gray-700 text-gray-900 dark:text-white cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 bg-white dark:bg-gray-700 text-gray-900 dark:text-white cursor-pointer transition-all"
             >
               <option value="">None</option>
-              {availableTeams.map(team => (
+              {teams.map(team => (
                 <option key={team.id} value={team.id}>{team.name}</option>
               ))}
             </select>
-            {!departmentId && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Select a department first</p>
-            )}
           </div>
         </div>
 

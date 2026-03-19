@@ -1,22 +1,28 @@
+export const JOB_PROFILES = [
+  { value: 'dev',     label: '💻 Developer' },
+  { value: 'ops',     label: '⚙️ Ops / SRE' },
+  { value: 'design',  label: '🎨 Designer' },
+  { value: 'qa',      label: '🧪 QA Engineer' },
+  { value: 'pm',      label: '📋 Product Manager' },
+  { value: 'data',    label: '📊 Data' },
+  { value: 'other',   label: '👤 Other' },
+] as const
+
+export type JobProfile = typeof JOB_PROFILES[number]['value']
+
 export interface User {
   id: string
   name: string
   email: string
   title?: string
-  departmentId?: string
+  jobProfile?: JobProfile
   teamId?: string
   country?: string
-}
-
-export interface Department {
-  id: string
-  name: string
 }
 
 export interface Team {
   id: string
   name: string
-  departmentId: string
 }
 
 export interface Absence {

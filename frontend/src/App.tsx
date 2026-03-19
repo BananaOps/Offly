@@ -4,18 +4,18 @@ import Sidebar from './components/Sidebar'
 import AbsenceGrid from './components/AbsenceGrid'
 import PresenceView from './components/PresenceView'
 import UserManagement from './components/UserManagement'
-import OrganizationManagement from './components/OrganizationManagement'
+import TeamManagement from './components/TeamManagement'
 import HolidayManagement from './components/HolidayManagement'
 import Footer from './components/Footer'
-import { User, Department, Team } from './types'
-import { getUsers, getDepartments, getTeams } from './api'
+import { User, Team, Absence } from './types'
+import { getUsers, getTeams, getAbsences } from './api'
 import { handleCallback, setAuthConfig, getAuthConfig } from './auth'
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'absences' | 'presences' | 'users' | 'organization' | 'holidays'>('absences')
+  const [activeTab, setActiveTab] = useState<'absences' | 'presences' | 'users' | 'teams' | 'holidays'>('absences')
   const [users, setUsers] = useState<User[]>([])
-  const [departments, setDepartments] = useState<Department[]>([])
   const [teams, setTeams] = useState<Team[]>([])
+  const [absencesToday, setAbsencesToday] = useState<Absence[]>([])
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
@@ -55,21 +55,22 @@ function App() {
 
   const loadData = async () => {
     try {
-      const [usersData, departmentsData, teamsData] = await Promise.all([
+      const today = new Date().toISOString().split('T')[0]
+      const [usersData, teamsData, absData] = await Promise.all([
         getUsers(),
-        getDepartments(),
-        getTeams()
+        getTeams(),
+        getAbsences(undefined, today, today)
       ])
       setUsers(usersData)
-      setDepartments(departmentsData)
       setTeams(teamsData)
+      setAbsencesToday(absData)
     } catch (error) {
       console.error('Error loading data:', error)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col transition-colors">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col transition-colors">
       <Banner />
       <div className="flex flex-1 overflow-hidden">
         {/* Vertical sidebar */}
@@ -86,24 +87,23 @@ function App() {
         <div className="flex flex-col flex-1 min-w-0 overflow-y-auto">
           <main className="flex-grow py-6 px-6">
             {activeTab === 'presences' && (
-              <PresenceView users={users} departments={departments} teams={teams} />
+              <PresenceView users={users} teams={teams} />
             )}
             {activeTab === 'absences' && (
-              <AbsenceGrid users={users} departments={departments} teams={teams} />
+              <AbsenceGrid users={users} teams={teams} />
             )}
             {activeTab === 'users' && (
               <UserManagement
                 users={users}
-                departments={departments}
                 teams={teams}
                 onUpdate={loadData}
               />
             )}
-            {activeTab === 'organization' && (
-              <OrganizationManagement
-                users={users}
-                departments={departments}
+            {activeTab === 'teams' && (
+              <TeamManagement
                 teams={teams}
+                users={users}
+                absencesToday={absencesToday}
                 onUpdate={loadData}
               />
             )}

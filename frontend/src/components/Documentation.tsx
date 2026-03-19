@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCalendarDays, faUsers, faSitemap, faCalendarAlt, faServer, faCode } from '@fortawesome/free-solid-svg-icons'
+import { faCalendarDays, faUsers, faUserGroup, faCalendarAlt, faServer, faCode } from '@fortawesome/free-solid-svg-icons'
 
 export default function Documentation() {
   return (
@@ -66,11 +66,11 @@ export default function Documentation() {
             </div>
           </div>
           <div className="flex items-start space-x-3">
-            <FontAwesomeIcon icon={faSitemap} className="text-accent mt-1" />
+            <FontAwesomeIcon icon={faUserGroup} className="text-accent mt-1" />
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">Organization Structure</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-white">Teams &amp; Departments</h3>
               <p className="text-gray-600 dark:text-gray-400 text-sm">
-                Define departments and teams to organize your workforce. Manage hierarchical structures and team compositions.
+                Define departments and teams to organize your workforce. Assign users a job profile (Dev, Ops, Design, QA…).
               </p>
             </div>
           </div>
@@ -93,9 +93,9 @@ export default function Documentation() {
         </h2>
         <div className="space-y-4">
           <div>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">1. Set Up Organization</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-2">1. Set Up Teams</h3>
             <p className="text-gray-600 dark:text-gray-400 text-sm">
-              Start by creating departments and teams in the <span className="font-medium">Organization</span> tab. 
+              Start by creating departments and teams in the <span className="font-medium">Teams</span> tab.
               This will help you organize your workforce effectively.
             </p>
           </div>

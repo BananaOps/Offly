@@ -13,13 +13,13 @@ body {
 
 @layer base {
   :root {
-    --color-background: #F5F7FB;
-    --color-text: #1F1F1F;
+    --color-background: #F1F5F9;
+    --color-text: #0F172A;
   }
 
   .dark {
-    --color-background: #111827;
-    --color-text: #F9FAFB;
+    --color-background: #0B1426;
+    --color-text: #E2E8F0;
   }
 
   body {
