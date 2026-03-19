@@ -1,4 +1,4 @@
-export default function Logo({ className = "h-8" }: { className?: string }) {
+export default function Logo({ className = "h-8", iconOnly = false }: { className?: string; iconOnly?: boolean }) {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       <svg
@@ -98,14 +98,16 @@ export default function Logo({ className = "h-8" }: { className?: string }) {
         />
       </svg>
 
-      <div className="flex flex-col">
-        <span className="text-2xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent leading-none">
-          Offly
-        </span>
-        <span className="text-[10px] text-gray-500 uppercase tracking-wider leading-none mt-0.5">
-          Time Off Manager
-        </span>
-      </div>
+      {!iconOnly && (
+        <div className="flex flex-col">
+          <span className="text-2xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent leading-none">
+            Offly
+          </span>
+          <span className="text-[10px] text-gray-500 uppercase tracking-wider leading-none mt-0.5">
+            Time Off Manager
+          </span>
+        </div>
+      )}
     </div>
   )
 }

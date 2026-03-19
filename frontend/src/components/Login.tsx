@@ -5,9 +5,10 @@ import UserProfile from './UserProfile'
 interface LoginProps {
   isAuthenticated: boolean
   onAuthChange: (authenticated: boolean) => void
+  compact?: boolean
 }
 
-export default function Login({ isAuthenticated, onAuthChange }: LoginProps) {
+export default function Login({ isAuthenticated, onAuthChange, compact = false }: LoginProps) {
   const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null)
   const [showProfile, setShowProfile] = useState(false)
   
@@ -37,6 +38,37 @@ export default function Login({ isAuthenticated, onAuthChange }: LoginProps) {
     fetchUser()
   }
   
+  if (compact) {
+    return (
+      <div className="flex flex-col items-center gap-1">
+        {user ? (
+          <>
+            <button
+              onClick={() => setShowProfile(true)}
+              title={user.name}
+              className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold shadow-sm hover:opacity-80 transition-all"
+            >
+              {user.name.charAt(0).toUpperCase()}
+            </button>
+            {showProfile && user.email && (
+              <UserProfile userEmail={user.email} onClose={handleProfileClose} />
+            )}
+          </>
+        ) : (
+          <button
+            onClick={startLogin}
+            title="Login"
+            className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white hover:opacity-90 transition-all"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H3" />
+            </svg>
+          </button>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="flex items-center gap-2">
       {user ? (
