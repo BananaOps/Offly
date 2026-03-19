@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faUser, faEnvelope, faGlobe, faUserGroup, faTimes, faSave } from '@fortawesome/free-solid-svg-icons'
-import { User, Team } from '../types'
+import { User, Team, JOB_PROFILES } from '../types'
 import { getUsers, getTeams, updateUser, assignUserToTeam } from '../api'
 import { countries } from '../utils/holidayManager'
 
@@ -15,6 +15,7 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
   const [teams, setTeams] = useState<Team[]>([])
   const [country, setCountry] = useState('')
   const [teamId, setTeamId] = useState('')
+  const [jobProfile, setJobProfile] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
         setUser(currentUser)
         setCountry(currentUser.country || '')
         setTeamId(currentUser.teamId || '')
+        setJobProfile(currentUser.jobProfile || '')
       }
       
       setTeams(teamsData)
@@ -47,7 +49,7 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
     if (!user) return
 
     try {
-      await updateUser(user.id, user.name, user.email, country)
+      await updateUser(user.id, user.name, user.email, country, jobProfile)
       
       if (teamId !== user.teamId) {
         await assignUserToTeam(user.id, teamId)
@@ -152,6 +154,24 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
               <option value="">None</option>
               {teams.map(team => (
                 <option key={team.id} value={team.id}>{team.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Job Profile */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <span className="mr-2">🏷️</span>
+              Job Profile
+            </label>
+            <select
+              value={jobProfile}
+              onChange={(e) => setJobProfile(e.target.value)}
+              className="w-full px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 bg-white dark:bg-gray-700 text-gray-900 dark:text-white cursor-pointer transition-all"
+            >
+              <option value="">None</option>
+              {JOB_PROFILES.map(p => (
+                <option key={p.value} value={p.value}>{p.label}</option>
               ))}
             </select>
           </div>

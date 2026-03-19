@@ -37,6 +37,7 @@ type UserDoc struct {
 	DepartmentID string             `bson:"department_id,omitempty"`
 	TeamID       string             `bson:"team_id,omitempty"`
 	Country      string             `bson:"country,omitempty"`
+	JobProfile   string             `bson:"job_profile,omitempty"`
 }
 
 type DepartmentDoc struct {
@@ -247,6 +248,7 @@ func (s *MongoStorage) CreateUser(user *User) error {
 		DepartmentID: user.DepartmentID,
 		TeamID:       user.TeamID,
 		Country:      user.Country,
+		JobProfile:   user.JobProfile,
 	}
 
 	result, err := s.users.InsertOne(ctx, doc)
@@ -281,6 +283,7 @@ func (s *MongoStorage) GetUsers() ([]*User, error) {
 			DepartmentID: doc.DepartmentID,
 			TeamID:       doc.TeamID,
 			Country:      doc.Country,
+			JobProfile:   doc.JobProfile,
 		})
 	}
 
@@ -303,6 +306,7 @@ func (s *MongoStorage) UpdateUser(user *User) error {
 			"department_id": user.DepartmentID,
 			"team_id":       user.TeamID,
 			"country":       user.Country,
+			"job_profile":   user.JobProfile,
 		},
 	}
 

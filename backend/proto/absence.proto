@@ -151,6 +151,8 @@ message User {
   string department_id = 4;
   string team_id = 5;
   string country = 6;
+  string title = 7;
+  string job_profile = 8;
 }
 
 message Department {
@@ -243,6 +245,7 @@ message UpdateUserRequest {
   string name = 2;
   string email = 3;
   string country = 4;
+  string job_profile = 5;
 }
 
 message DeleteUserRequest {

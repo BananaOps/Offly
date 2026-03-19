@@ -18,6 +18,7 @@ type User struct {
 	DepartmentID string
 	TeamID       string
 	Country      string
+	JobProfile   string
 }
 
 type Department struct {

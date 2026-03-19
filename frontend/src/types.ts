@@ -5,6 +5,11 @@ export const JOB_PROFILES = [
   { value: 'qa',      label: '🧪 QA Engineer' },
   { value: 'pm',      label: '📋 Product Manager' },
   { value: 'data',    label: '📊 Data' },
+  { value: 'codir',   label: '🏛️ CoDir' },
+  { value: 'it_corp', label: '🖥️ IT Corp' },
+  { value: 'bo',      label: '💼 Business Owner' },
+  { value: 'ml',      label: '🤖 ML' },
+  { value: 'instru',  label: '🔬 Instrumentation' },
   { value: 'other',   label: '👤 Other' },
 ] as const
 

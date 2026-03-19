@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faCalendarAlt, 
@@ -11,7 +12,12 @@ import {
   faDownload,
   faUpload,
   faFilter,
-  faInfoCircle
+  faInfoCircle,
+  faFileImport,
+  faSpinner,
+  faCheckCircle,
+  faExclamationTriangle,
+  faXmark
 } from '@fortawesome/free-solid-svg-icons'
 import { Holiday } from '../types'
 import {
@@ -21,9 +27,17 @@ import {
   deleteHoliday,
   countries,
   exportHolidays,
-  importHolidays
 } from '../utils/holidayManager'
 import { getAuthConfig, getCurrentUser } from '../auth'
+
+interface ImportRow {
+  date: string
+  name: string
+  country: string
+  year: number
+  status: 'pending' | 'ok' | 'error'
+  error?: string
+}
 
 export default function HolidayManagement() {
   const isSSO = getAuthConfig().enabled
@@ -32,6 +46,12 @@ export default function HolidayManagement() {
   const [holidays, setHolidays] = useState<Holiday[]>([])
   const [selectedCountry, setSelectedCountry] = useState('')
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+
+  // JSON import modal state
+  const [showImport, setShowImport] = useState(false)
+  const [importRows, setImportRows] = useState<ImportRow[]>([])
+  const [importing, setImporting] = useState(false)
+  const [importDone, setImportDone] = useState(false)
   
   useEffect(() => {
     const checkAdmin = async () => {
@@ -149,22 +169,53 @@ export default function HolidayManagement() {
     }
   }
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    
     const reader = new FileReader()
-    reader.onload = async (event) => {
+    reader.onload = (ev) => {
       try {
-        const data = JSON.parse(event.target?.result as string)
-        const count = await importHolidays(data)
-        loadData()
-        alert(`${count} holidays imported successfully!`)
-      } catch (error) {
-        alert('Error importing holidays. Please check the file format.')
+        const data = JSON.parse(ev.target?.result as string)
+        if (!Array.isArray(data)) throw new Error('Expected a JSON array')
+        const rows: ImportRow[] = data.map((item: any) => {
+          const date = item.date || ''
+          const name = item.name || ''
+          const country = item.country || ''
+          const year = item.year ?? (date ? new Date(date).getFullYear() : new Date().getFullYear())
+          let error: string | undefined
+          if (!date) error = 'Missing date'
+          else if (!name) error = 'Missing name'
+          else if (!country) error = 'Missing country'
+          return { date, name, country, year, status: error ? 'error' : 'pending', error }
+        })
+        setImportRows(rows)
+        setImportDone(false)
+      } catch (err: any) {
+        alert('Invalid JSON file: ' + (err.message || 'parse error'))
       }
     }
     reader.readAsText(file)
+    e.target.value = ''
+  }
+
+  const runImport = async () => {
+    setImporting(true)
+    const updated = [...importRows]
+    for (let i = 0; i < updated.length; i++) {
+      if (updated[i].status === 'ok') continue
+      if (updated[i].error && updated[i].status === 'error') continue
+      const row = updated[i]
+      try {
+        await addHoliday({ date: row.date, name: row.name, country: row.country, year: row.year })
+        updated[i] = { ...row, status: 'ok' }
+      } catch (err: any) {
+        updated[i] = { ...row, status: 'error', error: err?.response?.data?.message || err.message || 'Error' }
+      }
+      setImportRows([...updated])
+    }
+    setImporting(false)
+    setImportDone(true)
+    loadData()
   }
 
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() + i - 2)
@@ -178,7 +229,7 @@ export default function HolidayManagement() {
         </h2>
         
         {canEdit && (
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <button
             onClick={handleExport}
             className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2"
@@ -186,16 +237,13 @@ export default function HolidayManagement() {
             <FontAwesomeIcon icon={faDownload} />
             Export
           </button>
-          <label className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2 cursor-pointer">
+          <button
+            onClick={() => { setShowImport(true); setImportRows([]); setImportDone(false) }}
+            className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+          >
             <FontAwesomeIcon icon={faUpload} />
             Import
-            <input
-              type="file"
-              accept=".json"
-              onChange={handleImport}
-              className="hidden"
-            />
-          </label>
+          </button>
         </div>
         )}
       </div>
@@ -400,6 +448,143 @@ export default function HolidayManagement() {
           </div>
         )}
       </div>
+
+      {/* Import JSON modal */}
+      {showImport && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-700">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 shrink-0">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <FontAwesomeIcon icon={faFileImport} className="text-green-600" />
+                Import Holidays (JSON)
+              </h3>
+              <button onClick={() => setShowImport(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <FontAwesomeIcon icon={faXmark} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">
+              {/* Format guide */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 text-sm">
+                <p className="font-semibold text-slate-700 dark:text-slate-200 mb-2">Expected JSON format</p>
+                <pre className="bg-slate-900 text-green-300 rounded-lg p-3 text-xs overflow-x-auto leading-relaxed">{`[
+  {
+    "date": "2025-12-25",   // required — YYYY-MM-DD
+    "name": "Christmas Day", // required
+    "country": "FR",         // required — 2-letter code
+    "year": 2025             // optional — inferred from date if absent
+  }
+]`}</pre>
+                <p className="mt-2 text-slate-400 text-xs">
+                  Use <span className="font-semibold text-blue-500">Export</span> to get a valid file from your current data.
+                </p>
+              </div>
+
+              {/* File picker */}
+              {importRows.length === 0 && (
+                <label className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-8 cursor-pointer hover:border-green-500 transition-colors">
+                  <FontAwesomeIcon icon={faUpload} className="text-3xl text-slate-400" />
+                  <span className="text-sm text-slate-500 dark:text-slate-400">Click to select a <span className="font-semibold">.json</span> file</span>
+                  <input type="file" accept=".json" onChange={handleImportFile} className="hidden" />
+                </label>
+              )}
+
+              {/* Preview table */}
+              {importRows.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                      Preview — {importRows.length} row{importRows.length !== 1 ? 's' : ''}
+                      {importDone && (
+                        <span className="ml-3 text-green-600 dark:text-green-400">
+                          <FontAwesomeIcon icon={faCheckCircle} className="mr-1" />
+                          {importRows.filter(r => r.status === 'ok').length} imported
+                          {importRows.filter(r => r.status === 'error').length > 0 && (
+                            <span className="text-red-500 ml-2">
+                              <FontAwesomeIcon icon={faExclamationTriangle} className="mr-1" />
+                              {importRows.filter(r => r.status === 'error').length} failed
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </p>
+                    {!importing && !importDone && (
+                      <label className="text-xs text-blue-600 cursor-pointer hover:underline">
+                        Change file
+                        <input type="file" accept=".json" onChange={handleImportFile} className="hidden" />
+                      </label>
+                    )}
+                  </div>
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                    <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+                      <thead className="bg-slate-50 dark:bg-slate-800">
+                        <tr>
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Date</th>
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Name</th>
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Country</th>
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Year</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
+                        {importRows.map((row, i) => (
+                          <tr key={i} className={row.status === 'error' ? 'bg-red-50 dark:bg-red-900/20' : row.status === 'ok' ? 'bg-green-50 dark:bg-green-900/10' : ''}>
+                            <td className="px-3 py-2 whitespace-nowrap">
+                              {row.status === 'pending' && <span className="text-slate-400 text-xs">⏳ Pending</span>}
+                              {row.status === 'ok' && <span className="text-green-600 text-xs font-semibold"><FontAwesomeIcon icon={faCheckCircle} className="mr-1" />OK</span>}
+                              {row.status === 'error' && (
+                                <span className="text-red-600 text-xs font-semibold" title={row.error}>
+                                  <FontAwesomeIcon icon={faExclamationTriangle} className="mr-1" />{row.error || 'Error'}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap font-mono text-slate-700 dark:text-slate-200">{row.date || <span className="text-red-400">—</span>}</td>
+                            <td className="px-3 py-2 text-slate-700 dark:text-slate-200">{row.name || <span className="text-red-400">—</span>}</td>
+                            <td className="px-3 py-2 whitespace-nowrap">
+                              <span className="font-semibold text-slate-700 dark:text-slate-200">{row.country || <span className="text-red-400">—</span>}</span>
+                              {row.country && (
+                                <span className="ml-1 text-xs text-slate-400">
+                                  {countries.find(c => c.code === row.country)?.name}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 text-slate-500">{row.year}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3 shrink-0">
+              <button
+                onClick={() => setShowImport(false)}
+                className="px-4 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                {importDone ? 'Close' : 'Cancel'}
+              </button>
+              {importRows.length > 0 && !importDone && (
+                <button
+                  onClick={runImport}
+                  disabled={importing || importRows.every(r => r.status === 'error')}
+                  className="px-5 py-2 text-sm rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+                >
+                  {importing
+                    ? <><FontAwesomeIcon icon={faSpinner} spin /> Importing…</>
+                    : <><FontAwesomeIcon icon={faFileImport} /> Import {importRows.filter(r => r.status !== 'error' || !r.error).length} holidays</>
+                  }
+                </button>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }

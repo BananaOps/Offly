@@ -1150,6 +1150,9 @@
         },
         "country": {
           "type": "string"
+        },
+        "jobProfile": {
+          "type": "string"
         }
       }
     },
@@ -1172,6 +1175,12 @@
           "type": "string"
         },
         "country": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "jobProfile": {
           "type": "string"
         }
       }

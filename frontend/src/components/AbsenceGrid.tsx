@@ -1,16 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths } from 'date-fns'
 import { enUS } from 'date-fns/locale'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faChevronLeft, faChevronRight, faCheck, faUserGroup, faExclamationTriangle, faCalendarPlus, faMousePointer, faSun, faMoon, faStar } from '@fortawesome/free-solid-svg-icons'
-import { User, Team, Absence, Holiday } from '../types'
+import { faChevronLeft, faChevronRight, faCheck, faUserGroup, faExclamationTriangle, faCalendarPlus, faMousePointer, faSun, faMoon, faStar, faMagnifyingGlass, faXmark, faDownload, faFileCsv, faFilePdf, faUser, faGlobe } from '@fortawesome/free-solid-svg-icons'
+import { User, Team, Absence, Holiday, JOB_PROFILES } from '../types'
 import { getAbsences, createAbsence, deleteAbsence } from '../api'
 import { getHolidaysForCountryAndYear } from '../utils/holidayManager'
 import { getCurrentUser, getAuthConfig, getCachedUserEmail } from '../auth'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 interface Props {
   users: User[]
   teams: Team[]
+  focusUserId?: string
 }
 
 interface GroupedUsers {
@@ -19,11 +23,13 @@ interface GroupedUsers {
   users: User[]
 }
 
-export default function AbsenceGrid({ users, teams }: Props) {
+export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [currentDate, setCurrentDate] = useState(new Date())
   const [absences, setAbsences] = useState<Absence[]>([])
   const [selectedTeam, setSelectedTeam] = useState<string>('')
+  const [selectedProfile, setSelectedProfile] = useState<string>('')
+  const [searchQuery, setSearchQuery] = useState<string>('')
   const [selectionMode, setSelectionMode] = useState<'single' | 'range'>('single')
   const [rangeStart, setRangeStart] = useState<{ userId: string; date: Date } | null>(null)
   const [showAbsenceModal, setShowAbsenceModal] = useState(false)
@@ -37,10 +43,25 @@ export default function AbsenceGrid({ users, teams }: Props) {
   })
   const [isSSO, setIsSSO] = useState(getAuthConfig().enabled)
 
+  // Export modal state
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportScope, setExportScope] = useState<'all' | 'team' | 'person'>('all')
+  const [exportTeamId, setExportTeamId] = useState<string>('')
+  const [exportUserId, setExportUserId] = useState<string>('')
+  const [exportFormat, setExportFormat] = useState<'csv' | 'pdf'>('csv')
+
   useEffect(() => {
     // Update SSO status when auth config changes
     setIsSSO(getAuthConfig().enabled)
   }, [])
+
+  // When a user is focused from QuickSearch, filter on their name
+  useEffect(() => {
+    if (focusUserId) {
+      const user = users.find(u => u.id === focusUserId)
+      if (user) setSearchQuery(user.name)
+    }
+  }, [focusUserId, users])
 
   const days = eachDayOfInterval({
     start: startOfMonth(currentDate),
@@ -109,6 +130,11 @@ export default function AbsenceGrid({ users, teams }: Props) {
 
   const filteredUsers = users.filter(user => {
     if (selectedTeam && user.teamId !== selectedTeam) return false
+    if (selectedProfile && user.jobProfile !== selectedProfile) return false
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      if (!user.name.toLowerCase().includes(q) && !(user.email || '').toLowerCase().includes(q)) return false
+    }
     return true
   })
 
@@ -318,6 +344,116 @@ export default function AbsenceGrid({ users, teams }: Props) {
     return userHolidays.get(key) || null
   }
 
+  const buildExportRows = (scopeUsers: User[]) => {
+    const scopeIds = new Set(scopeUsers.map(u => u.id))
+    const teamMap = new Map(teams.map(t => [t.id, t.name]))
+    const userMap = new Map(users.map(u => [u.id, u]))
+    const profileLabel = (val?: string) =>
+      JOB_PROFILES.find(p => p.value === val)?.label.replace(/^[^\p{L}]+/u, '') ?? val ?? ''
+    const rows = absences
+      .filter(a => scopeIds.has(a.userId))
+      .sort((a, b) => a.startDate.localeCompare(b.startDate))
+      .map(a => {
+        const user = userMap.get(a.userId)
+        const teamName = user?.teamId ? (teamMap.get(user.teamId) ?? '') : ''
+        const typeLabel = a.reason.includes('Morning') ? 'Morning'
+          : a.reason.includes('Afternoon') ? 'Afternoon'
+          : 'Full Day'
+        return [
+          user?.name ?? '',
+          user?.email ?? '',
+          teamName,
+          user?.country ?? '',
+          profileLabel(user?.jobProfile),
+          a.startDate.slice(0, 10),
+          a.endDate.slice(0, 10),
+          typeLabel,
+        ]
+      })
+    return { rows, teamMap }
+  }
+
+  const getScopeUsers = () => {
+    if (exportScope === 'all') return users
+    if (exportScope === 'team') return users.filter(u => u.teamId === exportTeamId)
+    if (exportScope === 'person') return users.filter(u => u.id === exportUserId)
+    return users
+  }
+
+  const getScopeLabel = () => {
+    const teamMap = new Map(teams.map(t => [t.id, t.name]))
+    if (exportScope === 'team') return teamMap.get(exportTeamId) ?? 'team'
+    if (exportScope === 'person') return users.find(u => u.id === exportUserId)?.name ?? 'person'
+    return 'all'
+  }
+
+  const doExport = () => {
+    const scopeUsers = getScopeUsers()
+    const { rows } = buildExportRows(scopeUsers)
+    const month = format(currentDate, 'yyyy-MM', { locale: enUS })
+    const label = getScopeLabel().replace(/\s+/g, '-')
+    const filename = `absences-${month}-${label}`
+
+    if (exportFormat === 'csv') {
+      const header = ['Name', 'Email', 'Team', 'Country', 'Profile', 'Start Date', 'End Date', 'Type']
+      const csv = [header, ...rows]
+        .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+        .join('\n')
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${filename}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } else {
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+      const monthLabel = format(currentDate, 'MMMM yyyy', { locale: enUS })
+      const scopeLabel = exportScope === 'all' ? 'All employees'
+        : exportScope === 'team' ? `Team: ${getScopeLabel()}`
+        : `Employee: ${getScopeLabel()}`
+
+      doc.setFontSize(16)
+      doc.setTextColor(30, 58, 138)
+      doc.text('Absence Report', 14, 16)
+      doc.setFontSize(10)
+      doc.setTextColor(100, 100, 100)
+      doc.text(`${monthLabel}  •  ${scopeLabel}  •  ${rows.length} absence(s)`, 14, 23)
+      doc.setDrawColor(200, 200, 200)
+      doc.line(14, 26, 283, 26)
+
+      autoTable(doc, {
+        startY: 30,
+        head: [['Name', 'Email', 'Team', 'Country', 'Profile', 'Start Date', 'End Date', 'Type']],
+        body: rows,
+        headStyles: { fillColor: [30, 58, 138], textColor: 255, fontSize: 9, fontStyle: 'bold' },
+        bodyStyles: { fontSize: 8, textColor: 50 },
+        alternateRowStyles: { fillColor: [245, 247, 255] },
+        columnStyles: {
+          0: { cellWidth: 38 },
+          1: { cellWidth: 50 },
+          2: { cellWidth: 30 },
+          3: { cellWidth: 18 },
+          4: { cellWidth: 30 },
+          5: { cellWidth: 26 },
+          6: { cellWidth: 26 },
+          7: { cellWidth: 20 },
+        },
+        margin: { left: 14, right: 14 },
+        didDrawPage: (data: any) => {
+          const pageCount = (doc as any).internal.getNumberOfPages()
+          doc.setFontSize(7)
+          doc.setTextColor(150)
+          doc.text(`Page ${data.pageNumber} / ${pageCount}`, data.settings.margin.left, doc.internal.pageSize.height - 8)
+          doc.text(`Generated ${new Date().toLocaleDateString()}`, 200, doc.internal.pageSize.height - 8)
+        },
+      })
+
+      doc.save(`${filename}.pdf`)
+    }
+    setShowExportModal(false)
+  }
+
   return (
     <div className="backdrop-blur-xl bg-white/90 dark:bg-gray-800/90 shadow-xl rounded-2xl p-8 border border-gray-200/50 dark:border-gray-700/50 transition-colors">
       <div className="mb-6 flex justify-between items-center flex-wrap gap-4">
@@ -368,7 +504,23 @@ export default function AbsenceGrid({ users, teams }: Props) {
             </button>
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center flex-wrap">
+          {/* Text search */}
+          <div className="relative">
+            <FontAwesomeIcon icon={faMagnifyingGlass} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search person…"
+              className="pl-8 pr-7 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 w-44"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                <FontAwesomeIcon icon={faXmark} className="text-xs" />
+              </button>
+            )}
+          </div>
           <div className="relative">
             <FontAwesomeIcon 
               icon={faUserGroup} 
@@ -385,6 +537,31 @@ export default function AbsenceGrid({ users, teams }: Props) {
               ))}
             </select>
           </div>
+          <div className="relative">
+            <select
+              value={selectedProfile}
+              onChange={(e) => setSelectedProfile(e.target.value)}
+              className="pl-4 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium appearance-none cursor-pointer hover:border-blue-500 outline-none"
+            >
+              <option value="">All profiles</option>
+              {JOB_PROFILES.map(p => (
+                <option key={p.value} value={p.value}>{p.label}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={() => {
+              setExportScope('all')
+              setExportTeamId(selectedTeam || (teams[0]?.id ?? ''))
+              setExportUserId(filteredUsers[0]?.id ?? '')
+              setExportFormat('csv')
+              setShowExportModal(true)
+            }}
+            className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all text-sm font-medium shadow-sm"
+          >
+            <FontAwesomeIcon icon={faDownload} />
+            Export
+          </button>
         </div>
       </div>
 
@@ -593,7 +770,7 @@ export default function AbsenceGrid({ users, teams }: Props) {
       </div>
 
       {/* Absence Modal */}
-      {showAbsenceModal && modalData && (
+      {showAbsenceModal && modalData && createPortal(
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowAbsenceModal(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-2xl max-w-md w-full mx-4 transition-colors" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-xl font-bold text-text dark:text-white mb-4">
@@ -647,10 +824,171 @@ export default function AbsenceGrid({ users, teams }: Props) {
             </div>
           </div>
         </div>
+      , document.body)}
+
+      {/* Export Modal */}
+      {showExportModal && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowExportModal(false)}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-700" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <FontAwesomeIcon icon={faDownload} className="text-blue-600" />
+                Export Absences
+              </h3>
+              <button onClick={() => setShowExportModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <FontAwesomeIcon icon={faXmark} />
+              </button>
+            </div>
+
+            <div className="px-6 py-5 space-y-6">
+              {/* Scope */}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">What to export</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { value: 'all',    icon: faGlobe,     label: 'Everyone' },
+                    { value: 'team',   icon: faUserGroup, label: 'A team' },
+                    { value: 'person', icon: faUser,      label: 'A person' },
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setExportScope(opt.value)}
+                      className={`flex flex-col items-center gap-2 py-3 rounded-xl border-2 transition-all text-sm font-medium ${
+                        exportScope === opt.value
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                          : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-300'
+                      }`}
+                    >
+                      <FontAwesomeIcon icon={opt.icon} className="text-lg" />
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Team picker */}
+              {exportScope === 'team' && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Select team</p>
+                  <select
+                    value={exportTeamId}
+                    onChange={e => setExportTeamId(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 text-sm"
+                  >
+                    <option value="">— choose a team —</option>
+                    {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                  {exportTeamId && (
+                    <p className="mt-1.5 text-xs text-slate-400">
+                      {users.filter(u => u.teamId === exportTeamId).length} member(s) •{' '}
+                      {absences.filter(a => users.find(u => u.id === a.userId)?.teamId === exportTeamId).length} absence(s) this month
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Person picker */}
+              {exportScope === 'person' && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Select person</p>
+                  <select
+                    value={exportUserId}
+                    onChange={e => setExportUserId(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 text-sm"
+                  >
+                    <option value="">— choose a person —</option>
+                    {users
+                      .slice()
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map(u => {
+                        const team = u.teamId ? teams.find(t => t.id === u.teamId)?.name : null
+                        return <option key={u.id} value={u.id}>{u.name}{team ? ` (${team})` : ''}</option>
+                      })}
+                  </select>
+                  {exportUserId && (
+                    <p className="mt-1.5 text-xs text-slate-400">
+                      {absences.filter(a => a.userId === exportUserId).length} absence(s) this month
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Format */}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Format</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {([
+                    { value: 'csv', icon: faFileCsv, label: 'CSV',  desc: 'Spreadsheet compatible' },
+                    { value: 'pdf', icon: faFilePdf, label: 'PDF',  desc: 'Formatted report' },
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setExportFormat(opt.value)}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all text-left ${
+                        exportFormat === opt.value
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                          : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'
+                      }`}
+                    >
+                      <FontAwesomeIcon
+                        icon={opt.icon}
+                        className={`text-2xl ${ opt.value === 'csv' ? 'text-green-600' : 'text-red-500' }`}
+                      />
+                      <div>
+                        <p className={`font-semibold text-sm ${ exportFormat === opt.value ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200' }`}>{opt.label}</p>
+                        <p className="text-xs text-slate-400">{opt.desc}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 px-4 py-3 text-sm text-slate-600 dark:text-slate-300">
+                {(() => {
+                  const scopeUsers = getScopeUsers()
+                  const { rows } = buildExportRows(scopeUsers)
+                  const month = format(currentDate, 'MMMM yyyy', { locale: enUS })
+                  const canExport = exportScope === 'all' || (exportScope === 'team' && exportTeamId) || (exportScope === 'person' && exportUserId)
+                  if (!canExport) return <span className="text-slate-400">Select a scope above to preview.</span>
+                  return (
+                    <span>
+                      Will export <strong className="text-slate-800 dark:text-white">{rows.length} absence(s)</strong> for{' '}
+                      <strong className="text-slate-800 dark:text-white">{scopeUsers.length} person(s)</strong> — {month}
+                    </span>
+                  )
+                })()}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="px-4 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={doExport}
+                disabled={(
+                  (exportScope === 'team' && !exportTeamId) ||
+                  (exportScope === 'person' && !exportUserId)
+                )}
+                className="px-5 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+              >
+                <FontAwesomeIcon icon={exportFormat === 'pdf' ? faFilePdf : faFileCsv} />
+                Download {exportFormat.toUpperCase()}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Holiday Modal */}
-      {showHolidayModal && holidayModalData && (
+      {showHolidayModal && holidayModalData && createPortal(
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowHolidayModal(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-2xl max-w-md w-full mx-4 transition-colors" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-center mb-4">
@@ -681,7 +1019,7 @@ export default function AbsenceGrid({ users, teams }: Props) {
             </button>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   )
 }

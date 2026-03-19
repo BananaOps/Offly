@@ -16,6 +16,7 @@ function App() {
   const [users, setUsers] = useState<User[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [absencesToday, setAbsencesToday] = useState<Absence[]>([])
+  const [focusUserId, setFocusUserId] = useState<string | undefined>()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
@@ -81,6 +82,9 @@ function App() {
           onAuthChange={setIsAuthenticated}
           collapsed={sidebarCollapsed}
           onCollapsedChange={setSidebarCollapsed}
+          users={users}
+          teams={teams}
+          onSelectUser={(user) => { setFocusUserId(user.id); setActiveTab('absences') }}
         />
 
         {/* Main content area */}
@@ -90,7 +94,7 @@ function App() {
               <PresenceView users={users} teams={teams} />
             )}
             {activeTab === 'absences' && (
-              <AbsenceGrid users={users} teams={teams} />
+              <AbsenceGrid users={users} teams={teams} focusUserId={focusUserId} />
             )}
             {activeTab === 'users' && (
               <UserManagement

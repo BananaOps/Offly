@@ -6,7 +6,9 @@ import {
 import Logo from './Logo'
 import ThemeToggle from './ThemeToggle'
 import Login from './Login'
+import QuickSearch from './QuickSearch'
 import { getAuthConfig } from '../auth'
+import { User, Team } from '../types'
 
 type Tab = 'absences' | 'presences' | 'users' | 'teams' | 'holidays'
 
@@ -17,12 +19,15 @@ interface SidebarProps {
   onAuthChange: (v: boolean) => void
   collapsed: boolean
   onCollapsedChange: (v: boolean) => void
+  users: User[]
+  teams: Team[]
+  onSelectUser?: (user: User) => void
 }
 
 const navItems: { id: Tab; label: string; emoji: string }[] = [
   { id: 'absences',     label: 'Time Off',      emoji: '🗓️' },
-  { id: 'users',        label: 'Users',          emoji: '👥' },
   { id: 'teams',        label: 'Teams',          emoji: '🏷️' },
+  { id: 'users',        label: 'Users',          emoji: '👥' },
   { id: 'holidays',     label: 'Holidays',       emoji: '🌍' },
 ]
 
@@ -33,6 +38,9 @@ export default function Sidebar({
   onAuthChange,
   collapsed,
   onCollapsedChange,
+  users,
+  teams,
+  onSelectUser,
 }: SidebarProps) {
   return (
     <aside
@@ -57,6 +65,11 @@ export default function Sidebar({
           <span className="text-[10px] font-semibold tracking-widest text-slate-500 uppercase">Navigation</span>
         </div>
       )}
+
+      {/* Quick search */}
+      <div className={`px-2 ${collapsed ? 'hidden' : 'pt-2 pb-1'}`}>
+        <QuickSearch users={users} teams={teams} onSelectUser={onSelectUser} />
+      </div>
 
       {/* Nav items */}
       <nav className="flex-1 flex flex-col gap-0.5 px-2 py-2 overflow-y-auto">

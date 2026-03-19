@@ -52,6 +52,7 @@ func (s *UserServiceServer) GetUsers(ctx context.Context, req *pb.GetUsersReques
 			DepartmentId: u.DepartmentID,
 			TeamId:       u.TeamID,
 			Country:      u.Country,
+			JobProfile:   u.JobProfile,
 		})
 	}
 
@@ -103,14 +104,15 @@ func (s *UserServiceServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRe
 			u.Name = req.Name
 			u.Email = req.Email
 			u.Country = req.Country
+			u.JobProfile = req.JobProfile
 			s.storage.UpdateUser(u)
 			return &pb.User{
-				Id:           u.ID,
-				Name:         u.Name,
-				Email:        u.Email,
-				DepartmentId: u.DepartmentID,
-				TeamId:       u.TeamID,
-				Country:      u.Country,
+				Id:         u.ID,
+				Name:       u.Name,
+				Email:      u.Email,
+				TeamId:     u.TeamID,
+				Country:    u.Country,
+				JobProfile: u.JobProfile,
 			}, nil
 		}
 	}
