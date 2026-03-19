@@ -37,6 +37,7 @@ export interface Absence {
   endDate: string
   reason: string
   status: string
+  teamName?: string
 }
 
 export interface Holiday {

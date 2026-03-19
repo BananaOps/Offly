@@ -792,6 +792,9 @@
         },
         "status": {
           "type": "string"
+        },
+        "teamName": {
+          "type": "string"
         }
       },
       "title": "Messages"
@@ -842,6 +845,9 @@
           "format": "date-time"
         },
         "reason": {
+          "type": "string"
+        },
+        "teamName": {
           "type": "string"
         }
       }

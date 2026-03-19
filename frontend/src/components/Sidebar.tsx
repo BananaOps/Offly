@@ -45,7 +45,7 @@ export default function Sidebar({
   return (
     <aside
       className={`
-        relative flex flex-col h-screen sticky top-0 z-30
+        relative flex flex-col flex-shrink-0 h-full overflow-y-auto z-30
         transition-all duration-300 ease-in-out
         bg-slate-900 dark:bg-slate-950
         border-r border-slate-700/60

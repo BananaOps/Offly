@@ -234,7 +234,9 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
       // Create a full-day: 00:00 -> 23:59 (UTC)
       const startIso = new Date(Date.UTC(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, 0)).toISOString()
       const endIso = new Date(Date.UTC(day.getFullYear(), day.getMonth(), day.getDate(), 23, 59, 59)).toISOString()
-      await createAbsence(userId, startIso, endIso, 'Time Off')
+      const user = users.find(u => u.id === userId)
+      const teamName = user?.teamId ? (teams.find(t => t.id === user.teamId)?.name ?? '') : ''
+      await createAbsence(userId, startIso, endIso, 'Time Off', teamName)
     }
     loadAbsences()
   }
@@ -268,7 +270,10 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
         endIso = new Date(Date.UTC(e.getFullYear(), e.getMonth(), e.getDate(), 23, 59, 59)).toISOString()
       }
 
-      await createAbsence(modalData.userId, startIso, endIso, reason)
+      await createAbsence(modalData.userId, startIso, endIso, reason, (() => {
+        const user = users.find(u => u.id === modalData.userId)
+        return user?.teamId ? (teams.find(t => t.id === user.teamId)?.name ?? '') : ''
+      })())
       setShowAbsenceModal(false)
       setModalData(null)
       setRangeStart(null)
@@ -355,7 +360,9 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
       .sort((a, b) => a.startDate.localeCompare(b.startDate))
       .map(a => {
         const user = userMap.get(a.userId)
-        const teamName = user?.teamId ? (teamMap.get(user.teamId) ?? '') : ''
+        // Use the team name snapshot stored at absence creation time
+        // Fallback to current team if the absence predates the feature
+        const teamName = a.teamName ?? (user?.teamId ? (teamMap.get(user.teamId) ?? '') : '')
         const typeLabel = a.reason.includes('Morning') ? 'Morning'
           : a.reason.includes('Afternoon') ? 'Afternoon'
           : 'Full Day'
@@ -455,100 +462,95 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
   }
 
   return (
-    <div className="backdrop-blur-xl bg-white/90 dark:bg-gray-800/90 shadow-xl rounded-2xl p-8 border border-gray-200/50 dark:border-gray-700/50 transition-colors">
-      <div className="mb-6 flex justify-between items-center flex-wrap gap-4">
-        <div className="flex items-center gap-4">
+    <div className="space-y-4">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+
+        {/* Left: month nav + title */}
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setCurrentDate(subMonths(currentDate, 1))}
-            className="p-2.5 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-lg hover:shadow-blue-500/30 transition-all"
+            className="p-1.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-blue-600 hover:border-blue-400 dark:hover:border-blue-500 transition-colors bg-white dark:bg-slate-800"
           >
-            <FontAwesomeIcon icon={faChevronLeft} />
+            <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
           </button>
-          <h2 className="text-3xl font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent capitalize">
+          <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 capitalize w-36 text-center">
             {format(currentDate, 'MMMM yyyy', { locale: enUS })}
           </h2>
           <button
             onClick={() => setCurrentDate(addMonths(currentDate, 1))}
-            className="p-2.5 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-lg hover:shadow-blue-500/30 transition-all"
+            className="p-1.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-blue-600 hover:border-blue-400 dark:hover:border-blue-500 transition-colors bg-white dark:bg-slate-800"
           >
-            <FontAwesomeIcon icon={faChevronRight} />
+            <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
           </button>
         </div>
-        
-        <div className="flex items-center gap-3">
-          <div className="flex bg-gray-100/80 dark:bg-gray-800/80 rounded-full p-1 backdrop-blur-sm transition-colors">
-            <button
-              onClick={() => {
-                setSelectionMode('single')
-                setRangeStart(null)
-              }}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
-                selectionMode === 'single'
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <FontAwesomeIcon icon={faMousePointer} />
-              Single Day
-            </button>
-            <button
-              onClick={() => setSelectionMode('range')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
-                selectionMode === 'range'
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <FontAwesomeIcon icon={faCalendarPlus} />
-              Range {rangeStart && '(1/2)'}
-            </button>
-          </div>
+
+        {/* Center: selection mode toggle */}
+        <div className="flex bg-slate-100 dark:bg-slate-800 rounded p-0.5 border border-slate-200 dark:border-slate-700">
+          <button
+            onClick={() => { setSelectionMode('single'); setRangeStart(null) }}
+            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5 ${
+              selectionMode === 'single'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          >
+            <FontAwesomeIcon icon={faMousePointer} />
+            Single
+          </button>
+          <button
+            onClick={() => setSelectionMode('range')}
+            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5 ${
+              selectionMode === 'range'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          >
+            <FontAwesomeIcon icon={faCalendarPlus} />
+            Range {rangeStart && <span className="text-blue-500">•</span>}
+          </button>
         </div>
-        <div className="flex gap-3 items-center flex-wrap">
-          {/* Text search */}
+
+        {/* Right: filters + export */}
+        <div className="flex gap-2 items-center flex-wrap">
+          {/* Search */}
           <div className="relative">
-            <FontAwesomeIcon icon={faMagnifyingGlass} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none" />
+            <FontAwesomeIcon icon={faMagnifyingGlass} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[11px] pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search person…"
-              className="pl-8 pr-7 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 w-44"
+              placeholder="Search…"
+              className="pl-7 pr-6 py-1.5 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 w-36"
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                <FontAwesomeIcon icon={faXmark} className="text-xs" />
+                <FontAwesomeIcon icon={faXmark} className="text-[10px]" />
               </button>
             )}
           </div>
-          <div className="relative">
-            <FontAwesomeIcon 
-              icon={faUserGroup} 
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-600 pointer-events-none text-sm"
-            />
-            <select
-              value={selectedTeam}
-              onChange={(e) => setSelectedTeam(e.target.value)}
-              className="pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium appearance-none cursor-pointer hover:border-purple-500 outline-none"
-            >
-              <option value="">All teams</option>
-              {teams.map(team => (
-                <option key={team.id} value={team.id}>{team.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="relative">
-            <select
-              value={selectedProfile}
-              onChange={(e) => setSelectedProfile(e.target.value)}
-              className="pl-4 pr-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-medium appearance-none cursor-pointer hover:border-blue-500 outline-none"
-            >
-              <option value="">All profiles</option>
-              {JOB_PROFILES.map(p => (
-                <option key={p.value} value={p.value}>{p.label}</option>
-              ))}
-            </select>
-          </div>
+
+          {/* Team filter */}
+          <select
+            value={selectedTeam}
+            onChange={e => setSelectedTeam(e.target.value)}
+            className="py-1.5 px-2 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+          >
+            <option value="">All teams</option>
+            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+
+          {/* Profile filter */}
+          <select
+            value={selectedProfile}
+            onChange={e => setSelectedProfile(e.target.value)}
+            className="py-1.5 px-2 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+          >
+            <option value="">All profiles</option>
+            {JOB_PROFILES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+          </select>
+
+          {/* Export button */}
           <button
             onClick={() => {
               setExportScope('all')
@@ -557,25 +559,25 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
               setExportFormat('csv')
               setShowExportModal(true)
             }}
-            className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all text-sm font-medium shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium"
           >
-            <FontAwesomeIcon icon={faDownload} />
+            <FontAwesomeIcon icon={faDownload} className="text-xs" />
             Export
           </button>
         </div>
       </div>
 
-      <div ref={scrollContainerRef} className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-background dark:bg-gray-900">
+      <div ref={scrollContainerRef} className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+          <thead className="bg-slate-50 dark:bg-slate-900">
             <tr className="relative">
-              <th className="px-6 py-4 text-left text-xs font-semibold text-text dark:text-gray-300 uppercase tracking-wider sticky left-0 bg-background dark:bg-gray-900 z-50 border-r border-gray-200 dark:border-gray-700">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky left-0 bg-slate-50 dark:bg-slate-900 z-50 border-r border-slate-200 dark:border-slate-700">
                 User
               </th>
               {days.map(day => {
                 const isTodayDay = isSameDay(day, new Date())
-                const baseWeekend = 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600'
-                const baseWeekday = 'text-text dark:text-gray-300 border-gray-100 dark:border-gray-700'
+                const baseWeekend = 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-600'
+                const baseWeekday = 'text-slate-600 dark:text-slate-300 border-slate-100 dark:border-slate-700'
                 return (
                   <th
                     key={day.toISOString()}
@@ -596,18 +598,18 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
               })}
             </tr>
           </thead>
-          <tbody className="bg-white dark:bg-gray-800">
+          <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-100 dark:divide-slate-700">
             {groupedUsers.map(group => (
               <React.Fragment key={group.teamId || 'no-team'}>
                 {/* Team Header */}
-                <tr className="bg-secondary bg-opacity-5 dark:bg-opacity-10 border-t border-gray-200 dark:border-gray-700">
-                  <td className="px-6 py-2 text-xs font-semibold text-text dark:text-white sticky left-0 z-50 bg-slate-50 dark:bg-slate-900 border-r border-gray-200 dark:border-gray-700">
-                    <FontAwesomeIcon icon={faUserGroup} className="text-blue-500 mr-2" />
-                    {group.teamName} <span className="text-slate-400 font-normal">({group.users.length})</span>
+                <tr className="bg-slate-50 dark:bg-slate-900/70 border-t-2 border-slate-200 dark:border-slate-700">
+                  <td className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 sticky left-0 z-50 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700">
+                    <FontAwesomeIcon icon={faUserGroup} className="text-blue-500 mr-1.5" />
+                    {group.teamName} <span className="text-slate-400 font-normal ml-1">({group.users.length})</span>
                   </td>
                   {days.map(day => {
                     if (isWeekend(day)) {
-                      return <td key={day.toISOString()} className="bg-gray-200 dark:bg-gray-700 border-l border-gray-300 dark:border-gray-600"></td>
+                      return <td key={day.toISOString()} className="bg-slate-200 dark:bg-slate-700 border-l border-slate-300 dark:border-slate-600"></td>
                     }
                     const availability = getTeamAvailability(group.users, day)
                     const isLow = availability.percentage < 50
@@ -629,15 +631,15 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
                   const isCurrentUser = isSSO && currentUserEmail === user.email
                   const canEdit = canUserEdit(user.email)
                   return (
-                    <tr key={user.id} className={`transition-colors border-t border-gray-100 dark:border-gray-700 relative ${
+                    <tr key={user.id} className={`transition-colors border-t border-slate-100 dark:border-slate-700 ${
                       isCurrentUser
-                        ? 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30'
-                        : 'hover:bg-background dark:hover:bg-gray-700'
+                        ? 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100/70 dark:hover:bg-blue-900/30'
+                        : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
                     }`}>
-                      <td className={`px-10 py-3 whitespace-nowrap text-sm sticky left-0 z-50 border-r border-gray-200 dark:border-gray-700 ${
+                      <td className={`px-4 py-2.5 whitespace-nowrap text-sm sticky left-0 z-50 border-r border-slate-200 dark:border-slate-700 ${
                         isCurrentUser
-                          ? 'bg-blue-50 dark:bg-blue-900 text-blue-900 dark:text-blue-100 font-semibold'
-                          : 'bg-white dark:bg-gray-800 text-text dark:text-white'
+                          ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100 font-semibold'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200'
                       }`}>
                         <div className="font-medium flex items-center gap-2">
                           {user.country && (
@@ -648,7 +650,7 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
                             <span className="ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">You</span>
                           )}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{user.email}</div>
+                        <div className="text-xs text-slate-400 mt-0.5">{user.email}</div>
                       </td>
                       {days.map(day => {
                         const absence = absences.find(a => {
@@ -684,18 +686,18 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
                                 setShowAbsenceModal(true)
                               }
                             }}
-                            className={`px-3 py-3 text-center transition-all border-l z-[1] relative ${
+                            className={`px-2 py-2.5 text-center transition-all border-l border-slate-100 dark:border-slate-700 z-[1] relative ${
                               isWeekendDay
-                                ? 'bg-gray-200 dark:bg-gray-700 cursor-not-allowed border-gray-300 dark:border-gray-600'
+                                ? 'bg-slate-100 dark:bg-slate-700/60 cursor-not-allowed border-slate-200 dark:border-slate-600'
                                 : !canEdit
-                                ? 'cursor-not-allowed opacity-50'
+                                ? 'cursor-not-allowed opacity-40'
                                 : holiday
-                                ? 'bg-yellow-50 dark:bg-yellow-900/20 cursor-pointer hover:bg-yellow-100 border-yellow-200'
+                                ? 'bg-yellow-50 dark:bg-yellow-900/20 cursor-pointer hover:bg-yellow-100 border-yellow-100'
                                 : absence
-                                ? 'bg-accent cursor-pointer hover:bg-opacity-80 border-gray-100 dark:border-gray-700'
+                                ? 'bg-blue-500 dark:bg-blue-600 cursor-pointer hover:bg-blue-600 dark:hover:bg-blue-500'
                                 : isRangeSelected
-                                ? 'bg-primary bg-opacity-20 cursor-pointer border-primary'
-                                : 'cursor-pointer hover:bg-primary hover:bg-opacity-10 border-gray-100 dark:border-gray-700'
+                                ? 'bg-blue-100 dark:bg-blue-900/40 cursor-pointer border-blue-300'
+                                : 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700'
                             }`}
                             title={holiday ? `${holiday.name} (${user.country})` : ''}
                           >
@@ -726,101 +728,97 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
         </table>
       </div>
 
-      <div className="mt-6 space-y-4">
-        <div className="flex items-center gap-6 text-sm flex-wrap">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-accent rounded flex items-center justify-center">
-              <FontAwesomeIcon icon={faCheck} className="text-white text-xs" />
+      <div className="mt-2 space-y-2">
+        <div className="flex items-center gap-4 text-xs flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 bg-blue-500 rounded flex items-center justify-center">
+              <FontAwesomeIcon icon={faCheck} className="text-white text-[10px]" />
             </div>
-            <span className="text-text dark:text-gray-300">Full Day Off</span>
+            <span className="text-slate-500 dark:text-slate-400">Full Day Off</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-accent rounded flex items-center justify-center">
-              <FontAwesomeIcon icon={faSun} className="text-white text-xs" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 bg-blue-500 rounded flex items-center justify-center">
+              <FontAwesomeIcon icon={faSun} className="text-white text-[10px]" />
             </div>
-            <span className="text-text dark:text-gray-300">Morning Off</span>
+            <span className="text-slate-500 dark:text-slate-400">Morning Off</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-accent rounded flex items-center justify-center">
-              <FontAwesomeIcon icon={faMoon} className="text-white text-xs" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 bg-blue-500 rounded flex items-center justify-center">
+              <FontAwesomeIcon icon={faMoon} className="text-white text-[10px]" />
             </div>
-            <span className="text-text dark:text-gray-300">Afternoon Off</span>
+            <span className="text-slate-500 dark:text-slate-400">Afternoon Off</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-gray-200 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600"></div>
-            <span className="text-text dark:text-gray-300">Weekend</span>
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 bg-slate-200 dark:bg-slate-700 rounded border border-slate-300 dark:border-slate-600"></div>
+            <span className="text-slate-500 dark:text-slate-400">Weekend</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-800 flex flex-col items-center justify-center text-xs">
-              <span className="text-yellow-700 dark:text-yellow-400 font-bold" style={{ fontSize: '8px' }}>XX</span>
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-800 flex flex-col items-center justify-center">
               <FontAwesomeIcon icon={faStar} className="text-yellow-500" style={{ fontSize: '8px' }} />
             </div>
-            <span className="text-text dark:text-gray-300">Public Holiday (click for details)</span>
+            <span className="text-slate-500 dark:text-slate-400">Public Holiday</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-accent bg-opacity-20 dark:bg-opacity-30 rounded border border-accent flex items-center justify-center">
-              <FontAwesomeIcon icon={faExclamationTriangle} className="text-accent text-xs" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800 flex items-center justify-center">
+              <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-400 text-[10px]" />
             </div>
-            <span className="text-text dark:text-gray-300">Low availability (&lt;50%)</span>
+            <span className="text-slate-500 dark:text-slate-400">Low availability (&lt;50%)</span>
           </div>
         </div>
-        <div className="text-xs text-gray-500 dark:text-gray-400 bg-background dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors">
-          <strong>Tips:</strong> Click to toggle single day • Right-click or Ctrl/Cmd/Alt+Click for half-day options • Use "Range" mode to select multiple consecutive days
-        </div>
+        <p className="text-xs text-slate-400">
+          Click to toggle • Right-click or Ctrl+Click for half-day • <strong>Range</strong> mode for multiple days
+        </p>
       </div>
 
-      {/* Absence Modal */}
       {showAbsenceModal && modalData && createPortal(
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowAbsenceModal(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-2xl max-w-md w-full mx-4 transition-colors" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-bold text-text dark:text-white mb-4">
-              Request Time Off
-            </h3>
-            <div className="mb-6">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                <strong>Period:</strong> {format(modalData.startDate, 'MMM d', { locale: enUS })}
-                {!isSameDay(modalData.startDate, modalData.endDate) && ` - ${format(modalData.endDate, 'MMM d', { locale: enUS })}`}
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                <strong>User:</strong> {users.find(u => u.id === modalData.userId)?.name}
-              </p>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowAbsenceModal(false)}>
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-sm w-full mx-4 border border-slate-200 dark:border-slate-700" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-base font-semibold text-slate-800 dark:text-slate-100">
+                Request Time Off
+              </h3>
+              <button onClick={() => setShowAbsenceModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <FontAwesomeIcon icon={faXmark} />
+              </button>
             </div>
-            <div className="space-y-3">
-              <button
-                onClick={() => handleAbsenceSubmit('full')}
-                className="w-full bg-gradient-to-r from-primary to-secondary text-white px-4 py-3 rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2 font-medium"
-              >
-                <FontAwesomeIcon icon={faCheck} />
-                Full Day{!isSameDay(modalData.startDate, modalData.endDate) && 's'}
-              </button>
-              {isSameDay(modalData.startDate, modalData.endDate) && (
-                <>
-                  <button
-                    onClick={() => handleAbsenceSubmit('morning')}
-                    className="w-full bg-gradient-to-r from-accent to-secondary text-white px-4 py-3 rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2 font-medium"
-                  >
-                    <FontAwesomeIcon icon={faSun} />
-                    Morning Only
-                  </button>
-                  <button
-                    onClick={() => handleAbsenceSubmit('afternoon')}
-                    className="w-full bg-gradient-to-r from-secondary to-primary text-white px-4 py-3 rounded-lg hover:shadow-lg transition-all flex items-center justify-center gap-2 font-medium"
-                  >
-                    <FontAwesomeIcon icon={faMoon} />
-                    Afternoon Only
-                  </button>
-                </>
-              )}
-              <button
-                onClick={() => {
-                  setShowAbsenceModal(false)
-                  setModalData(null)
-                  setRangeStart(null)
-                }}
-                className="w-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-3 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all font-medium"
-              >
-                Cancel
-              </button>
+            {/* Body */}
+            <div className="px-5 py-4">
+              <div className="mb-4 text-sm text-slate-500 dark:text-slate-400 space-y-1">
+                <p><span className="font-medium text-slate-700 dark:text-slate-200">Person:</span> {users.find(u => u.id === modalData.userId)?.name}</p>
+                <p>
+                  <span className="font-medium text-slate-700 dark:text-slate-200">Period:</span>{' '}
+                  {format(modalData.startDate, 'MMM d', { locale: enUS })}
+                  {!isSameDay(modalData.startDate, modalData.endDate) && ` → ${format(modalData.endDate, 'MMM d', { locale: enUS })}`}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <button
+                  onClick={() => handleAbsenceSubmit('full')}
+                  className="w-full px-4 py-2.5 text-sm rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 hover:border-blue-400 dark:hover:bg-blue-900/30 dark:hover:border-blue-600 text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-2 font-medium"
+                >
+                  <FontAwesomeIcon icon={faCheck} className="text-blue-500" />
+                  Full Day{!isSameDay(modalData.startDate, modalData.endDate) && 's'}
+                </button>
+                {isSameDay(modalData.startDate, modalData.endDate) && (
+                  <>
+                    <button
+                      onClick={() => handleAbsenceSubmit('morning')}
+                      className="w-full px-4 py-2.5 text-sm rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-amber-50 hover:border-amber-400 dark:hover:bg-amber-900/20 dark:hover:border-amber-600 text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-2 font-medium"
+                    >
+                      <FontAwesomeIcon icon={faSun} className="text-amber-500" />
+                      Morning Only
+                    </button>
+                    <button
+                      onClick={() => handleAbsenceSubmit('afternoon')}
+                      className="w-full px-4 py-2.5 text-sm rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 hover:border-indigo-400 dark:hover:bg-indigo-900/20 dark:hover:border-indigo-600 text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-2 font-medium"
+                    >
+                      <FontAwesomeIcon icon={faMoon} className="text-indigo-500" />
+                      Afternoon Only
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

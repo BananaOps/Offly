@@ -62,13 +62,15 @@ export const createAbsence = async (
   userId: string,
   startDate: string,
   endDate: string,
-  reason: string
+  reason: string,
+  teamName?: string
 ): Promise<Absence> => {
   const response = await api.post('/absences', {
     userId,
     startDate,
     endDate,
     reason,
+    team_name: teamName,
   })
   return response.data
 }

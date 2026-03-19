@@ -9,6 +9,7 @@ type Absence struct {
 	EndDate   time.Time
 	Reason    string
 	Status    string
+	TeamName  string
 }
 
 type User struct {

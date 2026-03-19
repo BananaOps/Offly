@@ -28,6 +28,7 @@ type AbsenceDoc struct {
 	EndDate   time.Time          `bson:"end_date"`
 	Reason    string             `bson:"reason"`
 	Status    string             `bson:"status"`
+	TeamName  string             `bson:"team_name,omitempty"`
 }
 
 type UserDoc struct {
@@ -122,6 +123,7 @@ func (s *MongoStorage) CreateAbsence(absence *Absence) error {
 		EndDate:   absence.EndDate,
 		Reason:    absence.Reason,
 		Status:    absence.Status,
+		TeamName:  absence.TeamName,
 	}
 
 	result, err := s.absences.InsertOne(ctx, doc)
@@ -172,6 +174,7 @@ func (s *MongoStorage) GetAbsences(userID string, startDate, endDate time.Time) 
 			EndDate:   doc.EndDate,
 			Reason:    doc.Reason,
 			Status:    doc.Status,
+			TeamName:  doc.TeamName,
 		})
 	}
 
@@ -200,6 +203,7 @@ func (s *MongoStorage) GetAbsenceByID(id string) (*Absence, error) {
 		EndDate:   doc.EndDate,
 		Reason:    doc.Reason,
 		Status:    doc.Status,
+		TeamName:  doc.TeamName,
 	}, nil
 }
 

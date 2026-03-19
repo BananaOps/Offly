@@ -221,231 +221,185 @@ export default function HolidayManagement() {
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() + i - 2)
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6 border border-gray-100 dark:border-gray-700 transition-colors">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-text dark:text-white flex items-center">
-          <FontAwesomeIcon icon={faCalendarAlt} className="text-primary mr-3" />
-          Holiday Management
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+          <FontAwesomeIcon icon={faCalendarAlt} className="text-blue-600" />
+          Holidays
+          <span className="text-xs font-normal text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded">
+            {filteredHolidays.length}
+          </span>
         </h2>
-        
         {canEdit && (
-        <div className="flex gap-2 items-center">
-          <button
-            onClick={handleExport}
-            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-          >
-            <FontAwesomeIcon icon={faDownload} />
-            Export
-          </button>
-          <button
-            onClick={() => { setShowImport(true); setImportRows([]); setImportDone(false) }}
-            className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-          >
-            <FontAwesomeIcon icon={faUpload} />
-            Import
-          </button>
-        </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium"
+            >
+              <FontAwesomeIcon icon={faDownload} className="text-xs" />
+              Export
+            </button>
+            <button
+              onClick={() => { setShowImport(true); setImportRows([]); setImportDone(false) }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:border-green-500 hover:text-green-600 dark:hover:text-green-400 transition-colors font-medium"
+            >
+              <FontAwesomeIcon icon={faUpload} className="text-xs" />
+              Import
+            </button>
+          </div>
         )}
       </div>
 
       {isSSO && !canEdit && (
-        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <div className="flex items-start gap-3">
-            <FontAwesomeIcon icon={faInfoCircle} className="text-blue-600 dark:text-blue-400 mt-0.5" />
-            <div className="text-sm text-blue-800 dark:text-blue-300">
-              <p className="font-semibold mb-1">SSO Authentication Mode</p>
-              <p>Holiday management is disabled when SSO is enabled. Holidays should be managed through your centralized configuration or by an administrator.</p>
-            </div>
-          </div>
+        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-start gap-2">
+          <FontAwesomeIcon icon={faInfoCircle} className="text-blue-500 mt-0.5 text-sm shrink-0" />
+          <p className="text-sm text-blue-700 dark:text-blue-300">
+            Holiday management is disabled in SSO mode. Contact an administrator.
+          </p>
         </div>
       )}
 
       {canEdit && (
-      <div className="mb-6 p-6 bg-background dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-        <h3 className="text-lg font-semibold mb-4 text-text dark:text-white">Add New Holiday</h3>
-        <div className="grid grid-cols-4 gap-4">
-          <select
-            value={newCountry}
-            onChange={(e) => setNewCountry(e.target.value)}
-            className="px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-600 focus:border-primary focus:ring-2 focus:ring-primary bg-white dark:bg-gray-800 text-text dark:text-white"
-          >
-            <option value="">Select country</option>
-            {countries.map(c => (
-              <option key={c.code} value={c.code}>{c.name}</option>
-            ))}
-          </select>
-          
-          <input
-            type="date"
-            value={newDate}
-            onChange={(e) => setNewDate(e.target.value)}
-            className="px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-600 focus:border-primary focus:ring-2 focus:ring-primary bg-white dark:bg-gray-800 text-text dark:text-white"
-          />
-          
-          <input
-            type="text"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Holiday name"
-            className="px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-600 focus:border-primary focus:ring-2 focus:ring-primary bg-white dark:bg-gray-800 text-text dark:text-white"
-          />
-          
-          <button
-            onClick={handleAdd}
-            className="px-4 py-2.5 bg-gradient-to-r from-primary to-secondary text-white rounded-lg hover:shadow-lg transition-all shadow-md flex items-center justify-center gap-2 font-medium"
-          >
-            <FontAwesomeIcon icon={faPlus} />
-            Add
-          </button>
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3">
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Add holiday</p>
+          <div className="flex flex-wrap gap-2">
+            <select
+              value={newCountry}
+              onChange={(e) => setNewCountry(e.target.value)}
+              className="px-2 py-1.5 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+            >
+              <option value="">Country…</option>
+              {countries.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+            </select>
+            <input
+              type="date"
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+              className="px-2 py-1.5 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+            />
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Holiday name…"
+              className="flex-1 min-w-[160px] px-2 py-1.5 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+            />
+            <button
+              onClick={handleAdd}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors font-medium"
+            >
+              <FontAwesomeIcon icon={faPlus} className="text-xs" />
+              Add
+            </button>
+          </div>
         </div>
-      </div>
       )}
 
       {/* Filters */}
-      <div className="mb-6 p-6 bg-background dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 transition-colors">
-        <h3 className="text-lg font-semibold mb-4 text-text dark:text-white flex items-center">
-          <FontAwesomeIcon icon={faFilter} className="text-primary mr-2" />
-          Filters
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <FontAwesomeIcon icon={faGlobe} className="text-accent mr-2" />
-              Country
-            </label>
-            <select
-              value={selectedCountry}
-              onChange={(e) => setSelectedCountry(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 transition-all cursor-pointer bg-white dark:bg-gray-800 text-text dark:text-white hover:border-primary"
-            >
-              <option value="">All countries</option>
-              {countries.map(c => (
-                <option key={c.code} value={c.code}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <FontAwesomeIcon icon={faCalendarAlt} className="text-secondary mr-2" />
-              Year
-            </label>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="w-full px-4 py-2.5 rounded-lg border-2 border-gray-200 dark:border-gray-600 shadow-sm focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 transition-all cursor-pointer bg-white dark:bg-gray-800 text-text dark:text-white hover:border-secondary"
-            >
-              {years.map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3">
+        <div className="flex flex-wrap gap-3 items-center">
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            <FontAwesomeIcon icon={faFilter} className="mr-1" />Filters
+          </p>
+          <select
+            value={selectedCountry}
+            onChange={(e) => setSelectedCountry(e.target.value)}
+            className="py-1.5 px-2 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+          >
+            <option value="">All countries</option>
+            {countries.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+          </select>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="py-1.5 px-2 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+          >
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
         </div>
       </div>
 
-      {/* Holidays list */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-background dark:bg-gray-900">
+      {/* Table */}
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+          <thead className="bg-slate-50 dark:bg-slate-900">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-text dark:text-gray-300 uppercase">Country</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-text dark:text-gray-300 uppercase">Date</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-text dark:text-gray-300 uppercase">Name</th>
-              <th className="px-6 py-4 text-right text-xs font-semibold text-text dark:text-gray-300 uppercase">Actions</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Country</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Date</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Name</th>
+              <th className="px-4 py-2.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
             {filteredHolidays.map(holiday => (
-              <tr key={holiday.id} className="hover:bg-background dark:hover:bg-gray-700 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
+              <tr key={holiday.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                <td className="px-4 py-2.5 whitespace-nowrap text-sm">
                   {editingId === holiday.id ? (
                     <select
                       value={editCountry}
                       onChange={(e) => setEditCountry(e.target.value)}
-                      className="px-3 py-1 rounded border-2 border-primary focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text dark:text-white"
+                      className="px-2 py-1 text-sm rounded border border-blue-400 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none"
                     >
-                      {countries.map(c => (
-                        <option key={c.code} value={c.code}>{c.name}</option>
-                      ))}
+                      {countries.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
                     </select>
                   ) : (
-                    <span className="font-medium text-text dark:text-white">
+                    <span className="font-medium text-slate-700 dark:text-slate-200">
                       {countries.find(c => c.code === holiday.country)?.name || holiday.country}
                     </span>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                <td className="px-4 py-2.5 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                   {editingId === holiday.id ? (
                     <input
                       type="date"
                       value={editDate}
                       onChange={(e) => setEditDate(e.target.value)}
-                      className="px-3 py-1 rounded border-2 border-primary focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text dark:text-white"
+                      className="px-2 py-1 text-sm rounded border border-blue-400 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none"
                     />
                   ) : (
-                    new Date(holiday.date).toLocaleDateString('en-US', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })
+                    new Date(holiday.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
                   )}
                 </td>
-                <td className="px-6 py-4 text-sm text-text dark:text-white">
+                <td className="px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200">
                   {editingId === holiday.id ? (
                     <input
                       type="text"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="w-full px-3 py-1 rounded border-2 border-primary focus:ring-2 focus:ring-primary bg-white dark:bg-gray-700 text-text dark:text-white"
+                      className="w-full px-2 py-1 text-sm rounded border border-blue-400 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none"
                     />
-                  ) : (
-                    holiday.name
-                  )}
+                  ) : holiday.name}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                <td className="px-4 py-2.5 whitespace-nowrap text-right text-sm">
                   {canEdit && (
-                  editingId === holiday.id ? (
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={handleUpdate}
-                        className="px-3 py-1.5 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white rounded transition-all shadow-md hover:shadow-lg"
-                      >
-                        <FontAwesomeIcon icon={faSave} />
-                      </button>
-                      <button
-                        onClick={cancelEdit}
-                        className="px-3 py-1.5 bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-700 hover:to-gray-600 text-white rounded transition-all shadow-md hover:shadow-lg"
-                      >
-                        <FontAwesomeIcon icon={faTimes} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => startEdit(holiday)}
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                      >
-                        <FontAwesomeIcon icon={faEdit} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(holiday.id!)}
-                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button>
-                    </div>
-                  )
+                    editingId === holiday.id ? (
+                      <div className="flex justify-end gap-2">
+                        <button onClick={handleUpdate} className="text-green-600 hover:text-green-500 dark:text-green-400 transition-colors" title="Save">
+                          <FontAwesomeIcon icon={faSave} />
+                        </button>
+                        <button onClick={cancelEdit} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors" title="Cancel">
+                          <FontAwesomeIcon icon={faTimes} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => startEdit(holiday)} className="text-slate-300 hover:text-blue-500 transition-colors" title="Edit">
+                          <FontAwesomeIcon icon={faEdit} />
+                        </button>
+                        <button onClick={() => handleDelete(holiday.id!)} className="text-slate-300 hover:text-red-500 transition-colors" title="Delete">
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      </div>
+                    )
                   )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        
         {filteredHolidays.length === 0 && (
-          <div className="text-center py-12 text-gray-600 dark:text-gray-400">
-            No holidays found for the selected filters
-          </div>
+          <div className="text-center py-10 text-sm text-slate-400">No holidays found</div>
         )}
       </div>
 

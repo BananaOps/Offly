@@ -71,9 +71,9 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col transition-colors">
+    <div className="h-screen bg-slate-100 dark:bg-slate-950 flex flex-col transition-colors overflow-hidden">
       <Banner />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0">
         {/* Vertical sidebar */}
         <Sidebar
           activeTab={activeTab}
