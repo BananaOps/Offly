@@ -9,7 +9,7 @@ import HolidayManagement from './components/HolidayManagement'
 import Footer from './components/Footer'
 import { User, Team, Absence } from './types'
 import { getUsers, getTeams, getAbsences } from './api'
-import { handleCallback, setAuthConfig, getAuthConfig } from './auth'
+import { handleCallback, setAuthConfig } from './auth'
 
 function App() {
   const [activeTab, setActiveTab] = useState<'absences' | 'presences' | 'users' | 'teams' | 'holidays'>('absences')

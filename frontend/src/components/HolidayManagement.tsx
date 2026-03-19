@@ -8,7 +8,6 @@ import {
   faTrash, 
   faSave, 
   faTimes,
-  faGlobe,
   faDownload,
   faUpload,
   faFilter,

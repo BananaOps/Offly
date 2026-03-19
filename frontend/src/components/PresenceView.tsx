@@ -8,14 +8,12 @@ import {
   faChevronRight,
   faFilter,
   faUsers,
-  faSitemap
 } from '@fortawesome/free-solid-svg-icons'
-import { User, Department, Team, Absence } from '../types'
+import { User, Team, Absence } from '../types'
 import { getAbsences } from '../api'
 
 interface PresenceViewProps {
   users: User[]
-  departments: Department[]
   teams: Team[]
 }
 
@@ -26,10 +24,9 @@ interface UserPresence {
   absenceType?: 'full' | 'morning' | 'afternoon'
 }
 
-export default function PresenceView({ users, departments, teams }: PresenceViewProps) {
+export default function PresenceView({ users, teams }: PresenceViewProps) {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [absences, setAbsences] = useState<Absence[]>([])
-  const [selectedDepartment, setSelectedDepartment] = useState<string>('')
   const [selectedTeam, setSelectedTeam] = useState<string>('')
   const [loading, setLoading] = useState(false)
 
@@ -110,30 +107,20 @@ export default function PresenceView({ users, departments, teams }: PresenceView
 
   const filteredPresences = useMemo(() => {
     return userPresences.filter(presence => {
-      if (selectedDepartment && presence.user.departmentId !== selectedDepartment) {
-        return false
-      }
       if (selectedTeam && presence.user.teamId !== selectedTeam) {
         return false
       }
       return true
     })
-  }, [userPresences, selectedDepartment, selectedTeam])
+  }, [userPresences, selectedTeam])
 
   const groupedPresences = useMemo(() => {
-    const groups: Record<string, Record<string, UserPresence[]>> = {}
+    const groups: Record<string, UserPresence[]> = {}
     
     filteredPresences.forEach(presence => {
-      const deptId = presence.user.departmentId || 'no-department'
       const teamId = presence.user.teamId || 'no-team'
-      
-      if (!groups[deptId]) {
-        groups[deptId] = {}
-      }
-      if (!groups[deptId][teamId]) {
-        groups[deptId][teamId] = []
-      }
-      groups[deptId][teamId].push(presence)
+      if (!groups[teamId]) groups[teamId] = []
+      groups[teamId].push(presence)
     })
     
     return groups
@@ -153,20 +140,10 @@ export default function PresenceView({ users, departments, teams }: PresenceView
     return { total, present, absent: fullyAbsent, partiallyAbsent }
   }, [filteredPresences])
 
-  const getDepartmentName = (deptId: string) => {
-    if (deptId === 'no-department') return 'No Department'
-    return departments.find(d => d.id === deptId)?.name || 'Unknown'
-  }
-
   const getTeamName = (teamId: string) => {
     if (teamId === 'no-team') return 'No Team'
     return teams.find(t => t.id === teamId)?.name || 'Unknown'
   }
-
-  const filteredTeams = useMemo(() => {
-    if (!selectedDepartment) return teams
-    return teams.filter(t => t.departmentId === selectedDepartment)
-  }, [teams, selectedDepartment])
 
   return (
     <div className="space-y-6">
@@ -271,50 +248,23 @@ export default function PresenceView({ users, departments, teams }: PresenceView
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 transition-colors">
-        <div className="flex items-center gap-2 mb-4">
-          <FontAwesomeIcon icon={faFilter} className="text-gray-600 dark:text-gray-400" />
-          <h3 className="text-lg font-semibold text-text dark:text-white">Filters</h3>
-        </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <FontAwesomeIcon icon={faSitemap} className="mr-2" />
-              Department
-            </label>
-            <select
-              value={selectedDepartment}
-              onChange={(e) => {
-                setSelectedDepartment(e.target.value)
-                setSelectedTeam('')
-              }}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-text dark:text-white transition-colors"
-            >
-              <option value="">All departments</option>
-              {departments.map(dept => (
-                <option key={dept.id} value={dept.id}>{dept.name}</option>
-              ))}
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <FontAwesomeIcon icon={faUsers} className="mr-2" />
-              Team
-            </label>
-            <select
-              value={selectedTeam}
-              onChange={(e) => setSelectedTeam(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white dark:bg-gray-700 text-text dark:text-white transition-colors"
-              disabled={!selectedDepartment && teams.length > 0}
-            >
-              <option value="">All teams</option>
-              {filteredTeams.map(team => (
-                <option key={team.id} value={team.id}>{team.name}</option>
-              ))}
-            </select>
-          </div>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 transition-colors">
+        <div className="flex items-center gap-3">
+          <FontAwesomeIcon icon={faFilter} className="text-gray-400 text-sm" />
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <FontAwesomeIcon icon={faUsers} className="mr-1.5" />
+            Team
+          </label>
+          <select
+            value={selectedTeam}
+            onChange={(e) => setSelectedTeam(e.target.value)}
+            className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-text dark:text-white focus:outline-none focus:border-blue-500 transition-colors"
+          >
+            <option value="">All teams</option>
+            {teams.map(team => (
+              <option key={team.id} value={team.id}>{team.name}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -325,69 +275,59 @@ export default function PresenceView({ users, departments, teams }: PresenceView
           <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
         </div>
       ) : (
-        <div className="space-y-6">
-          {Object.entries(groupedPresences).map(([deptId, teamGroups]) => (
-            <div key={deptId} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden transition-colors">
-              <div className="bg-gradient-to-r from-primary/10 to-secondary/10 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-text dark:text-white flex items-center gap-2">
-                  <FontAwesomeIcon icon={faSitemap} />
-                  {getDepartmentName(deptId)}
+        <div className="space-y-4">
+          {Object.entries(groupedPresences).map(([teamId, presences]) => (
+            <div key={teamId} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden transition-colors">
+              <div className="px-6 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                <FontAwesomeIcon icon={faUsers} className="text-sm text-gray-400" />
+                <h3 className="text-sm font-semibold text-text dark:text-white">
+                  {getTeamName(teamId)}
                 </h3>
+                <span className="text-xs text-gray-500 ml-1">
+                  ({presences.filter(p => p.isPresent).length}/{presences.length} present)
+                </span>
               </div>
               
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {Object.entries(teamGroups).map(([teamId, presences]) => (
-                  <div key={teamId} className="p-6">
-                    <h4 className="text-md font-medium text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-                      <FontAwesomeIcon icon={faUsers} className="text-sm" />
-                      {getTeamName(teamId)}
-                      <span className="text-sm text-gray-500">
-                        ({presences.filter(p => p.isPresent).length}/{presences.length} present)
-                      </span>
-                    </h4>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {presences.map(presence => (
-                        <div
-                          key={presence.user.id}
-                          className={`p-4 rounded-lg border-2 transition-all ${
-                            presence.absenceType === 'full'
-                              ? 'border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20'
-                              : presence.absenceType
-                              ? 'border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-900/20'
-                              : 'border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-900/20'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="font-medium text-text dark:text-white">
-                                {presence.user.name}
-                              </div>
-                              <div className="text-sm text-gray-600 dark:text-gray-400">
-                                {presence.user.email}
-                              </div>
-                            </div>
-                            <div className="ml-2">
-                              {presence.absenceType === 'full' ? (
-                                <FontAwesomeIcon icon={faTimesCircle} className="text-red-500 text-xl" />
-                              ) : presence.absenceType === 'morning' ? (
-                                <span className="text-xl">☀️</span>
-                              ) : presence.absenceType === 'afternoon' ? (
-                                <span className="text-xl">🌙</span>
-                              ) : (
-                                <FontAwesomeIcon icon={faCheckCircle} className="text-green-500 text-xl" />
-                              )}
-                            </div>
-                          </div>
-                          
-                          {presence.absenceReason && (
-                            <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                              {presence.absenceReason.replace(/[☀️🌙]/g, '').trim()}
-                            </div>
-                          )}
+              <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {presences.map(presence => (
+                  <div
+                    key={presence.user.id}
+                    className={`p-3 rounded-lg border transition-all ${
+                      presence.absenceType === 'full'
+                        ? 'border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20'
+                        : presence.absenceType
+                        ? 'border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-900/20'
+                        : 'border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-900/20'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm text-text dark:text-white truncate">
+                          {presence.user.name}
                         </div>
-                      ))}
+                        {presence.user.email && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {presence.user.email}
+                          </div>
+                        )}
+                      </div>
+                      <div className="ml-2 shrink-0">
+                        {presence.absenceType === 'full' ? (
+                          <FontAwesomeIcon icon={faTimesCircle} className="text-red-500" />
+                        ) : presence.absenceType === 'morning' ? (
+                          <span>☀️</span>
+                        ) : presence.absenceType === 'afternoon' ? (
+                          <span>🌙</span>
+                        ) : (
+                          <FontAwesomeIcon icon={faCheckCircle} className="text-green-500" />
+                        )}
+                      </div>
                     </div>
+                    {presence.absenceReason && (
+                      <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        {presence.absenceReason.replace(/[☀️🌙]/g, '').trim()}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
