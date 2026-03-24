@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlus, faEdit, faTrash, faSave, faTimes, faUserGroup, faChevronDown, faChevronRight, faCircle } from '@fortawesome/free-solid-svg-icons'
+import { faPlus, faEdit, faTrash, faSave, faTimes, faUserGroup, faChevronDown, faChevronRight, faCircle, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { Team, User, Absence, JOB_PROFILES } from '../types'
 import { createTeam, updateTeam, deleteTeam } from '../api'
 import { getAuthConfig } from '../auth'
@@ -33,6 +33,8 @@ export default function TeamManagement({ teams, users, absencesToday, onUpdate }
   const [editTeamId, setEditTeamId] = useState<string | null>(null)
   const [editTeamName, setEditTeamName] = useState('')
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set())
+  const [filterTeam, setFilterTeam] = useState('')
+  const [filterProfile, setFilterProfile] = useState('')
   const isReadOnly = getAuthConfig().enabled
 
   const today = useMemo(() => new Date(), [])
@@ -51,16 +53,26 @@ export default function TeamManagement({ teams, users, absencesToday, onUpdate }
   }, [absencesToday, today])
 
   // Membres par équipe avec statut
+  const filteredUsers = useMemo(() => {
+    return users.filter(u => {
+      if (filterProfile && u.jobProfile !== filterProfile) return false
+      return true
+    })
+  }, [users, filterProfile])
+
   const teamStats = useMemo(() => {
-    return teams.map(team => {
-      const members = users.filter(u => u.teamId === team.id)
+    const sourceTeams = filterTeam
+      ? teams.filter(t => t.id === filterTeam)
+      : teams.slice().sort((a, b) => a.name.localeCompare(b.name))
+    return sourceTeams.map(team => {
+      const members = filteredUsers.filter(u => u.teamId === team.id)
       const present = members.filter(u => !absentUserIds.has(u.id))
       const absent = members.filter(u => absentUserIds.has(u.id))
       return { team, members, present, absent }
     })
-  }, [teams, users, absentUserIds])
+  }, [teams, filteredUsers, absentUserIds, filterTeam])
 
-  const unassigned = users.filter(u => !u.teamId)
+  const unassigned = filteredUsers.filter(u => !u.teamId)
 
   const toggleExpand = (id: string) => {
     setExpandedTeams(prev => {
@@ -129,6 +141,35 @@ export default function TeamManagement({ teams, users, absencesToday, onUpdate }
               Add
             </button>
           </form>
+        )}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <select
+          value={filterTeam}
+          onChange={e => setFilterTeam(e.target.value)}
+          className="py-1.5 px-2 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+        >
+          <option value="">All teams</option>
+          {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+        <select
+          value={filterProfile}
+          onChange={e => setFilterProfile(e.target.value)}
+          className="py-1.5 px-2 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
+        >
+          <option value="">All profiles</option>
+          {JOB_PROFILES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+        </select>
+        {(filterTeam || filterProfile) && (
+          <button
+            onClick={() => { setFilterTeam(''); setFilterProfile('') }}
+            className="flex items-center gap-1 py-1.5 px-2 text-xs text-slate-500 hover:text-red-500 border border-slate-300 dark:border-slate-600 rounded transition-colors"
+          >
+            <FontAwesomeIcon icon={faXmark} />
+            Clear
+          </button>
         )}
       </div>
 

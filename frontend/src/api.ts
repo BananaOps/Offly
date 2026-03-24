@@ -31,7 +31,8 @@ export const assignUserToTeam = async (userId: string, teamId: string): Promise<
 
 export const getTeams = async (): Promise<Team[]> => {
   const response = await api.get('/teams')
-  return response.data.teams || []
+  const teams = response.data.teams || []
+  return teams.slice().sort((a: Team, b: Team) => a.name.localeCompare(b.name))
 }
 
 export const createTeam = async (name: string): Promise<Team> => {
