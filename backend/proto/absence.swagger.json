@@ -1157,7 +1157,7 @@
         "country": {
           "type": "string"
         },
-        "jobProfile": {
+        "title": {
           "type": "string"
         }
       }

@@ -68,6 +68,7 @@ func (s *SQLiteStorage) initSchema() error {
 		department_id TEXT,
 		team_id TEXT,
 		country TEXT,
+		job_profile TEXT,
 		FOREIGN KEY(department_id) REFERENCES departments(id),
 		FOREIGN KEY(team_id) REFERENCES teams(id)
 	);
@@ -97,7 +98,12 @@ func (s *SQLiteStorage) initSchema() error {
 	`
 
 	_, err := s.db.Exec(schema)
-	return err
+	if err != nil {
+		return err
+	}
+	// Migration: add job_profile column if it doesn't exist (for existing databases)
+	_, _ = s.db.Exec(`ALTER TABLE users ADD COLUMN job_profile TEXT`)
+	return nil
 }
 
 // Absence operations
@@ -169,14 +175,14 @@ func (s *SQLiteStorage) DeleteAbsence(id string) error {
 
 // User operations
 func (s *SQLiteStorage) CreateUser(user *User) error {
-	query := `INSERT INTO users (id, name, email, department_id, team_id, country) 
-			  VALUES (?, ?, ?, ?, ?, ?)`
-	_, err := s.db.Exec(query, user.ID, user.Name, user.Email, user.DepartmentID, user.TeamID, user.Country)
+	query := `INSERT INTO users (id, name, email, department_id, team_id, country, job_profile) 
+			  VALUES (?, ?, ?, ?, ?, ?, ?)`
+	_, err := s.db.Exec(query, user.ID, user.Name, user.Email, user.DepartmentID, user.TeamID, user.Country, user.JobProfile)
 	return err
 }
 
 func (s *SQLiteStorage) GetUsers() ([]*User, error) {
-	rows, err := s.db.Query("SELECT id, name, email, department_id, team_id, country FROM users")
+	rows, err := s.db.Query("SELECT id, name, email, department_id, team_id, country, job_profile FROM users")
 	if err != nil {
 		return nil, err
 	}
@@ -185,13 +191,14 @@ func (s *SQLiteStorage) GetUsers() ([]*User, error) {
 	var users []*User
 	for rows.Next() {
 		u := &User{}
-		var deptID, teamID, country sql.NullString
-		if err := rows.Scan(&u.ID, &u.Name, &u.Email, &deptID, &teamID, &country); err != nil {
+		var deptID, teamID, country, jobProfile sql.NullString
+		if err := rows.Scan(&u.ID, &u.Name, &u.Email, &deptID, &teamID, &country, &jobProfile); err != nil {
 			return nil, err
 		}
 		u.DepartmentID = deptID.String
 		u.TeamID = teamID.String
 		u.Country = country.String
+		u.JobProfile = jobProfile.String
 		users = append(users, u)
 	}
 	return users, rows.Err()
@@ -199,9 +206,9 @@ func (s *SQLiteStorage) GetUsers() ([]*User, error) {
 
 func (s *SQLiteStorage) UpdateUser(user *User) error {
 	query := `UPDATE users 
-			  SET name = ?, email = ?, department_id = ?, team_id = ?, country = ? 
+			  SET name = ?, email = ?, department_id = ?, team_id = ?, country = ?, job_profile = ? 
 			  WHERE id = ?`
-	_, err := s.db.Exec(query, user.Name, user.Email, user.DepartmentID, user.TeamID, user.Country, user.ID)
+	_, err := s.db.Exec(query, user.Name, user.Email, user.DepartmentID, user.TeamID, user.Country, user.JobProfile, user.ID)
 	return err
 }
 

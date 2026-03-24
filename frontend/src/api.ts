@@ -12,7 +12,6 @@ const api = axios.create({
 export const getUsers = async (): Promise<User[]> => {
   const response = await api.get('/users')
   const raw = response.data.users || []
-  // Map snake_case backend fields to camelCase frontend types
   return raw.map((u: any) => ({
     ...u,
     teamId: u.teamId ?? u.team_id,
@@ -98,7 +97,7 @@ export const deleteAbsence = async (id: string): Promise<void> => {
 
 // User update and delete
 export const updateUser = async (id: string, name: string, email: string, country?: string, jobProfile?: string): Promise<User> => {
-  const response = await api.put(`/users/${id}`, { id, name, email, country, job_profile: jobProfile })
+  const response = await api.put(`/users/${id}`, { id, name, email, country, title: jobProfile })
   return response.data
 }
 

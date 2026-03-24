@@ -18,6 +18,27 @@ func NewUserServiceServer(store storage.Storage) *UserServiceServer {
 }
 
 func (s *UserServiceServer) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.User, error) {
+	// Check if user already exists (by email if present, else by exact name match)
+	existingUsers, err := s.storage.GetUsers()
+	if err == nil {
+		for _, u := range existingUsers {
+			if req.Email != "" && u.Email == req.Email {
+				return &pb.User{
+					Id: u.ID, Name: u.Name, Email: u.Email,
+					DepartmentId: u.DepartmentID, TeamId: u.TeamID,
+					Country: u.Country, JobProfile: u.JobProfile,
+				}, nil
+			}
+			if req.Email == "" && u.Name == req.Name {
+				return &pb.User{
+					Id: u.ID, Name: u.Name, Email: u.Email,
+					DepartmentId: u.DepartmentID, TeamId: u.TeamID,
+					Country: u.Country, JobProfile: u.JobProfile,
+				}, nil
+			}
+		}
+	}
+
 	user := &storage.User{
 		ID:      uuid.New().String(),
 		Name:    req.Name,
@@ -52,7 +73,7 @@ func (s *UserServiceServer) GetUsers(ctx context.Context, req *pb.GetUsersReques
 			DepartmentId: u.DepartmentID,
 			TeamId:       u.TeamID,
 			Country:      u.Country,
-			Title:        u.JobProfile,
+			JobProfile:   u.JobProfile,
 		})
 	}
 
@@ -72,6 +93,7 @@ func (s *UserServiceServer) AssignUserToDepartment(ctx context.Context, req *pb.
 				DepartmentId: u.DepartmentID,
 				TeamId:       u.TeamID,
 				Country:      u.Country,
+				JobProfile:   u.JobProfile,
 			}, nil
 		}
 	}
@@ -91,6 +113,7 @@ func (s *UserServiceServer) AssignUserToTeam(ctx context.Context, req *pb.Assign
 				DepartmentId: u.DepartmentID,
 				TeamId:       u.TeamID,
 				Country:      u.Country,
+				JobProfile:   u.JobProfile,
 			}, nil
 		}
 	}
@@ -107,12 +130,12 @@ func (s *UserServiceServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRe
 			u.JobProfile = req.Title
 			s.storage.UpdateUser(u)
 			return &pb.User{
-				Id:      u.ID,
-				Name:    u.Name,
-				Email:   u.Email,
-				TeamId:  u.TeamID,
-				Country: u.Country,
-				Title:   u.JobProfile,
+				Id:         u.ID,
+				Name:       u.Name,
+				Email:      u.Email,
+				TeamId:     u.TeamID,
+				Country:    u.Country,
+				JobProfile: u.JobProfile,
 			}, nil
 		}
 	}

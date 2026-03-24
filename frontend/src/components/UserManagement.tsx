@@ -37,6 +37,7 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
   const [importRows, setImportRows] = useState<ImportRow[]>([])
   const [importing, setImporting] = useState(false)
   const [importDone, setImportDone] = useState(false)
+  const [existingEmailsAtParse, setExistingEmailsAtParse] = useState<Set<string>>(new Set())
 
   interface ImportRow {
     firstName: string
@@ -118,6 +119,13 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
         })
       }
       setImportRows(rows)
+      const emailsAndNames = new Set(
+        users.flatMap(u => [
+          u.email ? u.email.toLowerCase() : null,
+          u.name.toLowerCase().replace(/\s+/g, ' ').trim(),
+        ].filter(Boolean) as string[])
+      )
+      setExistingEmailsAtParse(emailsAndNames)
       setImportDone(false)
     }
     reader.readAsText(file, 'UTF-8')
@@ -132,25 +140,45 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
     const teamCache: Record<string, string> = {}
     teams.forEach(t => { teamCache[t.name.toLowerCase()] = t.id })
 
+    // Build identity key (email if present, else normalized full name) -> existing user id
+    const identityKey = (email: string, name: string) =>
+      email ? email.toLowerCase() : name.toLowerCase().replace(/\s+/g, ' ').trim()
+
+    const existingByKey: Record<string, string> = {}
+    users.forEach(u => {
+      existingByKey[identityKey(u.email || '', u.name)] = u.id
+    })
+
     for (let i = 0; i < updated.length; i++) {
       if (updated[i].status === 'ok') continue
       const row = updated[i]
       try {
-        // 1. Create user
-        const created = await createUser(row.name, row.email || '', row.country || undefined)
-        // 2. Set job profile if present
-        if (row.profile) {
-          await updateUser(created.id, created.name, created.email, row.country || undefined, row.profile)
+        const key = identityKey(row.email, row.name)
+        const existingId = existingByKey[key]
+
+        let userId: string
+        if (existingId) {
+          // User already exists → update instead of create
+          userId = existingId
+        } else {
+          // New user → create
+          const created = await createUser(row.name, row.email || '', row.country || undefined)
+          userId = created.id
+          existingByKey[key] = userId
         }
-        // 3. Resolve or create team, then assign
+
+        // Resolve or create team, then assign
         if (row.teamName) {
           const key = row.teamName.toLowerCase()
           if (!teamCache[key]) {
             const newTeam = await createTeam(row.teamName)
             teamCache[key] = newTeam.id
           }
-          await assignUserToTeam(created.id, teamCache[key])
+          await assignUserToTeam(userId, teamCache[key])
         }
+
+        // Update name/country/profile AFTER team assignment so nothing gets overwritten
+        await updateUser(userId, row.name, row.email, row.country || undefined, row.profile || undefined)
         updated[i] = { ...row, status: 'ok' }
       } catch (err: any) {
         updated[i] = { ...row, status: 'error', error: err?.response?.data?.message || err.message || 'Error' }
@@ -496,6 +524,7 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-xs text-slate-400 uppercase border-b border-slate-100 dark:border-slate-700">
+                        <th className="pb-2 text-left font-medium">Action</th>
                         <th className="pb-2 text-left font-medium">Name</th>
                         <th className="pb-2 text-left font-medium">Email</th>
                         <th className="pb-2 text-left font-medium">Country</th>
@@ -505,12 +534,21 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50 dark:divide-slate-700/50">
-                      {importRows.map((row, i) => (
+                      {importRows.map((row, i) => {
+                        const rowKey = row.email ? row.email.toLowerCase() : row.name.toLowerCase().replace(/\s+/g, ' ').trim()
+                        const isExisting = existingEmailsAtParse.has(rowKey)
+                        const profileLabel = row.profile ? (JOB_PROFILES.find(p => p.value === row.profile)?.label ?? row.profile) : '—'
+                        return (
                         <tr key={i} className="py-1">
+                          <td className="py-1.5 pr-3">
+                            {isExisting
+                              ? <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">update</span>
+                              : <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">create</span>}
+                          </td>
                           <td className="py-1.5 pr-3 font-medium text-slate-800 dark:text-slate-100">{row.name || <span className="text-red-400">—</span>}</td>
                           <td className="py-1.5 pr-3 text-slate-600 dark:text-slate-300">{row.email || <span className="text-slate-400">—</span>}</td>
                           <td className="py-1.5 pr-3 text-slate-500">{row.country || '—'}</td>
-                          <td className="py-1.5 pr-3 text-slate-500">{row.profile || '—'}</td>
+                          <td className="py-1.5 pr-3 text-slate-500">{profileLabel}</td>
                           <td className="py-1.5 pr-3">
                             {row.teamName ? (
                               row.teamId
@@ -529,7 +567,8 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
                             )}
                           </td>
                         </tr>
-                      ))}
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>

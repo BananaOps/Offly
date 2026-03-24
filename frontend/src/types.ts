@@ -12,6 +12,7 @@ export const JOB_PROFILES = [
   { value: 'instru',  label: '🔬 Instrumentation' },
   { value: 'optim',   label: '📈 Optimisation' },
   { value: 'helpdesk', label: '🎧 Helpdesk' },
+  { value: 'support', label: '🛟 Support' },
   { value: 'other',   label: '👤 Other' },
 ] as const
 
