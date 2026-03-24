@@ -3,13 +3,15 @@ export const JOB_PROFILES = [
   { value: 'ops',     label: '⚙️ Ops / SRE' },
   { value: 'design',  label: '🎨 Designer' },
   { value: 'qa',      label: '🧪 QA Engineer' },
-  { value: 'pm',      label: '📋 Product Manager' },
+  { value: 'po',      label: '📋 Product Owner' },
   { value: 'data',    label: '📊 Data' },
   { value: 'codir',   label: '🏛️ CoDir' },
   { value: 'it_corp', label: '🖥️ IT Corp' },
   { value: 'bo',      label: '💼 Business Owner' },
   { value: 'ml',      label: '🤖 ML' },
   { value: 'instru',  label: '🔬 Instrumentation' },
+  { value: 'optim',   label: '📈 Optimisation' },
+  { value: 'helpdesk', label: '🎧 Helpdesk' },
   { value: 'other',   label: '👤 Other' },
 ] as const
 

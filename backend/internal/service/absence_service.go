@@ -19,24 +19,22 @@ func NewAbsenceServiceServer(store storage.Storage) *AbsenceServiceServer {
 }
 
 func (s *AbsenceServiceServer) CreateAbsence(ctx context.Context, req *pb.CreateAbsenceRequest) (*pb.Absence, error) {
-	// Resolve team name snapshot: use provided name if given, else look up from user's current team
-	teamName := req.TeamName
-	if teamName == "" {
-		users, err := s.storage.GetUsers()
-		if err == nil {
-			for _, u := range users {
-				if u.ID == req.UserId && u.TeamID != "" {
-					teams, err2 := s.storage.GetTeams("")
-					if err2 == nil {
-						for _, t := range teams {
-							if t.ID == u.TeamID {
-								teamName = t.Name
-								break
-							}
+	// Resolve team name snapshot: look up from user's current team
+	teamName := ""
+	users, err := s.storage.GetUsers()
+	if err == nil {
+		for _, u := range users {
+			if u.ID == req.UserId && u.TeamID != "" {
+				teams, err2 := s.storage.GetTeams("")
+				if err2 == nil {
+					for _, t := range teams {
+						if t.ID == u.TeamID {
+							teamName = t.Name
+							break
 						}
 					}
-					break
 				}
+				break
 			}
 		}
 	}
@@ -62,7 +60,6 @@ func (s *AbsenceServiceServer) CreateAbsence(ctx context.Context, req *pb.Create
 		EndDate:   timestamppb.New(absence.EndDate),
 		Reason:    absence.Reason,
 		Status:    absence.Status,
-		TeamName:  absence.TeamName,
 	}, nil
 }
 
@@ -84,7 +81,6 @@ func (s *AbsenceServiceServer) GetAbsences(ctx context.Context, req *pb.GetAbsen
 			EndDate:   timestamppb.New(a.EndDate),
 			Reason:    a.Reason,
 			Status:    a.Status,
-			TeamName:  a.TeamName,
 		})
 	}
 

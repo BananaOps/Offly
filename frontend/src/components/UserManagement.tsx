@@ -7,6 +7,11 @@ import { createUser, assignUserToTeam, updateUser, deleteUser, createTeam } from
 import { countries } from '../utils/holidayManager'
 import { getAuthConfig } from '../auth'
 
+function countryFlag(code: string): string {
+  return code.toUpperCase().replace(/./g, c =>
+    String.fromCodePoint(c.charCodeAt(0) + 127397)
+  )
+}
 
 interface Props {
   users: User[]
@@ -51,21 +56,53 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
     if (!file) return
     const reader = new FileReader()
     reader.onload = (ev) => {
-      const text = ev.target?.result as string
+      // Remove BOM if present
+      let text = ev.target?.result as string
+      text = text.replace(/^\uFEFF/, '')
       const lines = text.split(/\r?\n/).filter(l => l.trim())
-      // Detect separator
-      const sep = lines[0].includes(';') ? ';' : ','
-      const headers = lines[0].split(sep).map(h => h.trim().toLowerCase())
+      // Detect separator (;  ,  or tab)
+      const firstLine = lines[0]
+      const sep = firstLine.includes(';') ? ';' : firstLine.includes('\t') ? '\t' : ','
+      const headers = lines[0].split(sep).map(h => h.trim().toLowerCase().replace(/^"|"$/g, '').replace(/\s+/g, '_'))
       const rows: ImportRow[] = []
+
+      // Helper: find value by multiple possible header keys
+      const findCol = (cols: string[], ...keys: string[]) => {
+        for (const key of keys) {
+          const idx = headers.indexOf(key)
+          if (idx !== -1 && cols[idx]) return cols[idx].trim().replace(/^"|"$/g, '')
+        }
+        return ''
+      }
+
+      // Normalize profile value: try to match against known JOB_PROFILES values/labels
+      const normalizeProfile = (raw: string): string => {
+        if (!raw) return ''
+        const lower = raw.toLowerCase().trim()
+        // Exact value match
+        const byValue = JOB_PROFILES.find(p => p.value === lower)
+        if (byValue) return byValue.value
+        // Label match (without emoji)
+        const byLabel = JOB_PROFILES.find(p =>
+          p.label.toLowerCase().replace(/^[^\p{L}]+/u, '').trim() === lower ||
+          p.label.toLowerCase().includes(lower)
+        )
+        if (byLabel) return byLabel.value
+        // Partial value match
+        const byPartial = JOB_PROFILES.find(p => lower.includes(p.value) || p.value.includes(lower))
+        if (byPartial) return byPartial.value
+        return raw
+      }
+
       for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(sep).map(c => c.trim().replace(/^"|"$/g, ''))
-        const get = (key: string) => cols[headers.indexOf(key)] || ''
-        const firstName = get('prénom') || get('prenom') || get('firstname') || get('first_name')
-        const lastName = get('nom') || get('lastname') || get('last_name')
-        const email = get('email') || get('mail')
-        const profile = get('profile') || get('profil')
-        const teamName = get('team') || get('équipe') || get('equipe')
-        const country = get('pays') || get('country')
+        const cols = lines[i].split(sep)
+        const firstName = findCol(cols, 'prénom', 'prenom', 'firstname', 'first_name', 'first')
+        const lastName = findCol(cols, 'nom', 'lastname', 'last_name', 'last', 'nom_de_famille')
+        const email = findCol(cols, 'email', 'mail', 'e-mail', 'adresse_email', 'adresse_mail')
+        const rawProfile = findCol(cols, 'profile', 'profil', 'job_profile', 'poste', 'role', 'rôle', 'fonction')
+        const profile = normalizeProfile(rawProfile)
+        const teamName = findCol(cols, 'team', 'équipe', 'equipe', 'team_name', 'nom_équipe', 'nom_equipe')
+        const country = findCol(cols, 'pays', 'country', 'pays_code', 'country_code')
         if (!firstName && !lastName && !email) continue
         const matchedTeam = teams.find(t => t.name.toLowerCase() === teamName.toLowerCase())
         rows.push({
@@ -83,7 +120,7 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
       setImportRows(rows)
       setImportDone(false)
     }
-    reader.readAsText(file)
+    reader.readAsText(file, 'UTF-8')
     e.target.value = ''
   }
 
@@ -343,7 +380,12 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
                       <option value="">None</option>
                       {countries.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
                     </select>
-                  ) : (user.country ? countries.find(c => c.code === user.country)?.name : '-')}
+                  ) : (user.country ? (
+                    <span className="flex items-center gap-1.5">
+                      <span>{countryFlag(user.country)}</span>
+                      <span>{countries.find(c => c.code === user.country)?.name ?? user.country}</span>
+                    </span>
+                  ) : '-')}
                 </td>
                 <td className="px-4 py-2.5 whitespace-nowrap text-sm">
                   {getAuthConfig().enabled ? (
