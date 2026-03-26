@@ -1,354 +1,314 @@
-# Offly - Time Off Manager
+<div align="center">
 
-[![Release](https://img.shields.io/github/v/release/BananaOps/offly)](https://github.com/BananaOps/offly/releases)
-[![License](https://img.shields.io/github/license/BananaOps/offly)](LICENSE)
-[![Go Tests](https://github.com/BananaOps/offly/workflows/Go%20Tests/badge.svg)](https://github.com/BananaOps/offly/actions)
-[![Docker Pulls](https://img.shields.io/docker/pulls/bananaops/offly-backend)](https://hub.docker.com/r/bananaops/offly-backend)
+# 🌴 Offly — Time Off Manager
 
-Modern time off and absence management system with Go backend (gRPC + REST) and React + TypeScript + Tailwind CSS frontend.
+**Modern absence & time off management. Simple, fast, self-hosted.**
 
-> 📖 **New here?** Check out the [Quick Start Guide](QUICKSTART.md) to get started in 5 minutes!
+[![Release](https://img.shields.io/github/v/release/BananaOps/offly?style=flat-square&logo=github&color=blue)](https://github.com/BananaOps/offly/releases)
+[![License](https://img.shields.io/github/license/BananaOps/offly?style=flat-square&color=green)](LICENSE)
+[![Go Test](https://img.shields.io/github/actions/workflow/status/BananaOps/offly/go-test.yml?style=flat-square&logo=github&label=Go%20Tests)](https://github.com/BananaOps/offly/actions/workflows/go-test.yml)
+[![Protobuf Lint](https://img.shields.io/github/actions/workflow/status/BananaOps/offly/protobuf.yml?style=flat-square&logo=github&label=Protobuf)](https://github.com/BananaOps/offly/actions/workflows/protobuf.yml)
+[![Docker Pulls](https://img.shields.io/docker/pulls/bananaops/offly?style=flat-square&logo=docker&color=2496ED)](https://hub.docker.com/r/bananaops/offly)
+[![Docker Image Size](https://img.shields.io/docker/image-size/bananaops/offly/latest?style=flat-square&logo=docker&color=2496ED)](https://hub.docker.com/r/bananaops/offly)
+[![Go Version](https://img.shields.io/badge/Go-1.26-00ADD8?style=flat-square&logo=go)](https://go.dev)
+[![Node Version](https://img.shields.io/badge/Node.js-24-5FA04E?style=flat-square&logo=nodedotjs)](https://nodejs.org)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite)](https://vite.dev)
+[![GitHub Stars](https://img.shields.io/github/stars/BananaOps/offly?style=flat-square&logo=github)](https://github.com/BananaOps/offly/stargazers)
+[![GitHub Issues](https://img.shields.io/github/issues/BananaOps/offly?style=flat-square&logo=github)](https://github.com/BananaOps/offly/issues)
 
-## Architecture
+</div>
 
-- **Backend**: Go avec gRPC, Protocol Buffers, et REST Gateway
-- **Frontend**: React + TypeScript + Tailwind CSS
-- **Base de données**: MongoDB (avec fallback en mémoire)
+---
 
-## Fonctionnalités
+> 📖 **New here?** Check out the [Quick Start Guide](QUICKSTART.md) to get up and running in 5 minutes!
 
-- Vue grille calendaire pour déclarer les absences
-- Gestion des utilisateurs
-- Organisation par départements et équipes
-- API REST et gRPC
-- Interface moderne avec Tailwind CSS
+## ✨ Features
 
-## Prérequis
+| Feature | Description |
+|---------|-------------|
+| 📅 **Calendar Grid** | Visual month-by-month absence grid per user & team |
+| 👥 **Team Management** | Organize users into teams with availability tracking |
+| 🏖️ **Absence Types** | Full day, morning only, afternoon only |
+| 🌍 **Public Holidays** | Per-country holiday management |
+| 🔍 **Quick Search** | Instant search across users and teams |
+| 🌙 **Dark Mode** | Full light/dark theme support |
+| 📊 **Presence View** | Real-time daily attendance overview |
+| 📤 **Export** | CSV and PDF export of absence reports |
+| 🔐 **SSO / OIDC** | Optional SSO authentication via Dex (PKCE flow) |
+| 🛡️ **RBAC** | Role-based access control (admin / user) |
+| 🚀 **Self-hosted** | Single Docker image — no external services required |
 
-- Go 1.21+
-- Node.js 18+
-- MongoDB 7+ (ou Docker)
-- Task (https://taskfile.dev)
-- Buf (https://buf.build) - pour la génération protobuf
+## 🏗️ Architecture
 
-## Installation Rapide
-
-### Avec Task (recommandé)
-
-```bash
-# Configuration complète du projet
-task setup
-
-# Démarrer MongoDB avec Docker
-task mongo:start
-
-# Lancer l'application (backend + frontend)
-task dev
+```
+┌─────────────────────────────────────────────────────────┐
+│                     Browser (React)                      │
+│         TypeScript · Tailwind CSS · Vite 8              │
+└───────────────────────┬─────────────────────────────────┘
+                        │ HTTP / REST
+┌───────────────────────▼─────────────────────────────────┐
+│                    Go Backend                            │
+│   gRPC · gRPC-Gateway · Protocol Buffers                │
+├─────────────────┬───────────────────────────────────────┤
+│   SQLite (default)    │   MongoDB (optional)            │
+└───────────────────────┴─────────────────────────────────┘
 ```
 
-### Manuel
+The **single Docker image** embeds both the Go binary and the compiled React SPA. The backend serves the frontend static files and provides the REST/gRPC API.
 
-#### Backend
+## 🛠️ Tech Stack
 
-```bash
-cd backend
+| Layer | Technology |
+|-------|-----------|
+| Backend | Go 1.26, gRPC, gRPC-Gateway, Protocol Buffers |
+| Frontend | React 18, TypeScript 5, Tailwind CSS 3, Vite 8 |
+| Database | SQLite (default) · MongoDB (optional) |
+| Auth | Dex (OIDC/PKCE), JWT, JWKS |
+| Container | Docker (multi-stage, Alpine) |
+| Orchestration | Kubernetes · Helm · Skaffold |
+| CI/CD | GitHub Actions (SHA-pinned) |
 
-# Installer les dépendances
-make deps
+## 📋 Prerequisites
 
-# Générer le code protobuf
-make proto
+| Tool | Version | Purpose |
+|------|---------|---------|
+| [Go](https://go.dev) | 1.26+ | Backend |
+| [Node.js](https://nodejs.org) | 24+ | Frontend |
+| [Task](https://taskfile.dev) | latest | Task runner |
+| [Buf](https://buf.build) | latest | Protobuf tooling |
+| [Docker](https://docker.com) | latest | Containers |
 
-# Lancer le serveur
-make run
-```
+## 🚀 Quick Start
 
-Le serveur gRPC écoute sur le port 50051 et la gateway REST sur le port 8080.
-
-#### Frontend
-
-```bash
-cd frontend
-
-# Installer les dépendances
-npm install
-
-# Lancer le serveur de développement
-npm run dev
-```
-
-L'application frontend sera accessible sur http://localhost:3000
-
-## Commandes Task Disponibles
-
-```bash
-task install          # Installer toutes les dépendances
-task proto            # Générer le code protobuf avec buf
-task proto:lint       # Linter les fichiers protobuf
-task proto:breaking   # Vérifier les changements breaking
-task format           # Formater le code (backend + frontend)
-task lint             # Linter le code (backend + frontend)
-task build            # Builder l'application complète
-task test             # Lancer les tests
-task dev              # Lancer en mode développement
-task mongo:start      # Démarrer MongoDB
-task mongo:stop       # Arrêter MongoDB
-task pre-commit       # Vérifications avant commit
-task clean            # Nettoyer les fichiers générés
-```
-
-## Docker
-
-Pour lancer l'application complète avec Docker Compose:
+### Option 1 — Docker Compose (recommended)
 
 ```bash
 docker-compose up -d
 ```
 
-Cela démarre:
-- MongoDB sur le port 27017
-- Backend (gRPC: 50051, REST: 8080)
-- Frontend sur le port 3000
+The application is available at **http://localhost:8080**
 
-## Kubernetes avec Skaffold
-
-Pour le développement sur Kubernetes avec hot reload:
+### Option 2 — Local development
 
 ```bash
-# Démarrer en mode développement
-task skaffold:dev
-# ou
-skaffold dev -f skaffold.dev.yaml
+# Clone
+git clone https://github.com/BananaOps/offly.git && cd offly
+
+# Install all dependencies and generate protobuf code
+task setup
+
+# Start the app (backend + frontend with hot reload)
+task dev
 ```
 
-Skaffold va:
-- Builder les images Docker
-- Déployer sur Kubernetes avec Helm
-- Configurer le port forwarding automatique
-- Recharger automatiquement lors des changements de code
+| Service | URL |
+|---------|-----|
+| Web UI | http://localhost:3000 |
+| REST API | http://localhost:8080/api/v1 |
+| Swagger UI | http://localhost:8080/docs |
+| gRPC | localhost:50051 |
 
-Pour plus d'informations, consultez [SKAFFOLD.md](SKAFFOLD.md)
-
-## Structure du Projet
-
-```
-.
-├── backend/
-│   ├── cmd/server/          # Point d'entrée du serveur
-│   ├── internal/
-│   │   ├── service/         # Services gRPC
-│   │   └── storage/         # Couche de stockage (MongoDB + Memory)
-│   ├── proto/               # Définitions Protocol Buffers
-│   ├── Dockerfile           # Image Docker backend
-│   └── Makefile             # Commandes make
-├── frontend/
-│   ├── src/
-│   │   ├── components/      # Composants React
-│   │   ├── api.ts          # Client API
-│   │   └── types.ts        # Types TypeScript
-│   ├── Dockerfile           # Image Docker frontend
-│   └── nginx.conf           # Configuration Nginx
-├── docker-compose.yml       # Orchestration Docker
-├── Taskfile.yml            # Automatisation des tâches
-└── .env.example            # Variables d'environnement
-```
-
-## API Endpoints
-
-### Documentation Interactive
-
-Accédez à la documentation Swagger UI complète sur :
-- **Swagger UI** : http://localhost:8080/docs
-- **OpenAPI Spec** : http://localhost:8080/openapi/absence.swagger.json
-
-### REST API (port 8080)
-
-- `GET /api/v1/health` - Health check
-- `POST /api/v1/users` - Créer un utilisateur
-- `GET /api/v1/users` - Lister les utilisateurs
-- `POST /api/v1/departments` - Créer un département
-- `GET /api/v1/departments` - Lister les départements
-- `POST /api/v1/teams` - Créer une équipe
-- `GET /api/v1/teams` - Lister les équipes
-- `POST /api/v1/absences` - Créer une absence
-- `GET /api/v1/absences` - Lister les absences
-- `PUT /api/v1/absences/{id}` - Modifier une absence
-- `DELETE /api/v1/absences/{id}` - Supprimer une absence
-- `POST /api/v1/holidays` - Créer un jour férié
-- `GET /api/v1/holidays` - Lister les jours fériés
-
-### gRPC (port 50051)
-
-Services disponibles:
-- `AbsenceService`
-- `UserService`
-- `OrganizationService`
-- `HolidayService`
-
-## Développement
-
-### Workflow recommandé
-
-1. **Avant de commencer**: `task setup`
-2. **Démarrer MongoDB**: `task mongo:start`
-3. **Développer**: `task dev`
-4. **Générer des données de test**: `k6 run k6-seed-data.js`
-5. **Avant de commit**: `task pre-commit`
-
-### Générer des données d'exemple
-
-Utilisez le script k6 pour créer des données de test :
+### Seed test data
 
 ```bash
-# Installer k6
-brew install k6  # macOS
-# ou voir k6-README.md pour autres OS
-
-# Générer les données
+# Requires k6 — see k6-README.md
 k6 run k6-seed-data.js
-
-# Avec une URL personnalisée
-k6 run -e API_URL=http://offly.local k6-seed-data.js
 ```
 
-Le script crée automatiquement :
-- 5 départements (Engineering, Product, Sales, Marketing, HR)
-- 10 équipes
-- 12 utilisateurs avec emails et pays
-- 29 jours fériés pour 2025 (FR, US, UK)
-- Absences aléatoires pour chaque utilisateur
+Creates 5 departments, 10 teams, 12 users, 29 public holidays, and random absences.
 
-Voir [k6-README.md](k6-README.md) pour plus de détails.
+## 🐳 Docker
 
-### Modifier les définitions protobuf
-
-1. Éditez `backend/proto/absence.proto`
-2. Lintez les fichiers proto: `task proto:lint`
-3. Régénérez le code: `task proto`
-4. Redémarrez le backend
-
-Buf est utilisé pour la génération du code protobuf, offrant une meilleure gestion des dépendances et un linting intégré.
-
-### Base de données
-
-L'application utilise MongoDB par défaut. Si MongoDB n'est pas disponible, elle bascule automatiquement sur un stockage en mémoire.
-
-Pour se connecter à MongoDB:
 ```bash
-# Avec Docker
-docker exec -it absence-mongo mongosh offly
+# Pull & run (in-memory storage — no DB required)
+docker run -p 8080:8080 bananaops/offly:latest
 
-# Local
-mongosh offly
+# With persistent SQLite
+docker run -p 8080:8080 \
+  -v $(pwd)/data:/app/data \
+  bananaops/offly:latest
+
+# With MongoDB
+docker run -p 8080:8080 \
+  -e STORAGE_TYPE=mongodb \
+  -e MONGO_URI=mongodb://host.docker.internal:27017 \
+  bananaops/offly:latest
 ```
 
-### Variables d'environnement
+See [DOCKER.md](DOCKER.md) for the full deployment guide.
 
-Copiez `.env.example` vers `.env` et ajustez les valeurs selon votre environnement.
-
-## Troubleshooting
-
-**MongoDB ne démarre pas**:
-```bash
-task mongo:stop
-task mongo:start
-```
-
-**Erreurs de compilation protobuf**:
-```bash
-task install:backend
-task proto:lint  # Vérifier les erreurs de syntaxe
-task proto       # Régénérer le code
-```
-
-**Installer buf manuellement**:
-```bash
-# macOS
-brew install bufbuild/buf/buf
-
-# Linux
-curl -sSL "https://github.com/bufbuild/buf/releases/latest/download/buf-$(uname -s)-$(uname -m)" -o /usr/local/bin/buf
-chmod +x /usr/local/bin/buf
-
-# Ou via Go
-go install github.com/bufbuild/buf/cmd/buf@latest
-```
-
-**Problèmes de dépendances frontend**:
-```bash
-cd frontend
-rm -rf node_modules package-lock.json
-npm install
-```
-
-## Releases
-
-### Using Docker Images
-
-Pull the latest image from Docker Hub:
+## ☸️ Kubernetes (Helm)
 
 ```bash
-# Full stack image (backend + frontend)
-docker pull bananaops/offly:latest
-docker pull bananaops/offly:0.1.0
-
-# Run the application
-docker run -p 8080:8080 -p 50051:50051 bananaops/offly:latest
-```
-
-The application will be available at:
-- Web UI: http://localhost:8080
-- REST API: http://localhost:8080/api/v1
-- gRPC: localhost:50051
-
-### Using Helm Chart
-
-Add the Helm repository and install:
-
-```bash
-# Add repository
+# Add the chart repository
 helm repo add offly https://bananaops.github.io/offly
 helm repo update
 
 # Install
 helm install offly offly/offly
 
-# Install specific version
+# Install a specific version
 helm install offly offly/offly --version 0.1.0
+
+# Upgrade
+helm upgrade offly offly/offly
 ```
 
-### Release Process
+## ⚙️ Environment Variables
 
-We use [Release Please](https://github.com/googleapis/release-please) for automated releases based on [Conventional Commits](https://www.conventionalcommits.org/).
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `STORAGE_TYPE` | `sqlite` or `mongodb` | `sqlite` |
+| `SQLITE_DB_PATH` | SQLite database path | `/app/data/offly.db` |
+| `MONGO_URI` | MongoDB connection string | `mongodb://localhost:27017` |
+| `HTTP_PORT` | HTTP server port | `8080` |
+| `GRPC_PORT` | gRPC server port | `50051` |
+| `AUTH_ENABLED` | Enable SSO authentication | `false` |
+| `AUTH_ISSUER_URL` | OIDC issuer URL | — |
+| `AUTH_CLIENT_ID` | OIDC client ID | — |
 
-For detailed information about creating releases, see [RELEASING.md](RELEASING.md).
+## 🔐 SSO Authentication
 
-## Contributing
+Offly supports optional SSO via [Dex](https://dexidp.io) (OIDC/PKCE flow).
 
-Contributions are welcome! Please read our contributing guidelines before submitting PRs.
+```
+Browser ──PKCE──▶ Dex ──ID Token──▶ Backend ──JWT verify──▶ SQLite
+```
 
-### Commit Message Format
+| Role | Permissions |
+|------|------------|
+| `admin` | Full access — users, teams, holidays, absences |
+| `user` | Read all · Edit own profile & absences only |
 
-We follow the Conventional Commits specification:
+See [SSO-README.md](SSO-README.md) for the full configuration guide.
 
-- `feat:` New features
-- `fix:` Bug fixes
-- `docs:` Documentation changes
-- `chore:` Maintenance tasks
-- `ci:` CI/CD changes
+## 🔌 API
 
-Example:
+### REST (port 8080)
+
+Interactive documentation available at **http://localhost:8080/docs**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/health` | Health check |
+| `GET/POST` | `/api/v1/users` | List / create users |
+| `GET/PUT/DELETE` | `/api/v1/users/{id}` | Get / update / delete user |
+| `GET/POST` | `/api/v1/teams` | List / create teams |
+| `GET/POST` | `/api/v1/absences` | List / create absences |
+| `PUT/DELETE` | `/api/v1/absences/{id}` | Update / delete absence |
+| `GET/POST` | `/api/v1/holidays` | List / create public holidays |
+| `GET` | `/api/v1/auth/config` | SSO configuration |
+| `POST` | `/api/v1/auth/ensure-user` | Auto-provision SSO user |
+
+### gRPC (port 50051)
+
+Services: `AbsenceService` · `UserService` · `OrganizationService` · `HolidayService`
+
+## 🧰 Task Commands
+
+```bash
+task setup            # Install deps + generate protobuf code
+task dev              # Start backend + frontend (hot reload)
+task build            # Build the full application
+task test             # Run all tests
+task lint             # Lint backend + frontend
+task format           # Format backend + frontend
+task proto            # Regenerate protobuf code
+task proto:lint       # Lint protobuf definitions
+task mongo:start      # Start MongoDB in Docker
+task mongo:stop       # Stop MongoDB
+task pre-commit       # Format + lint + test (run before committing)
+task clean            # Remove generated files
+```
+
+## 📁 Project Structure
+
+```
+offly/
+├── backend/
+│   ├── cmd/server/          # Server entry point
+│   ├── internal/
+│   │   ├── auth/            # OIDC, JWT, RBAC middleware
+│   │   ├── service/         # gRPC service implementations
+│   │   └── storage/         # SQLite + MongoDB adapters
+│   └── proto/               # Protocol Buffer definitions
+├── frontend/
+│   └── src/
+│       ├── components/      # React components
+│       │   ├── AbsenceGrid  # Main calendar grid
+│       │   ├── PresenceView # Daily attendance view
+│       │   ├── UserManagement
+│       │   ├── TeamManagement
+│       │   └── HolidayManagement
+│       ├── api.ts           # REST API client
+│       ├── auth.ts          # PKCE / JWT helpers
+│       └── types.ts         # TypeScript types
+├── helm/offly/              # Helm chart for Kubernetes
+├── dex/                     # Dex OIDC provider (dev/test)
+├── Dockerfile               # Multi-stage build (frontend + backend)
+├── docker-compose.yml       # Local stack
+├── Taskfile.yml             # Task automation
+└── k6-seed-data.js          # Test data generator
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! We follow [Conventional Commits](https://www.conventionalcommits.org/):
+
 ```bash
 git commit -m "feat: add new absence type filter"
 git commit -m "fix: correct date calculation in calendar"
+git commit -m "docs: update API reference"
 ```
 
-## License
+Types: `feat` · `fix` · `docs` · `chore` · `ci` · `refactor` · `perf` · `test`
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Releases are automated via [Release Please](https://github.com/googleapis/release-please).
 
-## Support
+## 🐛 Troubleshooting
 
-- 📖 [Documentation](https://github.com/BananaOps/offly)
-- 🐛 [Issue Tracker](https://github.com/BananaOps/offly/issues)
-- 💬 [Discussions](https://github.com/BananaOps/offly/discussions)
+<details>
+<summary><b>MongoDB won't start</b></summary>
+
+```bash
+task mongo:stop && task mongo:start
+```
+</details>
+
+<details>
+<summary><b>Protobuf compilation errors</b></summary>
+
+```bash
+task install:backend
+task proto:lint   # Check for syntax errors
+task proto        # Regenerate
+```
+</details>
+
+<details>
+<summary><b>Frontend dependency issues</b></summary>
+
+```bash
+cd frontend && rm -rf node_modules package-lock.json && npm install
+```
+</details>
+
+<details>
+<summary><b>SSO / Dex issues</b></summary>
+
+See [SSO-README.md](SSO-README.md) for detailed troubleshooting steps.
+</details>
+
+## 📄 License
+
+Released under the [MIT License](LICENSE) — © BananaOps
+
+---
+
+<div align="center">
+
+**[Documentation](https://github.com/BananaOps/offly)** · **[Issues](https://github.com/BananaOps/offly/issues)** · **[Discussions](https://github.com/BananaOps/offly/discussions)** · **[Docker Hub](https://hub.docker.com/r/bananaops/offly)**
+
+Made with ❤️ by [BananaOps](https://github.com/BananaOps)
+
+</div>
