@@ -73,6 +73,7 @@ export const countries = [
   { code: 'DE', name: 'Germany' },
   { code: 'ES', name: 'Spain' },
   { code: 'IT', name: 'Italy' },
+  { code: 'AE', name: 'United Arab Emirates' },
   { code: 'CA', name: 'Canada' },
   { code: 'AU', name: 'Australia' },
   { code: 'JP', name: 'Japan' },

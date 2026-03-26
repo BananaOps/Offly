@@ -78,9 +78,9 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
 
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 my-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-6">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 my-auto flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-6 flex-shrink-0">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <FontAwesomeIcon icon={faUser} className="text-primary" />
             My Profile
@@ -93,7 +93,7 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
           </button>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-auto flex-1 pr-1">
           {/* Name (read-only) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -178,7 +178,7 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
           <button
             onClick={handleSave}
             className="flex-1 bg-gradient-to-r from-primary to-secondary text-white px-4 py-2.5 rounded-lg hover:shadow-lg transition-all shadow-md inline-flex items-center justify-center gap-2 font-medium"

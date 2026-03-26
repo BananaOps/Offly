@@ -310,10 +310,10 @@ func (s *SQLiteStorage) GetHolidays(country string, year int) ([]*Holiday, error
 
 	switch {
 	case country != "" && year > 0:
-		query = `SELECT id, date, name, country, year FROM holidays WHERE country = ? AND year = ?`
+		query = `SELECT id, date, name, country, year FROM holidays WHERE UPPER(country) = UPPER(?) AND year = ?`
 		args = []interface{}{country, year}
 	case country != "" && year == 0:
-		query = `SELECT id, date, name, country, year FROM holidays WHERE country = ?`
+		query = `SELECT id, date, name, country, year FROM holidays WHERE UPPER(country) = UPPER(?)`
 		args = []interface{}{country}
 	case country == "" && year > 0:
 		query = `SELECT id, date, name, country, year FROM holidays WHERE year = ?`

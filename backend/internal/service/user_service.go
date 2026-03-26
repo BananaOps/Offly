@@ -4,6 +4,7 @@ import (
 	"absence-management/internal/storage"
 	pb "absence-management/proto"
 	"context"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -43,7 +44,7 @@ func (s *UserServiceServer) CreateUser(ctx context.Context, req *pb.CreateUserRe
 		ID:      uuid.New().String(),
 		Name:    req.Name,
 		Email:   req.Email,
-		Country: req.Country,
+		Country: strings.ToUpper(req.Country),
 	}
 
 	if err := s.storage.CreateUser(user); err != nil {
@@ -126,7 +127,7 @@ func (s *UserServiceServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRe
 		if u.ID == req.Id {
 			u.Name = req.Name
 			u.Email = req.Email
-			u.Country = req.Country
+			u.Country = strings.ToUpper(req.Country)
 			u.JobProfile = req.Title
 			s.storage.UpdateUser(u)
 			return &pb.User{

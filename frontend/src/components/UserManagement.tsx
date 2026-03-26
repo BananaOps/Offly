@@ -103,7 +103,7 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
         const rawProfile = findCol(cols, 'profile', 'profil', 'job_profile', 'poste', 'role', 'rôle', 'fonction')
         const profile = normalizeProfile(rawProfile)
         const teamName = findCol(cols, 'team', 'équipe', 'equipe', 'team_name', 'nom_équipe', 'nom_equipe')
-        const country = findCol(cols, 'pays', 'country', 'pays_code', 'country_code')
+        const country = findCol(cols, 'pays', 'country', 'pays_code', 'country_code').toUpperCase()
         if (!firstName && !lastName && !email) continue
         const matchedTeam = teams.find(t => t.name.toLowerCase() === teamName.toLowerCase())
         rows.push({

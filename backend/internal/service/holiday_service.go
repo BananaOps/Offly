@@ -4,6 +4,7 @@ import (
 	"absence-management/internal/storage"
 	pb "absence-management/proto"
 	"context"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -22,7 +23,7 @@ func (s *HolidayServiceServer) CreateHoliday(ctx context.Context, req *pb.Create
 		ID:      uuid.New().String(),
 		Date:    req.Date,
 		Name:    req.Name,
-		Country: req.Country,
+		Country: strings.ToUpper(req.Country),
 		Year:    int(req.Year),
 	}
 
@@ -40,7 +41,7 @@ func (s *HolidayServiceServer) CreateHoliday(ctx context.Context, req *pb.Create
 }
 
 func (s *HolidayServiceServer) GetHolidays(ctx context.Context, req *pb.GetHolidaysRequest) (*pb.GetHolidaysResponse, error) {
-	holidays, err := s.storage.GetHolidays(req.Country, int(req.Year))
+	holidays, err := s.storage.GetHolidays(strings.ToUpper(req.Country), int(req.Year))
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +65,7 @@ func (s *HolidayServiceServer) UpdateHoliday(ctx context.Context, req *pb.Update
 		ID:      req.Id,
 		Date:    req.Date,
 		Name:    req.Name,
-		Country: req.Country,
+		Country: strings.ToUpper(req.Country),
 		Year:    int(req.Year),
 	}
 
@@ -95,7 +96,7 @@ func (s *HolidayServiceServer) ImportHolidays(ctx context.Context, req *pb.Impor
 			ID:      uuid.New().String(),
 			Date:    h.Date,
 			Name:    h.Name,
-			Country: h.Country,
+			Country: strings.ToUpper(h.Country),
 			Year:    int(h.Year),
 		}
 		if err := s.storage.CreateHoliday(holiday); err == nil {

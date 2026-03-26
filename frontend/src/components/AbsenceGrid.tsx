@@ -318,7 +318,7 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
     const year = currentDate.getFullYear()
     
     // Charger les jours fériés pour tous les pays des utilisateurs
-    const countries = [...new Set(users.map(u => u.country).filter(Boolean))]
+    const countries = [...new Set(users.map(u => u.country?.toUpperCase()).filter(Boolean))]
     
     for (const country of countries) {
       try {
@@ -327,7 +327,7 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
           const dateStr = formatDateLocal(day)
           const holiday = holidays.find(h => h.date === dateStr)
           users.forEach(user => {
-            if (user.country === country) {
+            if (user.country?.toUpperCase() === country) {
               const key = `${user.id}-${dateStr}`
               if (holiday) {
                 holidayMap.set(key, holiday)
@@ -462,9 +462,9 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full gap-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex items-center justify-between flex-wrap gap-3 shrink-0">
 
         {/* Left: month nav + title */}
         <div className="flex items-center gap-2">
@@ -567,22 +567,22 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
         </div>
       </div>
 
-      <div ref={scrollContainerRef} className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+        <table className="min-w-full border-separate border-spacing-0">
           <thead className="bg-slate-50 dark:bg-slate-900">
-            <tr className="relative">
-              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky left-0 bg-slate-50 dark:bg-slate-900 z-50 border-r border-slate-200 dark:border-slate-700">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky top-0 left-0 bg-slate-50 dark:bg-slate-900 z-[40] border-r border-b border-slate-200 dark:border-slate-700">
                 User
               </th>
               {days.map(day => {
                 const isTodayDay = isSameDay(day, new Date())
-                const baseWeekend = 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-600'
-                const baseWeekday = 'text-slate-600 dark:text-slate-300 border-slate-100 dark:border-slate-700'
+                const baseWeekend = 'sticky top-0 z-[20] bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 border-slate-300 dark:border-slate-600'
+                const baseWeekday = 'sticky top-0 z-[20] bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-100 dark:border-slate-700'
                 return (
                   <th
                     key={day.toISOString()}
                     data-date={formatDateLocal(day)}
-                    className={`px-3 py-3 text-center text-xs font-medium border-l z-[1] ${
+                    className={`px-3 py-3 text-center text-xs font-medium border-l border-b ${
                       isWeekend(day)
                         ? baseWeekend
                         : baseWeekday
@@ -598,23 +598,23 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
               })}
             </tr>
           </thead>
-          <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-100 dark:divide-slate-700">
+          <tbody className="bg-white dark:bg-slate-800">
             {groupedUsers.map(group => (
               <React.Fragment key={group.teamId || 'no-team'}>
                 {/* Team Header */}
-                <tr className="bg-slate-50 dark:bg-slate-900/70 border-t-2 border-slate-200 dark:border-slate-700">
-                  <td className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 sticky left-0 z-50 bg-slate-50 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700">
+                <tr className="bg-slate-50 dark:bg-slate-900/70">
+                  <td className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 sticky left-0 z-[10] bg-slate-50 dark:bg-slate-900 border-t-2 border-r border-b border-slate-200 dark:border-slate-700">
                     <FontAwesomeIcon icon={faUserGroup} className="text-blue-500 mr-1.5" />
                     {group.teamName} <span className="text-slate-400 font-normal ml-1">({group.users.length})</span>
                   </td>
                   {days.map(day => {
                     if (isWeekend(day)) {
-                      return <td key={day.toISOString()} className="bg-slate-200 dark:bg-slate-700 border-l border-slate-300 dark:border-slate-600"></td>
+                      return <td key={day.toISOString()} className="bg-slate-200 dark:bg-slate-700 border-t-2 border-l border-b border-slate-300 dark:border-slate-600"></td>
                     }
                     const availability = getTeamAvailability(group.users, day)
                     const isLow = availability.percentage < 50
                     return (
-                      <td key={day.toISOString()} className={`px-2 py-2 text-center text-xs border-l border-gray-100 dark:border-gray-700 ${isLow ? 'bg-accent bg-opacity-20' : 'bg-secondary bg-opacity-5'}`}>
+                      <td key={day.toISOString()} className={`px-2 py-2 text-center text-xs border-t-2 border-l border-b border-slate-200 dark:border-slate-700 ${isLow ? 'bg-accent bg-opacity-20' : 'bg-secondary bg-opacity-5'}`}>
                         {isLow && (
                           <div className="flex items-center justify-center gap-1">
                             <FontAwesomeIcon icon={faExclamationTriangle} className="text-accent text-xs" />
@@ -631,12 +631,12 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
                   const isCurrentUser = isSSO && currentUserEmail === user.email
                   const canEdit = canUserEdit(user.email)
                   return (
-                    <tr key={user.id} className={`transition-colors border-t border-slate-100 dark:border-slate-700 ${
+                    <tr key={user.id} className={`transition-colors ${
                       isCurrentUser
                         ? 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100/70 dark:hover:bg-blue-900/30'
                         : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
                     }`}>
-                      <td className={`px-4 py-2.5 whitespace-nowrap text-sm sticky left-0 z-50 border-r border-slate-200 dark:border-slate-700 ${
+                      <td className={`px-4 py-2.5 whitespace-nowrap text-sm sticky left-0 z-[10] border-t border-r border-b border-slate-100 dark:border-slate-700 ${
                         isCurrentUser
                           ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-900 dark:text-blue-100 font-semibold'
                           : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200'
@@ -686,7 +686,7 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
                                 setShowAbsenceModal(true)
                               }
                             }}
-                            className={`px-2 py-2.5 text-center transition-all border-l border-slate-100 dark:border-slate-700 z-[1] relative ${
+                            className={`px-2 py-2.5 text-center transition-all border-t border-l border-b border-slate-100 dark:border-slate-700 ${
                               isWeekendDay
                                 ? 'bg-slate-100 dark:bg-slate-700/60 cursor-not-allowed border-slate-200 dark:border-slate-600'
                                 : !canEdit
@@ -728,7 +728,7 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
         </table>
       </div>
 
-      <div className="mt-2 space-y-2">
+      <div className="shrink-0 space-y-2 border-t border-slate-200 dark:border-slate-700 pt-2">
         <div className="flex items-center gap-4 text-xs flex-wrap">
           <div className="flex items-center gap-1.5">
             <div className="w-5 h-5 bg-blue-500 rounded flex items-center justify-center">

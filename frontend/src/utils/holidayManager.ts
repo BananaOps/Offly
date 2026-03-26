@@ -51,6 +51,7 @@ export const countries = [
   { code: 'GB', name: 'United Kingdom' },
   { code: 'VA', name: 'Vatican City' },
   // Rest of the world
+  { code: 'AE', name: 'United Arab Emirates' },
   { code: 'AU', name: 'Australia' },
   { code: 'BR', name: 'Brazil' },
   { code: 'CA', name: 'Canada' },
@@ -91,7 +92,7 @@ export const deleteHoliday = async (id: string): Promise<void> => {
 // Obtenir les jours fériés pour un pays et une année
 export const getHolidaysForCountryAndYear = async (countryCode: string, year: number): Promise<Holiday[]> => {
   try {
-    return await holidayApi.getHolidays(countryCode, year)
+    return await holidayApi.getHolidays(countryCode.toUpperCase(), year)
   } catch (error) {
     console.error('Error loading holidays:', error)
     return []
