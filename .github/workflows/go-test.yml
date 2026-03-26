@@ -4,13 +4,11 @@ on:
   pull_request:
     paths:
       - .github/workflows/go-test.yml
-      - internal/**
-      - cmd/**
-      - docs/**
-      - generated/**
-      - go.mod
-      - go.sum
-      - main.go
+      - backend/internal/**
+      - backend/cmd/**
+      - backend/proto/**
+      - backend/go.mod
+      - backend/go.sum
 
 jobs:
   linting:
@@ -30,23 +28,36 @@ jobs:
       uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
       with:
         args: --timeout=30m
+        working-directory: backend
 
   security:
     name: Go Security
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-    - name: Run Gosec Security Scanner
-      uses: securego/gosec@223e19b8856e00f02cc67804499a83f77e208f3c # v2.25.0
+    - name: Set up Go 1.x
+      uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
       with:
-        args: -exclude=G103,G115 ./...
+        go-version: stable
+
+    - name: Install gosec
+      run: go install github.com/securego/gosec/v2/cmd/gosec@v2.25.0
+
+    - name: Run Gosec Security Scanner
+      run: gosec -exclude=G103,G115 ./...
 
   test:
     name: Go test
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
 
     - name: Check out code into the Go module directory
