@@ -9,7 +9,7 @@ WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 
 # Install frontend dependencies
-RUN npm ci --only=production=false || npm install
+RUN npm ci
 
 # Copy frontend source
 COPY frontend/ ./
@@ -20,7 +20,7 @@ ENV VITE_API_URL=${VITE_API_URL}
 RUN npm run build
 
 # Stage 2: Build Backend
-FROM golang:1.25-alpine AS backend-builder
+FROM golang:1.26-alpine AS backend-builder
 
 WORKDIR /app
 
