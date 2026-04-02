@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode"
 
 	"absence-management/internal/auth"
 	"absence-management/internal/service"
@@ -40,7 +41,7 @@ func main() {
 		if dbPath == "" {
 			dbPath = "./offly.db"
 		}
-		log.Printf("Initializing SQLite storage at %q...", dbPath)
+		log.Printf("Initializing SQLite storage at %q...", sanitizeLog(dbPath))
 		store, err = storage.NewSQLiteStorage(dbPath)
 		if err != nil {
 			log.Fatalf("Failed to initialize SQLite storage: %v", err)
@@ -50,10 +51,10 @@ func main() {
 		if mongoURI == "" {
 			mongoURI = "mongodb://localhost:27017"
 		}
-		log.Printf("Initializing hybrid storage with MongoDB at %q...", mongoURI)
+		log.Printf("Initializing hybrid storage with MongoDB at %q...", sanitizeLog(mongoURI))
 		store = storage.NewHybridStorage(mongoURI, "offly")
 	default:
-		log.Fatalf("Unknown storage type: %q (supported: sqlite, mongodb, hybrid)", storageType)
+		log.Fatalf("Unknown storage type: %q (supported: sqlite, mongodb, hybrid)", sanitizeLog(storageType))
 	}
 
 	// Démarrer le serveur gRPC
@@ -233,6 +234,16 @@ func serveSwaggerUI(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(html))
 }
 
+// sanitizeLog strips control characters from strings to prevent log injection (CWE-117).
+func sanitizeLog(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, s)
+}
+
 func corsMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -300,14 +311,14 @@ func rbacMiddleware(store storage.Storage, v *auth.Verifier, next http.Handler) 
 
 			// Allow PUT/POST on own profile
 			if (r.Method == "PUT" || r.Method == "POST") && pathUserID == userID {
-				log.Printf("RBAC - %q user profile: currentUserID=%q, pathUserID=%q, match=true", r.Method, userID, pathUserID)
+				log.Printf("RBAC - %q user profile: currentUserID=%q, pathUserID=%q, match=true", sanitizeLog(r.Method), sanitizeLog(userID), sanitizeLog(pathUserID))
 				next.ServeHTTP(w, r)
 				return
 			}
 
 			// Trying to modify someone else's profile
 			if r.Method == "PUT" || r.Method == "POST" {
-				log.Printf("RBAC - %q user profile: currentUserID=%q, pathUserID=%q, match=false - DENIED", r.Method, userID, pathUserID)
+				log.Printf("RBAC - %q user profile: currentUserID=%q, pathUserID=%q, match=false - DENIED", sanitizeLog(r.Method), sanitizeLog(userID), sanitizeLog(pathUserID))
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
 				_, _ = w.Write([]byte(`{"error":"can only modify your own profile"}`))

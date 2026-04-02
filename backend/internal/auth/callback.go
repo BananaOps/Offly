@@ -142,15 +142,14 @@ func CallbackHandler(store storage.Storage, v *Verifier) http.HandlerFunc {
 		}
 
 		// Set secure HTTP-only cookie with the ID token
-		// HTTPS_ENABLED=true must be set in production to enable the Secure flag
-		httpsEnabled := os.Getenv("HTTPS_ENABLED") == "true"
+		// Requires HTTPS in production (Secure: true enforces TLS)
 		http.SetCookie(w, &http.Cookie{
 			Name:     "auth_token",
 			Value:    tokenResp.IDToken,
 			Path:     "/",
 			MaxAge:   tokenResp.ExpiresIn,
 			HttpOnly: true,
-			Secure:   httpsEnabled,
+			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
 		})
 
@@ -222,7 +221,7 @@ func LogoutHandler() http.HandlerFunc {
 			Path:     "/",
 			MaxAge:   -1,
 			HttpOnly: true,
-			Secure:   os.Getenv("HTTPS_ENABLED") == "true",
+			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
 		})
 		w.Header().Set("Content-Type", "application/json")
