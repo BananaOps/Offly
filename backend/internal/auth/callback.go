@@ -29,7 +29,7 @@ func CallbackHandler(store storage.Storage, v *Verifier) http.HandlerFunc {
 		issuerURL := os.Getenv("AUTH_ISSUER_URL")
 		clientID := os.Getenv("AUTH_CLIENT_ID")
 		clientSecret := os.Getenv("AUTH_CLIENT_SECRET")
-		
+
 		if issuerURL == "" || clientID == "" || clientSecret == "" {
 			http.Error(w, "Auth not configured", http.StatusInternalServerError)
 			return
@@ -50,7 +50,7 @@ func CallbackHandler(store storage.Storage, v *Verifier) http.HandlerFunc {
 			http.Error(w, fmt.Sprintf("Failed to exchange token: %v", err), http.StatusInternalServerError)
 			return
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		if resp.StatusCode != http.StatusOK {
 			body, _ := io.ReadAll(resp.Body)
@@ -115,15 +115,14 @@ func CallbackHandler(store storage.Storage, v *Verifier) http.HandlerFunc {
 			}
 		}
 
-		var user *storage.User
 		if existing == nil {
 			// Create new user without department or team assignment
-			user = &storage.User{
+			newUser := &storage.User{
 				ID:    uuid.New().String(),
 				Name:  name,
 				Email: email,
 			}
-			if err := store.CreateUser(user); err != nil {
+			if err := store.CreateUser(newUser); err != nil {
 				http.Error(w, "Failed to create user", http.StatusInternalServerError)
 				return
 			}
@@ -131,7 +130,6 @@ func CallbackHandler(store storage.Storage, v *Verifier) http.HandlerFunc {
 			// Update existing user's name in case it changed
 			existing.Name = name
 			_ = store.UpdateUser(existing)
-			user = existing
 		}
 
 		// Set secure HTTP-only cookie with the ID token
@@ -159,7 +157,7 @@ func MeHandler(v *Verifier) http.HandlerFunc {
 		cookie, err := r.Cookie("auth_token")
 		if err != nil || cookie.Value == "" {
 			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]interface{}{"authenticated": false})
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"authenticated": false})
 			return
 		}
 
@@ -167,7 +165,7 @@ func MeHandler(v *Verifier) http.HandlerFunc {
 		claims, err := v.VerifyToken(cookie.Value)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]interface{}{"authenticated": false})
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"authenticated": false})
 			return
 		}
 
@@ -178,13 +176,13 @@ func MeHandler(v *Verifier) http.HandlerFunc {
 		}
 
 		role := "user"
-		
+
 		// Check if user is admin based on AUTH_ADMIN_EMAILS env var
 		adminEmails := os.Getenv("AUTH_ADMIN_EMAILS")
 		if adminEmails == "" {
 			adminEmails = os.Getenv("ADMIN_EMAILS") // Fallback
 		}
-		
+
 		if adminEmails != "" {
 			adminList := strings.Split(adminEmails, ",")
 			for _, admin := range adminList {
@@ -195,7 +193,7 @@ func MeHandler(v *Verifier) http.HandlerFunc {
 			}
 		}
 
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"authenticated": true,
 			"email":         email,
 			"name":          name,
@@ -215,6 +213,6 @@ func LogoutHandler() http.HandlerFunc {
 			HttpOnly: true,
 		})
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]bool{"success": true})
+		_ = json.NewEncoder(w).Encode(map[string]bool{"success": true})
 	}
 }

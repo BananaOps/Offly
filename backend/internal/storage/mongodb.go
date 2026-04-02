@@ -159,7 +159,7 @@ func (s *MongoStorage) GetAbsences(userID string, startDate, endDate time.Time) 
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() { _ = cursor.Close(ctx) }()
 
 	var absences []*Absence
 	for cursor.Next(ctx) {
@@ -272,7 +272,7 @@ func (s *MongoStorage) GetUsers() ([]*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() { _ = cursor.Close(ctx) }()
 
 	var users []*User
 	for cursor.Next(ctx) {
@@ -356,7 +356,7 @@ func (s *MongoStorage) GetDepartments() ([]*Department, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() { _ = cursor.Close(ctx) }()
 
 	var departments []*Department
 	for cursor.Next(ctx) {
@@ -404,7 +404,7 @@ func (s *MongoStorage) GetTeams(departmentID string) ([]*Team, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() { _ = cursor.Close(ctx) }()
 
 	var teams []*Team
 	for cursor.Next(ctx) {
@@ -523,7 +523,7 @@ func (s *MongoStorage) GetHolidays(country string, year int) ([]*Holiday, error)
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func() { _ = cursor.Close(ctx) }()
 
 	var holidays []*Holiday
 	for cursor.Next(ctx) {

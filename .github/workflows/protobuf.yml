@@ -1,10 +1,10 @@
 name: Protobuf Lint
 
-on: 
+on:
   pull_request:
     paths:
-    - .github/workflows/protobuf.yml
-    - proto/**
+      - .github/workflows/protobuf.yml
+      - backend/proto/**
 jobs:
   linting:
     name: Buf lint
@@ -15,3 +15,5 @@ jobs:
     - uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
     # Lint your Protobuf sources
     - uses: bufbuild/buf-lint-action@06f9dd823d873146471cfaaf108a993fe00e5325 # v1.1.1
+      with:
+        input: backend

@@ -117,7 +117,7 @@ func (s *SQLiteStorage) CreateAbsence(absence *Absence) error {
 func (s *SQLiteStorage) GetAbsences(userID string, startDate, endDate time.Time) ([]*Absence, error) {
 	var query string
 	var args []interface{}
-	
+
 	if userID == "" {
 		// Get all absences that overlap with date range
 		// Overlap: absence.start_date <= endDate AND absence.end_date >= startDate
@@ -132,12 +132,12 @@ func (s *SQLiteStorage) GetAbsences(userID string, startDate, endDate time.Time)
 				  WHERE user_id = ? AND start_date <= ? AND end_date >= ?`
 		args = []interface{}{userID, endDate, startDate}
 	}
-	
+
 	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var absences []*Absence
 	for rows.Next() {
@@ -186,7 +186,7 @@ func (s *SQLiteStorage) GetUsers() ([]*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var users []*User
 	for rows.Next() {
@@ -229,7 +229,7 @@ func (s *SQLiteStorage) GetDepartments() ([]*Department, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var departments []*Department
 	for rows.Next() {
@@ -263,17 +263,17 @@ func (s *SQLiteStorage) CreateTeam(team *Team) error {
 func (s *SQLiteStorage) GetTeams(departmentID string) ([]*Team, error) {
 	var rows *sql.Rows
 	var err error
-	
+
 	if departmentID == "" {
 		rows, err = s.db.Query("SELECT id, name, department_id FROM teams")
 	} else {
 		rows, err = s.db.Query("SELECT id, name, department_id FROM teams WHERE department_id = ?", departmentID)
 	}
-	
+
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var teams []*Team
 	for rows.Next() {
@@ -327,7 +327,7 @@ func (s *SQLiteStorage) GetHolidays(country string, year int) ([]*Holiday, error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var holidays []*Holiday
 	for rows.Next() {

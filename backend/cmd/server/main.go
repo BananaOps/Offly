@@ -121,7 +121,7 @@ func startRESTGateway(store storage.Storage) error {
 	mainHandler.HandleFunc("/api/v1/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 
 	// Swagger UI
@@ -143,7 +143,7 @@ func startRESTGateway(store storage.Storage) error {
 		if clientID == "" {
 			clientID = ""
 		}
-		w.Write([]byte("{\"enabled\":" + map[bool]string{true: "true", false: "false"}[authEnabled] + ",\"issuerUrl\":\"" + issuer + "\",\"clientId\":\"" + clientID + "\"}"))
+		_, _ = w.Write([]byte("{\"enabled\":" + map[bool]string{true: "true", false: "false"}[authEnabled] + ",\"issuerUrl\":\"" + issuer + "\",\"clientId\":\"" + clientID + "\"}"))
 	})
 
 	if authEnabled {
@@ -215,7 +215,7 @@ func serveSwaggerUI(w http.ResponseWriter, r *http.Request) {
 </body>
 </html>`
 	w.Header().Set("Content-Type", "text/html")
-	w.Write([]byte(html))
+	_, _ = w.Write([]byte(html))
 }
 
 func corsMiddleware(h http.Handler) http.Handler {
@@ -251,7 +251,7 @@ func rbacMiddleware(store storage.Storage, v *auth.Verifier, next http.Handler) 
 		if userEmail == "" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte(`{"error":"authentication required for write operations"}`))
+			_, _ = w.Write([]byte(`{"error":"authentication required for write operations"}`))
 			return
 		}
 
@@ -274,7 +274,7 @@ func rbacMiddleware(store storage.Storage, v *auth.Verifier, next http.Handler) 
 				// This is POST /users to create a new user - deny for non-admins
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
-				w.Write([]byte(`{"error":"only admins can create users"}`))
+				_, _ = w.Write([]byte(`{"error":"only admins can create users"}`))
 				return
 			}
 
@@ -295,7 +295,7 @@ func rbacMiddleware(store storage.Storage, v *auth.Verifier, next http.Handler) 
 				log.Printf("RBAC - %s user profile: currentUserID=%s, pathUserID=%s, match=false - DENIED", r.Method, userID, pathUserID)
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
-				w.Write([]byte(`{"error":"can only modify your own profile"}`))
+				_, _ = w.Write([]byte(`{"error":"can only modify your own profile"}`))
 				return
 			}
 		}
@@ -309,7 +309,7 @@ func rbacMiddleware(store storage.Storage, v *auth.Verifier, next http.Handler) 
 				if err != nil {
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusBadRequest)
-					w.Write([]byte(`{"error":"failed to read request body"}`))
+					_, _ = w.Write([]byte(`{"error":"failed to read request body"}`))
 					return
 				}
 				// Restore body for later use
@@ -320,7 +320,7 @@ func rbacMiddleware(store storage.Storage, v *auth.Verifier, next http.Handler) 
 				if err := json.Unmarshal(bodyBytes, &reqBody); err != nil {
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusBadRequest)
-					w.Write([]byte(`{"error":"invalid request body"}`))
+					_, _ = w.Write([]byte(`{"error":"invalid request body"}`))
 					return
 				}
 
@@ -333,7 +333,7 @@ func rbacMiddleware(store storage.Storage, v *auth.Verifier, next http.Handler) 
 				// Deny if trying to create absence for another user
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
-				w.Write([]byte(`{"error":"can only create absences for yourself"}`))
+				_, _ = w.Write([]byte(`{"error":"can only create absences for yourself"}`))
 				return
 			}
 			// For PUT/DELETE, verify that absence belongs to current user
@@ -348,7 +348,7 @@ func rbacMiddleware(store storage.Storage, v *auth.Verifier, next http.Handler) 
 				if absenceID == "" {
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusBadRequest)
-					w.Write([]byte(`{"error":"absence id missing in path"}`))
+					_, _ = w.Write([]byte(`{"error":"absence id missing in path"}`))
 					return
 				}
 				// Load absence and verify ownership
@@ -359,7 +359,7 @@ func rbacMiddleware(store storage.Storage, v *auth.Verifier, next http.Handler) 
 				}
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
-				w.Write([]byte(`{"error":"can only modify your own absences"}`))
+				_, _ = w.Write([]byte(`{"error":"can only modify your own absences"}`))
 				return
 			}
 		}
@@ -375,13 +375,13 @@ func rbacMiddleware(store storage.Storage, v *auth.Verifier, next http.Handler) 
 			}
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusForbidden)
-			w.Write([]byte(`{"error":"admin access required to modify organization or holidays"}`))
+			_, _ = w.Write([]byte(`{"error":"admin access required to modify organization or holidays"}`))
 			return
 		}
 
 		// Default deny for other endpoints
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
-		w.Write([]byte(`{"error":"access denied"}`))
+		_, _ = w.Write([]byte(`{"error":"access denied"}`))
 	}))
 }

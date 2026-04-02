@@ -86,7 +86,7 @@ func (s *UserServiceServer) AssignUserToDepartment(ctx context.Context, req *pb.
 	for _, u := range users {
 		if u.ID == req.UserId {
 			u.DepartmentID = req.DepartmentId
-			s.storage.UpdateUser(u)
+			_ = s.storage.UpdateUser(u)
 			return &pb.User{
 				Id:           u.ID,
 				Name:         u.Name,
@@ -106,7 +106,7 @@ func (s *UserServiceServer) AssignUserToTeam(ctx context.Context, req *pb.Assign
 	for _, u := range users {
 		if u.ID == req.UserId {
 			u.TeamID = req.TeamId
-			s.storage.UpdateUser(u)
+			_ = s.storage.UpdateUser(u)
 			return &pb.User{
 				Id:           u.ID,
 				Name:         u.Name,
@@ -129,7 +129,7 @@ func (s *UserServiceServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRe
 			u.Email = req.Email
 			u.Country = strings.ToUpper(req.Country)
 			u.JobProfile = req.Title
-			s.storage.UpdateUser(u)
+			_ = s.storage.UpdateUser(u)
 			return &pb.User{
 				Id:         u.ID,
 				Name:       u.Name,
