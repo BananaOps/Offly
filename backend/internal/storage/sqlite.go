@@ -20,7 +20,7 @@ func NewSQLiteStorage(dbPath string) (*SQLiteStorage, error) {
 	if dbPath != "" && dbPath != ":memory:" {
 		dbDir := filepath.Dir(dbPath)
 		if dbDir != "." && dbDir != "" {
-			if err := os.MkdirAll(dbDir, 0o755); err != nil {
+			if err := os.MkdirAll(dbDir, 0o750); err != nil {
 				return nil, fmt.Errorf("failed to create sqlite directory %s: %w", dbDir, err)
 			}
 		}

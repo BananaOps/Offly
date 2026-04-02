@@ -9,7 +9,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"absence-management/internal/auth"
 	"absence-management/internal/service"
@@ -38,7 +40,7 @@ func main() {
 		if dbPath == "" {
 			dbPath = "./offly.db"
 		}
-		log.Printf("Initializing SQLite storage at %s...", dbPath)
+		log.Printf("Initializing SQLite storage at %q...", dbPath)
 		store, err = storage.NewSQLiteStorage(dbPath)
 		if err != nil {
 			log.Fatalf("Failed to initialize SQLite storage: %v", err)
@@ -48,10 +50,10 @@ func main() {
 		if mongoURI == "" {
 			mongoURI = "mongodb://localhost:27017"
 		}
-		log.Printf("Initializing hybrid storage with MongoDB at %s...", mongoURI)
+		log.Printf("Initializing hybrid storage with MongoDB at %q...", mongoURI)
 		store = storage.NewHybridStorage(mongoURI, "offly")
 	default:
-		log.Fatalf("Unknown storage type: %s (supported: sqlite, mongodb, hybrid)", storageType)
+		log.Fatalf("Unknown storage type: %q (supported: sqlite, mongodb, hybrid)", storageType)
 	}
 
 	// Démarrer le serveur gRPC
@@ -64,7 +66,7 @@ func main() {
 }
 
 func startGRPCServer(store storage.Storage) {
-	lis, err := net.Listen("tcp", ":50051")
+	lis, err := net.Listen("tcp", "127.0.0.1:50051")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
@@ -90,16 +92,16 @@ func startRESTGateway(store storage.Storage) error {
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 
-	if err := pb.RegisterAbsenceServiceHandlerFromEndpoint(ctx, mux, "localhost:50051", opts); err != nil {
+	if err := pb.RegisterAbsenceServiceHandlerFromEndpoint(ctx, mux, "127.0.0.1:50051", opts); err != nil {
 		return err
 	}
-	if err := pb.RegisterUserServiceHandlerFromEndpoint(ctx, mux, "localhost:50051", opts); err != nil {
+	if err := pb.RegisterUserServiceHandlerFromEndpoint(ctx, mux, "127.0.0.1:50051", opts); err != nil {
 		return err
 	}
-	if err := pb.RegisterOrganizationServiceHandlerFromEndpoint(ctx, mux, "localhost:50051", opts); err != nil {
+	if err := pb.RegisterOrganizationServiceHandlerFromEndpoint(ctx, mux, "127.0.0.1:50051", opts); err != nil {
 		return err
 	}
-	if err := pb.RegisterHolidayServiceHandlerFromEndpoint(ctx, mux, "localhost:50051", opts); err != nil {
+	if err := pb.RegisterHolidayServiceHandlerFromEndpoint(ctx, mux, "127.0.0.1:50051", opts); err != nil {
 		return err
 	}
 
@@ -162,17 +164,30 @@ func startRESTGateway(store storage.Storage) error {
 	mainHandler.Handle("/", spaHandler(fs))
 
 	log.Println("REST gateway and web server listening on :8080")
-	return http.ListenAndServe(":8080", mainHandler)
+	srv := &http.Server{
+		Addr:         ":8080",
+		Handler:      mainHandler,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+	return srv.ListenAndServe()
 }
 
 // spaHandler handles Single Page Application routing
 func spaHandler(staticHandler http.Handler) http.Handler {
+	const baseDir = "./web/dist"
+	absBase, _ := filepath.Abs(baseDir)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check if file exists
-		path := "./web/dist" + r.URL.Path
-		if _, err := os.Stat(path); os.IsNotExist(err) {
+		// Clean and validate path to prevent directory traversal
+		clean := filepath.Join(absBase, filepath.Clean("/"+r.URL.Path))
+		if !strings.HasPrefix(clean, absBase) {
+			http.NotFound(w, r)
+			return
+		}
+		if _, err := os.Stat(clean); os.IsNotExist(err) {
 			// File doesn't exist, serve index.html for SPA routing
-			http.ServeFile(w, r, "./web/dist/index.html")
+			http.ServeFile(w, r, filepath.Join(baseDir, "index.html"))
 			return
 		}
 		// File exists, serve it
@@ -285,14 +300,14 @@ func rbacMiddleware(store storage.Storage, v *auth.Verifier, next http.Handler) 
 
 			// Allow PUT/POST on own profile
 			if (r.Method == "PUT" || r.Method == "POST") && pathUserID == userID {
-				log.Printf("RBAC - %s user profile: currentUserID=%s, pathUserID=%s, match=true", r.Method, userID, pathUserID)
+				log.Printf("RBAC - %q user profile: currentUserID=%q, pathUserID=%q, match=true", r.Method, userID, pathUserID)
 				next.ServeHTTP(w, r)
 				return
 			}
 
 			// Trying to modify someone else's profile
 			if r.Method == "PUT" || r.Method == "POST" {
-				log.Printf("RBAC - %s user profile: currentUserID=%s, pathUserID=%s, match=false - DENIED", r.Method, userID, pathUserID)
+				log.Printf("RBAC - %q user profile: currentUserID=%q, pathUserID=%q, match=false - DENIED", r.Method, userID, pathUserID)
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusForbidden)
 				_, _ = w.Write([]byte(`{"error":"can only modify your own profile"}`))

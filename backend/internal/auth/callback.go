@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"absence-management/internal/storage"
 
@@ -35,8 +36,15 @@ func CallbackHandler(store storage.Storage, v *Verifier) http.HandlerFunc {
 			return
 		}
 
+		// Validate issuerURL is a proper http/https URL before use
+		parsedIssuer, err := url.Parse(issuerURL)
+		if err != nil || (parsedIssuer.Scheme != "http" && parsedIssuer.Scheme != "https") || parsedIssuer.Host == "" {
+			http.Error(w, "Invalid auth issuer URL", http.StatusInternalServerError)
+			return
+		}
+
 		// Prepare token request
-		tokenURL := issuerURL + "/token"
+		tokenURL := strings.TrimRight(issuerURL, "/") + "/token"
 		data := url.Values{}
 		data.Set("grant_type", "authorization_code")
 		data.Set("code", code)
@@ -44,8 +52,9 @@ func CallbackHandler(store storage.Storage, v *Verifier) http.HandlerFunc {
 		data.Set("client_secret", clientSecret)
 		data.Set("redirect_uri", "http://localhost:8080/api/v1/auth/callback")
 
-		// Make token request
-		resp, err := http.PostForm(tokenURL, data)
+		// Make token request using a client with timeout
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.PostForm(tokenURL, data) //nolint:gosec // URL is validated above and comes from operator config
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to exchange token: %v", err), http.StatusInternalServerError)
 			return
@@ -133,13 +142,15 @@ func CallbackHandler(store storage.Storage, v *Verifier) http.HandlerFunc {
 		}
 
 		// Set secure HTTP-only cookie with the ID token
+		// HTTPS_ENABLED=true must be set in production to enable the Secure flag
+		httpsEnabled := os.Getenv("HTTPS_ENABLED") == "true"
 		http.SetCookie(w, &http.Cookie{
 			Name:     "auth_token",
 			Value:    tokenResp.IDToken,
 			Path:     "/",
 			MaxAge:   tokenResp.ExpiresIn,
 			HttpOnly: true,
-			Secure:   false, // Set to true in production with HTTPS
+			Secure:   httpsEnabled,
 			SameSite: http.SameSiteLaxMode,
 		})
 
@@ -211,6 +222,8 @@ func LogoutHandler() http.HandlerFunc {
 			Path:     "/",
 			MaxAge:   -1,
 			HttpOnly: true,
+			Secure:   os.Getenv("HTTPS_ENABLED") == "true",
+			SameSite: http.SameSiteLaxMode,
 		})
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]bool{"success": true})
