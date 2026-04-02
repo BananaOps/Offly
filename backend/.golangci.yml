@@ -13,6 +13,9 @@ linters:
     - errcheck
     - staticcheck
     - ineffassign
+  exclusions:
+    paths:
+      - proto
 
 issues:
   max-issues-per-linter: 0
@@ -20,5 +23,3 @@ issues:
 
 run:
   timeout: 5m
-  exclude-dirs:
-    - proto
