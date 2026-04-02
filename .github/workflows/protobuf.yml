@@ -10,8 +10,11 @@ jobs:
     name: Buf lint
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-    # Lint your Protobuf sources
-    - uses: bufbuild/buf-action@v1
-      with:
-        input: backend
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: bufbuild/buf-setup-action@a47c93e0b1648d5651a065437926377d060baa99 # v1.50.0
+      - name: Resolve buf dependencies
+        working-directory: backend
+        run: buf dep update
+      - name: Lint Protobuf sources
+        working-directory: backend
+        run: buf lint
