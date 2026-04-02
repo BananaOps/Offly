@@ -38,6 +38,16 @@
 | 🛡️ **RBAC** | Role-based access control (admin / user) |
 | 🚀 **Self-hosted** | Single Docker image — no external services required |
 
+## 📸 Screenshots
+
+| Calendar View | Teams |
+|---|---|
+| ![Calendar](docs/screenshots/home.png) | ![Teams](docs/screenshots/teams.png) |
+
+| Users | Holidays |
+|---|---|
+| ![Users](docs/screenshots/users.png) | ![Holidays](docs/screenshots/holidays.png) |
+
 ## 🏗️ Architecture
 
 ```

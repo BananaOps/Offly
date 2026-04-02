@@ -22,3 +22,4 @@ yarn-error.log*
 
 # Claude Code
 .claude
+.playwright-mcp
