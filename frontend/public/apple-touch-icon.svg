@@ -1,0 +1,58 @@
+<svg viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6C4DFF" />
+      <stop offset="100%" stop-color="#2ED1D1" />
+    </linearGradient>
+    <linearGradient id="calendarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="50%" stop-color="#FFE6F5" />
+      <stop offset="100%" stop-color="#E6F9F9" />
+    </linearGradient>
+    <linearGradient id="headerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#E6F9F9" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background with gradient -->
+  <rect width="180" height="180" rx="40" fill="url(#bgGradient)"/>
+  
+  <!-- Calendar body -->
+  <rect x="30" y="45" width="120" height="105" rx="12" fill="url(#calendarGradient)" opacity="0.95"/>
+  <rect x="30" y="45" width="120" height="105" rx="12" stroke="white" stroke-width="3" opacity="0.5"/>
+  
+  <!-- Calendar header -->
+  <rect x="30" y="45" width="120" height="32" rx="12" fill="url(#headerGradient)" opacity="0.9"/>
+  
+  <!-- Rings -->
+  <rect x="55" y="30" width="10" height="25" rx="5" fill="white" opacity="0.9"/>
+  <rect x="115" y="30" width="10" height="25" rx="5" fill="white" opacity="0.9"/>
+
+  <!-- Date dots -->
+  <g opacity="0.8">
+    <!-- Row 1 -->
+    <circle cx="50" cy="95" r="6" fill="white"/>
+    <circle cx="70" cy="95" r="6" fill="white"/>
+    <circle cx="90" cy="95" r="6" fill="#FF6FB5"/>
+    <circle cx="110" cy="95" r="6" fill="white"/>
+    <circle cx="130" cy="95" r="6" fill="white"/>
+
+    <!-- Row 2 -->
+    <circle cx="50" cy="115" r="6" fill="white"/>
+    <circle cx="70" cy="115" r="6" fill="#FF6FB5"/>
+    <circle cx="90" cy="115" r="6" fill="#FF6FB5"/>
+    <circle cx="110" cy="115" r="6" fill="white"/>
+    <circle cx="130" cy="115" r="6" fill="white"/>
+
+    <!-- Row 3 -->
+    <circle cx="50" cy="135" r="6" fill="white"/>
+    <circle cx="70" cy="135" r="6" fill="white"/>
+    <circle cx="90" cy="135" r="6" fill="#FF6FB5"/>
+    <circle cx="110" cy="135" r="6" fill="white"/>
+    <circle cx="130" cy="135" r="6" fill="white"/>
+  </g>
+
+  <!-- Large checkmark -->
+  <path d="M75 110 L82 117 L105 94" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

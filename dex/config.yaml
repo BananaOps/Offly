@@ -1,0 +1,42 @@
+issuer: http://localhost:5556/dex
+
+storage:
+  type: sqlite3
+  config:
+    file: /data/dex.db
+
+web:
+  http: 0.0.0.0:5556
+  allowedOrigins: ['*']
+
+telemetry:
+  http: 0.0.0.0:5558
+
+oauth2:
+  skipApprovalScreen: false
+
+staticClients:
+- id: offly
+  name: Offly Local
+  secret: offly-secret
+  redirectURIs:
+    - 'http://localhost:8080/api/v1/auth/callback'
+  idTokensValidFor: 24h
+
+enablePasswordDB: true
+
+staticPasswords:
+ - email: "vincent.team@bananaops.tech"
+   hash: "$2y$10$F1ZaKzFUTjnqMLONEPgaPe9nDpaweNoSi7jewau59Hni30KRGx/Om" # mdp: test
+   username: "vincent.team"
+   userID: "3a2c9e92-6f8a-4d1e-a4f3-9f9d2b1c7d11"
+ - email: "elie.copter@bananaops.tech"
+   hash: "$2y$10$F1ZaKzFUTjnqMLONEPgaPe9nDpaweNoSi7jewau59Hni30KRGx/Om" # mdp: test
+   username: "elie.copter"
+   userID: "72c1f5f4-9b39-4f28-9b93-7a3d3a45e2c7"
+   groups:
+   - admin 
+
+logger:
+  level: debug
+  format: text

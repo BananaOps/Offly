@@ -1,0 +1,51 @@
+Thank you for installing Offly - Time Off Manager!
+
+Your release is named {{ .Release.Name }}.
+
+To access the Offly application:
+
+{{- if .Values.ingress.enabled }}
+1. The application is available at:
+{{- range $host := .Values.ingress.hosts }}
+  {{- range .paths }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
+  {{- end }}
+{{- end }}
+
+2. API endpoints:
+   - REST API: http{{ if $.Values.ingress.tls }}s{{ end }}://{{ (index .Values.ingress.hosts 0).host }}/api/v1
+   - gRPC: {{ include "offly.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.grpc.port }}
+
+{{- else if contains "NodePort" .Values.service.type }}
+1. Get the application URL:
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "offly.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo "REST API: http://$NODE_IP:$NODE_PORT/api/v1"
+
+{{- else if contains "LoadBalancer" .Values.service.type }}
+1. Get the application URL:
+     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "offly.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo "REST API: http://$SERVICE_IP:{{ .Values.service.http.port }}/api/v1"
+
+{{- else if contains "ClusterIP" .Values.service.type }}
+1. Forward the HTTP port to access the REST API:
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "offly.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:{{ .Values.service.http.port }}
+  
+  Then visit: http://127.0.0.1:8080/api/v1
+
+2. Forward the gRPC port:
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 50051:{{ .Values.service.grpc.port }}
+{{- end }}
+
+MongoDB connection:
+{{- if .Values.mongodb.enabled }}
+  - Host: {{ .Values.env.db.host }}
+  - Port: {{ .Values.env.db.port }}
+  - Database: {{ .Values.env.db.name }}
+{{- else }}
+  MongoDB is disabled. The application will use in-memory storage.
+{{- end }}
+
+For more information, visit: https://github.com/BananaOps/offly
