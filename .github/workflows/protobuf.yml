@@ -14,4 +14,4 @@ jobs:
     # Lint your Protobuf sources
     - uses: bufbuild/buf-action@v1
       with:
-        input: backend/proto
+        input: backend
