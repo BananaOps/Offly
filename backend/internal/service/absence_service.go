@@ -2,7 +2,7 @@ package service
 
 import (
 	"absence-management/internal/storage"
-	pb "absence-management/proto"
+	pb "absence-management/proto/absence/v1"
 	"context"
 
 	"github.com/google/uuid"
@@ -18,7 +18,7 @@ func NewAbsenceServiceServer(store storage.Storage) *AbsenceServiceServer {
 	return &AbsenceServiceServer{storage: store}
 }
 
-func (s *AbsenceServiceServer) CreateAbsence(ctx context.Context, req *pb.CreateAbsenceRequest) (*pb.Absence, error) {
+func (s *AbsenceServiceServer) CreateAbsence(ctx context.Context, req *pb.CreateAbsenceRequest) (*pb.CreateAbsenceResponse, error) {
 	// Resolve team name snapshot: look up from user's current team
 	teamName := ""
 	users, err := s.storage.GetUsers()
@@ -53,14 +53,14 @@ func (s *AbsenceServiceServer) CreateAbsence(ctx context.Context, req *pb.Create
 		return nil, err
 	}
 
-	return &pb.Absence{
+	return &pb.CreateAbsenceResponse{Absence: &pb.Absence{
 		Id:        absence.ID,
 		UserId:    absence.UserID,
 		StartDate: timestamppb.New(absence.StartDate),
 		EndDate:   timestamppb.New(absence.EndDate),
 		Reason:    absence.Reason,
 		Status:    absence.Status,
-	}, nil
+	}}, nil
 }
 
 func (s *AbsenceServiceServer) GetAbsences(ctx context.Context, req *pb.GetAbsencesRequest) (*pb.GetAbsencesResponse, error) {
@@ -87,7 +87,7 @@ func (s *AbsenceServiceServer) GetAbsences(ctx context.Context, req *pb.GetAbsen
 	return &pb.GetAbsencesResponse{Absences: pbAbsences}, nil
 }
 
-func (s *AbsenceServiceServer) UpdateAbsence(ctx context.Context, req *pb.UpdateAbsenceRequest) (*pb.Absence, error) {
+func (s *AbsenceServiceServer) UpdateAbsence(ctx context.Context, req *pb.UpdateAbsenceRequest) (*pb.UpdateAbsenceResponse, error) {
 	absence := &storage.Absence{
 		ID:        req.Id,
 		StartDate: req.StartDate.AsTime(),
@@ -100,13 +100,13 @@ func (s *AbsenceServiceServer) UpdateAbsence(ctx context.Context, req *pb.Update
 		return nil, err
 	}
 
-	return &pb.Absence{
+	return &pb.UpdateAbsenceResponse{Absence: &pb.Absence{
 		Id:        absence.ID,
 		StartDate: timestamppb.New(absence.StartDate),
 		EndDate:   timestamppb.New(absence.EndDate),
 		Reason:    absence.Reason,
 		Status:    absence.Status,
-	}, nil
+	}}, nil
 }
 
 func (s *AbsenceServiceServer) DeleteAbsence(ctx context.Context, req *pb.DeleteAbsenceRequest) (*pb.DeleteAbsenceResponse, error) {

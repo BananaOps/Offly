@@ -2,7 +2,7 @@ package service
 
 import (
 	"absence-management/internal/storage"
-	pb "absence-management/proto"
+	pb "absence-management/proto/absence/v1"
 	"context"
 
 	"github.com/google/uuid"
@@ -17,7 +17,7 @@ func NewOrganizationServiceServer(store storage.Storage) *OrganizationServiceSer
 	return &OrganizationServiceServer{storage: store}
 }
 
-func (s *OrganizationServiceServer) CreateDepartment(ctx context.Context, req *pb.CreateDepartmentRequest) (*pb.Department, error) {
+func (s *OrganizationServiceServer) CreateDepartment(ctx context.Context, req *pb.CreateDepartmentRequest) (*pb.CreateDepartmentResponse, error) {
 	dept := &storage.Department{
 		ID:   uuid.New().String(),
 		Name: req.Name,
@@ -27,10 +27,10 @@ func (s *OrganizationServiceServer) CreateDepartment(ctx context.Context, req *p
 		return nil, err
 	}
 
-	return &pb.Department{
+	return &pb.CreateDepartmentResponse{Department: &pb.Department{
 		Id:   dept.ID,
 		Name: dept.Name,
-	}, nil
+	}}, nil
 }
 
 func (s *OrganizationServiceServer) GetDepartments(ctx context.Context, req *pb.GetDepartmentsRequest) (*pb.GetDepartmentsResponse, error) {
@@ -50,7 +50,7 @@ func (s *OrganizationServiceServer) GetDepartments(ctx context.Context, req *pb.
 	return &pb.GetDepartmentsResponse{Departments: pbDepts}, nil
 }
 
-func (s *OrganizationServiceServer) CreateTeam(ctx context.Context, req *pb.CreateTeamRequest) (*pb.Team, error) {
+func (s *OrganizationServiceServer) CreateTeam(ctx context.Context, req *pb.CreateTeamRequest) (*pb.CreateTeamResponse, error) {
 	team := &storage.Team{
 		ID:           uuid.New().String(),
 		Name:         req.Name,
@@ -61,11 +61,11 @@ func (s *OrganizationServiceServer) CreateTeam(ctx context.Context, req *pb.Crea
 		return nil, err
 	}
 
-	return &pb.Team{
+	return &pb.CreateTeamResponse{Team: &pb.Team{
 		Id:           team.ID,
 		Name:         team.Name,
 		DepartmentId: team.DepartmentID,
-	}, nil
+	}}, nil
 }
 
 func (s *OrganizationServiceServer) GetTeams(ctx context.Context, req *pb.GetTeamsRequest) (*pb.GetTeamsResponse, error) {
@@ -86,7 +86,7 @@ func (s *OrganizationServiceServer) GetTeams(ctx context.Context, req *pb.GetTea
 	return &pb.GetTeamsResponse{Teams: pbTeams}, nil
 }
 
-func (s *OrganizationServiceServer) UpdateDepartment(ctx context.Context, req *pb.UpdateDepartmentRequest) (*pb.Department, error) {
+func (s *OrganizationServiceServer) UpdateDepartment(ctx context.Context, req *pb.UpdateDepartmentRequest) (*pb.UpdateDepartmentResponse, error) {
 	dept := &storage.Department{
 		ID:   req.Id,
 		Name: req.Name,
@@ -96,10 +96,10 @@ func (s *OrganizationServiceServer) UpdateDepartment(ctx context.Context, req *p
 		return nil, err
 	}
 
-	return &pb.Department{
+	return &pb.UpdateDepartmentResponse{Department: &pb.Department{
 		Id:   dept.ID,
 		Name: dept.Name,
-	}, nil
+	}}, nil
 }
 
 func (s *OrganizationServiceServer) DeleteDepartment(ctx context.Context, req *pb.DeleteDepartmentRequest) (*pb.DeleteDepartmentResponse, error) {
@@ -109,7 +109,7 @@ func (s *OrganizationServiceServer) DeleteDepartment(ctx context.Context, req *p
 	return &pb.DeleteDepartmentResponse{Success: true}, nil
 }
 
-func (s *OrganizationServiceServer) UpdateTeam(ctx context.Context, req *pb.UpdateTeamRequest) (*pb.Team, error) {
+func (s *OrganizationServiceServer) UpdateTeam(ctx context.Context, req *pb.UpdateTeamRequest) (*pb.UpdateTeamResponse, error) {
 	team := &storage.Team{
 		ID:           req.Id,
 		Name:         req.Name,
@@ -120,11 +120,11 @@ func (s *OrganizationServiceServer) UpdateTeam(ctx context.Context, req *pb.Upda
 		return nil, err
 	}
 
-	return &pb.Team{
+	return &pb.UpdateTeamResponse{Team: &pb.Team{
 		Id:           team.ID,
 		Name:         team.Name,
 		DepartmentId: team.DepartmentID,
-	}, nil
+	}}, nil
 }
 
 func (s *OrganizationServiceServer) DeleteTeam(ctx context.Context, req *pb.DeleteTeamRequest) (*pb.DeleteTeamResponse, error) {

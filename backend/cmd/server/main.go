@@ -14,7 +14,7 @@ import (
 	"absence-management/internal/auth"
 	"absence-management/internal/service"
 	"absence-management/internal/storage"
-	pb "absence-management/proto"
+	pb "absence-management/proto/absence/v1"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
@@ -129,7 +129,7 @@ func startRESTGateway(store storage.Storage) error {
 	mainHandler.HandleFunc("/docs/", serveSwaggerUI)
 
 	// Serve OpenAPI spec
-	mainHandler.Handle("/openapi/", http.StripPrefix("/openapi/", http.FileServer(http.Dir("./proto"))))
+	mainHandler.Handle("/openapi/", http.StripPrefix("/openapi/", http.FileServer(http.Dir("./proto/absence/v1"))))
 
 	// API routes
 	// Auth config endpoint (always available for the frontend to know if SSO is enabled)
@@ -199,7 +199,7 @@ func serveSwaggerUI(w http.ResponseWriter, r *http.Request) {
         window.onload = function() {
             const ui = SwaggerUIBundle({
                 urls: [
-                    { url: "/openapi/absence.swagger.json", name: "Absence API" }
+                    { url: "/openapi/absence.swagger.json", name: "Offly API" }
                 ],
                 dom_id: '#swagger-ui',
                 deepLinking: true,

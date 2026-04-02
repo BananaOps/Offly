@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "proto/absence.proto",
+    "title": "absence/v1/absence.proto",
     "version": "version not set"
   },
   "tags": [
@@ -74,7 +74,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/Absence"
+              "$ref": "#/definitions/CreateAbsenceResponse"
             }
           },
           "default": {
@@ -134,7 +134,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/Absence"
+              "$ref": "#/definitions/UpdateAbsenceResponse"
             }
           },
           "default": {
@@ -192,7 +192,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/Department"
+              "$ref": "#/definitions/CreateDepartmentResponse"
             }
           },
           "default": {
@@ -252,7 +252,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/Department"
+              "$ref": "#/definitions/UpdateDepartmentResponse"
             }
           },
           "default": {
@@ -325,7 +325,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/Holiday"
+              "$ref": "#/definitions/CreateHolidayResponse"
             }
           },
           "default": {
@@ -417,7 +417,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/Holiday"
+              "$ref": "#/definitions/UpdateHolidayResponse"
             }
           },
           "default": {
@@ -483,7 +483,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/Team"
+              "$ref": "#/definitions/CreateTeamResponse"
             }
           },
           "default": {
@@ -543,7 +543,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/Team"
+              "$ref": "#/definitions/UpdateTeamResponse"
             }
           },
           "default": {
@@ -601,7 +601,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/User"
+              "$ref": "#/definitions/CreateUserResponse"
             }
           },
           "default": {
@@ -661,7 +661,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/User"
+              "$ref": "#/definitions/UpdateUserResponse"
             }
           },
           "default": {
@@ -699,7 +699,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/User"
+              "$ref": "#/definitions/AssignUserToDepartmentResponse"
             }
           },
           "default": {
@@ -737,7 +737,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/User"
+              "$ref": "#/definitions/AssignUserToTeamResponse"
             }
           },
           "default": {
@@ -797,7 +797,7 @@
           "type": "string"
         }
       },
-      "title": "Messages"
+      "title": "Core types"
     },
     "Any": {
       "type": "object",
@@ -813,20 +813,30 @@
       "properties": {
         "departmentId": {
           "type": "string"
-        },
-        "teamId": {
-          "type": "string"
+        }
+      }
+    },
+    "AssignUserToDepartmentResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/User"
         }
       }
     },
     "AssignUserToTeamBody": {
       "type": "object",
       "properties": {
-        "departmentId": {
-          "type": "string"
-        },
         "teamId": {
           "type": "string"
+        }
+      }
+    },
+    "AssignUserToTeamResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/User"
         }
       }
     },
@@ -850,6 +860,15 @@
         "teamName": {
           "type": "string"
         }
+      },
+      "title": "Absence messages"
+    },
+    "CreateAbsenceResponse": {
+      "type": "object",
+      "properties": {
+        "absence": {
+          "$ref": "#/definitions/Absence"
+        }
       }
     },
     "CreateDepartmentRequest": {
@@ -857,6 +876,15 @@
       "properties": {
         "name": {
           "type": "string"
+        }
+      },
+      "title": "Department messages"
+    },
+    "CreateDepartmentResponse": {
+      "type": "object",
+      "properties": {
+        "department": {
+          "$ref": "#/definitions/Department"
         }
       }
     },
@@ -876,6 +904,15 @@
           "type": "integer",
           "format": "int32"
         }
+      },
+      "title": "Holiday messages"
+    },
+    "CreateHolidayResponse": {
+      "type": "object",
+      "properties": {
+        "holiday": {
+          "$ref": "#/definitions/Holiday"
+        }
       }
     },
     "CreateTeamRequest": {
@@ -886,6 +923,15 @@
         },
         "departmentId": {
           "type": "string"
+        }
+      },
+      "title": "Team messages"
+    },
+    "CreateTeamResponse": {
+      "type": "object",
+      "properties": {
+        "team": {
+          "$ref": "#/definitions/Team"
         }
       }
     },
@@ -900,6 +946,15 @@
         },
         "country": {
           "type": "string"
+        }
+      },
+      "title": "User messages"
+    },
+    "CreateUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/User"
         }
       }
     },
@@ -1108,11 +1163,27 @@
         }
       }
     },
+    "UpdateAbsenceResponse": {
+      "type": "object",
+      "properties": {
+        "absence": {
+          "$ref": "#/definitions/Absence"
+        }
+      }
+    },
     "UpdateDepartmentBody": {
       "type": "object",
       "properties": {
         "name": {
           "type": "string"
+        }
+      }
+    },
+    "UpdateDepartmentResponse": {
+      "type": "object",
+      "properties": {
+        "department": {
+          "$ref": "#/definitions/Department"
         }
       }
     },
@@ -1134,6 +1205,14 @@
         }
       }
     },
+    "UpdateHolidayResponse": {
+      "type": "object",
+      "properties": {
+        "holiday": {
+          "$ref": "#/definitions/Holiday"
+        }
+      }
+    },
     "UpdateTeamBody": {
       "type": "object",
       "properties": {
@@ -1142,6 +1221,14 @@
         },
         "departmentId": {
           "type": "string"
+        }
+      }
+    },
+    "UpdateTeamResponse": {
+      "type": "object",
+      "properties": {
+        "team": {
+          "$ref": "#/definitions/Team"
         }
       }
     },
@@ -1159,6 +1246,14 @@
         },
         "title": {
           "type": "string"
+        }
+      }
+    },
+    "UpdateUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/User"
         }
       }
     },

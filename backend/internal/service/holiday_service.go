@@ -2,7 +2,7 @@ package service
 
 import (
 	"absence-management/internal/storage"
-	pb "absence-management/proto"
+	pb "absence-management/proto/absence/v1"
 	"context"
 	"strings"
 
@@ -18,7 +18,7 @@ func NewHolidayServiceServer(store storage.Storage) *HolidayServiceServer {
 	return &HolidayServiceServer{storage: store}
 }
 
-func (s *HolidayServiceServer) CreateHoliday(ctx context.Context, req *pb.CreateHolidayRequest) (*pb.Holiday, error) {
+func (s *HolidayServiceServer) CreateHoliday(ctx context.Context, req *pb.CreateHolidayRequest) (*pb.CreateHolidayResponse, error) {
 	holiday := &storage.Holiday{
 		ID:      uuid.New().String(),
 		Date:    req.Date,
@@ -31,13 +31,13 @@ func (s *HolidayServiceServer) CreateHoliday(ctx context.Context, req *pb.Create
 		return nil, err
 	}
 
-	return &pb.Holiday{
+	return &pb.CreateHolidayResponse{Holiday: &pb.Holiday{
 		Id:      holiday.ID,
 		Date:    holiday.Date,
 		Name:    holiday.Name,
 		Country: holiday.Country,
 		Year:    int32(holiday.Year),
-	}, nil
+	}}, nil
 }
 
 func (s *HolidayServiceServer) GetHolidays(ctx context.Context, req *pb.GetHolidaysRequest) (*pb.GetHolidaysResponse, error) {
@@ -60,7 +60,7 @@ func (s *HolidayServiceServer) GetHolidays(ctx context.Context, req *pb.GetHolid
 	return &pb.GetHolidaysResponse{Holidays: pbHolidays}, nil
 }
 
-func (s *HolidayServiceServer) UpdateHoliday(ctx context.Context, req *pb.UpdateHolidayRequest) (*pb.Holiday, error) {
+func (s *HolidayServiceServer) UpdateHoliday(ctx context.Context, req *pb.UpdateHolidayRequest) (*pb.UpdateHolidayResponse, error) {
 	holiday := &storage.Holiday{
 		ID:      req.Id,
 		Date:    req.Date,
@@ -73,13 +73,13 @@ func (s *HolidayServiceServer) UpdateHoliday(ctx context.Context, req *pb.Update
 		return nil, err
 	}
 
-	return &pb.Holiday{
+	return &pb.UpdateHolidayResponse{Holiday: &pb.Holiday{
 		Id:      holiday.ID,
 		Date:    holiday.Date,
 		Name:    holiday.Name,
 		Country: holiday.Country,
 		Year:    int32(holiday.Year),
-	}, nil
+	}}, nil
 }
 
 func (s *HolidayServiceServer) DeleteHoliday(ctx context.Context, req *pb.DeleteHolidayRequest) (*pb.DeleteHolidayResponse, error) {

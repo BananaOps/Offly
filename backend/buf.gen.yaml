@@ -1,25 +1,21 @@
-version: v1
-managed:
-  enabled: true
-  go_package_prefix:
-    default: absence-management
-    except:
-      - buf.build/googleapis/googleapis
+version: v2
+inputs:
+  - directory: proto
 plugins:
-  - plugin: go
-    out: .
+  - local: protoc-gen-go
+    out: proto
     opt:
       - paths=source_relative
-  - plugin: go-grpc
-    out: .
+  - local: protoc-gen-go-grpc
+    out: proto
     opt:
       - paths=source_relative
-  - plugin: grpc-gateway
-    out: .
+  - local: protoc-gen-grpc-gateway
+    out: proto
     opt:
       - paths=source_relative
       - generate_unbound_methods=true
-  - plugin: openapiv2
-    out: .
+  - local: protoc-gen-openapiv2
+    out: proto
     opt:
       - openapi_naming_strategy=simple

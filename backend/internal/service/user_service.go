@@ -2,7 +2,7 @@ package service
 
 import (
 	"absence-management/internal/storage"
-	pb "absence-management/proto"
+	pb "absence-management/proto/absence/v1"
 	"context"
 	"strings"
 
@@ -18,24 +18,24 @@ func NewUserServiceServer(store storage.Storage) *UserServiceServer {
 	return &UserServiceServer{storage: store}
 }
 
-func (s *UserServiceServer) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.User, error) {
+func (s *UserServiceServer) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
 	// Check if user already exists (by email if present, else by exact name match)
 	existingUsers, err := s.storage.GetUsers()
 	if err == nil {
 		for _, u := range existingUsers {
 			if req.Email != "" && u.Email == req.Email {
-				return &pb.User{
+				return &pb.CreateUserResponse{User: &pb.User{
 					Id: u.ID, Name: u.Name, Email: u.Email,
 					DepartmentId: u.DepartmentID, TeamId: u.TeamID,
 					Country: u.Country, JobProfile: u.JobProfile,
-				}, nil
+				}}, nil
 			}
 			if req.Email == "" && u.Name == req.Name {
-				return &pb.User{
+				return &pb.CreateUserResponse{User: &pb.User{
 					Id: u.ID, Name: u.Name, Email: u.Email,
 					DepartmentId: u.DepartmentID, TeamId: u.TeamID,
 					Country: u.Country, JobProfile: u.JobProfile,
-				}, nil
+				}}, nil
 			}
 		}
 	}
@@ -51,12 +51,12 @@ func (s *UserServiceServer) CreateUser(ctx context.Context, req *pb.CreateUserRe
 		return nil, err
 	}
 
-	return &pb.User{
+	return &pb.CreateUserResponse{User: &pb.User{
 		Id:      user.ID,
 		Name:    user.Name,
 		Email:   user.Email,
 		Country: user.Country,
-	}, nil
+	}}, nil
 }
 
 func (s *UserServiceServer) GetUsers(ctx context.Context, req *pb.GetUsersRequest) (*pb.GetUsersResponse, error) {
@@ -81,13 +81,13 @@ func (s *UserServiceServer) GetUsers(ctx context.Context, req *pb.GetUsersReques
 	return &pb.GetUsersResponse{Users: pbUsers}, nil
 }
 
-func (s *UserServiceServer) AssignUserToDepartment(ctx context.Context, req *pb.AssignUserRequest) (*pb.User, error) {
+func (s *UserServiceServer) AssignUserToDepartment(ctx context.Context, req *pb.AssignUserToDepartmentRequest) (*pb.AssignUserToDepartmentResponse, error) {
 	users, _ := s.storage.GetUsers()
 	for _, u := range users {
 		if u.ID == req.UserId {
 			u.DepartmentID = req.DepartmentId
 			_ = s.storage.UpdateUser(u)
-			return &pb.User{
+			return &pb.AssignUserToDepartmentResponse{User: &pb.User{
 				Id:           u.ID,
 				Name:         u.Name,
 				Email:        u.Email,
@@ -95,19 +95,19 @@ func (s *UserServiceServer) AssignUserToDepartment(ctx context.Context, req *pb.
 				TeamId:       u.TeamID,
 				Country:      u.Country,
 				JobProfile:   u.JobProfile,
-			}, nil
+			}}, nil
 		}
 	}
 	return nil, nil
 }
 
-func (s *UserServiceServer) AssignUserToTeam(ctx context.Context, req *pb.AssignUserRequest) (*pb.User, error) {
+func (s *UserServiceServer) AssignUserToTeam(ctx context.Context, req *pb.AssignUserToTeamRequest) (*pb.AssignUserToTeamResponse, error) {
 	users, _ := s.storage.GetUsers()
 	for _, u := range users {
 		if u.ID == req.UserId {
 			u.TeamID = req.TeamId
 			_ = s.storage.UpdateUser(u)
-			return &pb.User{
+			return &pb.AssignUserToTeamResponse{User: &pb.User{
 				Id:           u.ID,
 				Name:         u.Name,
 				Email:        u.Email,
@@ -115,13 +115,13 @@ func (s *UserServiceServer) AssignUserToTeam(ctx context.Context, req *pb.Assign
 				TeamId:       u.TeamID,
 				Country:      u.Country,
 				JobProfile:   u.JobProfile,
-			}, nil
+			}}, nil
 		}
 	}
 	return nil, nil
 }
 
-func (s *UserServiceServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.User, error) {
+func (s *UserServiceServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRequest) (*pb.UpdateUserResponse, error) {
 	users, _ := s.storage.GetUsers()
 	for _, u := range users {
 		if u.ID == req.Id {
@@ -130,14 +130,14 @@ func (s *UserServiceServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRe
 			u.Country = strings.ToUpper(req.Country)
 			u.JobProfile = req.Title
 			_ = s.storage.UpdateUser(u)
-			return &pb.User{
+			return &pb.UpdateUserResponse{User: &pb.User{
 				Id:         u.ID,
 				Name:       u.Name,
 				Email:      u.Email,
 				TeamId:     u.TeamID,
 				Country:    u.Country,
 				JobProfile: u.JobProfile,
-			}, nil
+			}}, nil
 		}
 	}
 	return nil, nil

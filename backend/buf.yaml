@@ -1,5 +1,7 @@
-version: v1
-name: buf.build/absence-management/api
+version: v2
+modules:
+  - path: proto
+    name: buf.build/absence-management/api
 deps:
   - buf.build/googleapis/googleapis
 breaking:
@@ -7,4 +9,4 @@ breaking:
     - FILE
 lint:
   use:
-    - DEFAULT
+    - STANDARD

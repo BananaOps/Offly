@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"absence-management/internal/storage"
-	pb "absence-management/proto"
+	pb "absence-management/proto/absence/v1"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -33,10 +33,10 @@ func TestAbsenceService_CreateAndGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateAbsence: %v", err)
 	}
-	if resp.Status != "pending" {
-		t.Fatalf("expected status=pending, got %s", resp.Status)
+	if resp.Absence.Status != "pending" {
+		t.Fatalf("expected status=pending, got %s", resp.Absence.Status)
 	}
-	if resp.Id == "" {
+	if resp.Absence.Id == "" {
 		t.Fatal("expected non-empty ID")
 	}
 
@@ -65,17 +65,17 @@ func TestAbsenceService_UpdateAndDelete(t *testing.T) {
 	})
 
 	updated, err := svc.UpdateAbsence(ctx, &pb.UpdateAbsenceRequest{
-		Id:        created.Id,
+		Id:        created.Absence.Id,
 		StartDate: timestamppb.New(start),
 		EndDate:   timestamppb.New(end),
 		Reason:    "sick",
 		Status:    "approved",
 	})
-	if err != nil || updated.Status != "approved" {
+	if err != nil || updated.Absence.Status != "approved" {
 		t.Fatalf("UpdateAbsence: %v, got %v", err, updated)
 	}
 
-	del, err := svc.DeleteAbsence(ctx, &pb.DeleteAbsenceRequest{Id: created.Id})
+	del, err := svc.DeleteAbsence(ctx, &pb.DeleteAbsenceRequest{Id: created.Absence.Id})
 	if err != nil || !del.Success {
 		t.Fatalf("DeleteAbsence: %v %v", err, del)
 	}
@@ -87,7 +87,7 @@ func TestUserService_CreateAndGet(t *testing.T) {
 	svc := NewUserServiceServer(newMemStore())
 	ctx := context.Background()
 
-	user, err := svc.CreateUser(ctx, &pb.CreateUserRequest{
+	resp, err := svc.CreateUser(ctx, &pb.CreateUserRequest{
 		Name:    "Alice",
 		Email:   "alice@example.com",
 		Country: "fr",
@@ -95,19 +95,19 @@ func TestUserService_CreateAndGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateUser: %v", err)
 	}
-	if user.Country != "FR" {
-		t.Fatalf("expected country=FR, got %s", user.Country)
+	if resp.User.Country != "FR" {
+		t.Fatalf("expected country=FR, got %s", resp.User.Country)
 	}
 
 	// Creating again with same email should return existing user
-	user2, err := svc.CreateUser(ctx, &pb.CreateUserRequest{
+	resp2, err := svc.CreateUser(ctx, &pb.CreateUserRequest{
 		Name:  "Alice Duplicate",
 		Email: "alice@example.com",
 	})
 	if err != nil {
 		t.Fatalf("CreateUser duplicate: %v", err)
 	}
-	if user2.Id != user.Id {
+	if resp2.User.Id != resp.User.Id {
 		t.Fatal("expected same ID for duplicate email")
 	}
 
@@ -118,24 +118,23 @@ func TestUserService_CreateAndGet(t *testing.T) {
 }
 
 func TestUserService_UpdateAndDelete(t *testing.T) {
-	store := newMemStore()
-	svc := NewUserServiceServer(store)
+	svc := NewUserServiceServer(newMemStore())
 	ctx := context.Background()
 
 	created, _ := svc.CreateUser(ctx, &pb.CreateUserRequest{Name: "Bob", Email: "bob@example.com"})
 
 	updated, err := svc.UpdateUser(ctx, &pb.UpdateUserRequest{
-		Id:      created.Id,
+		Id:      created.User.Id,
 		Name:    "Bob Updated",
 		Email:   "bob@example.com",
 		Country: "de",
 		Title:   "Engineer",
 	})
-	if err != nil || updated.Name != "Bob Updated" || updated.Country != "DE" {
+	if err != nil || updated.User.Name != "Bob Updated" || updated.User.Country != "DE" {
 		t.Fatalf("UpdateUser: %v %+v", err, updated)
 	}
 
-	del, err := svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: created.Id})
+	del, err := svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: created.User.Id})
 	if err != nil || !del.Success {
 		t.Fatalf("DeleteUser: %v %v", err, del)
 	}
@@ -148,14 +147,14 @@ func TestUserService_AssignDepartmentAndTeam(t *testing.T) {
 
 	_ = store.CreateUser(&storage.User{ID: "u-1", Name: "Carol", Email: "carol@example.com"})
 
-	u, err := svc.AssignUserToDepartment(ctx, &pb.AssignUserRequest{UserId: "u-1", DepartmentId: "d-1"})
-	if err != nil || u.DepartmentId != "d-1" {
+	u, err := svc.AssignUserToDepartment(ctx, &pb.AssignUserToDepartmentRequest{UserId: "u-1", DepartmentId: "d-1"})
+	if err != nil || u.User.DepartmentId != "d-1" {
 		t.Fatalf("AssignUserToDepartment: %v %v", err, u)
 	}
 
-	u, err = svc.AssignUserToTeam(ctx, &pb.AssignUserRequest{UserId: "u-1", TeamId: "t-1"})
-	if err != nil || u.TeamId != "t-1" {
-		t.Fatalf("AssignUserToTeam: %v %v", err, u)
+	u2, err := svc.AssignUserToTeam(ctx, &pb.AssignUserToTeamRequest{UserId: "u-1", TeamId: "t-1"})
+	if err != nil || u2.User.TeamId != "t-1" {
+		t.Fatalf("AssignUserToTeam: %v %v", err, u2)
 	}
 }
 
@@ -165,9 +164,9 @@ func TestOrganizationService_Department(t *testing.T) {
 	svc := NewOrganizationServiceServer(newMemStore())
 	ctx := context.Background()
 
-	dept, err := svc.CreateDepartment(ctx, &pb.CreateDepartmentRequest{Name: "Engineering"})
-	if err != nil || dept.Name != "Engineering" || dept.Id == "" {
-		t.Fatalf("CreateDepartment: %v %v", err, dept)
+	resp, err := svc.CreateDepartment(ctx, &pb.CreateDepartmentRequest{Name: "Engineering"})
+	if err != nil || resp.Department.Name != "Engineering" || resp.Department.Id == "" {
+		t.Fatalf("CreateDepartment: %v %v", err, resp)
 	}
 
 	list, err := svc.GetDepartments(ctx, &pb.GetDepartmentsRequest{})
@@ -175,12 +174,12 @@ func TestOrganizationService_Department(t *testing.T) {
 		t.Fatalf("GetDepartments: expected 1, got %d (%v)", len(list.Departments), err)
 	}
 
-	updated, err := svc.UpdateDepartment(ctx, &pb.UpdateDepartmentRequest{Id: dept.Id, Name: "R&D"})
-	if err != nil || updated.Name != "R&D" {
+	updated, err := svc.UpdateDepartment(ctx, &pb.UpdateDepartmentRequest{Id: resp.Department.Id, Name: "R&D"})
+	if err != nil || updated.Department.Name != "R&D" {
 		t.Fatalf("UpdateDepartment: %v %v", err, updated)
 	}
 
-	del, err := svc.DeleteDepartment(ctx, &pb.DeleteDepartmentRequest{Id: dept.Id})
+	del, err := svc.DeleteDepartment(ctx, &pb.DeleteDepartmentRequest{Id: resp.Department.Id})
 	if err != nil || !del.Success {
 		t.Fatalf("DeleteDepartment: %v %v", err, del)
 	}
@@ -190,9 +189,9 @@ func TestOrganizationService_Team(t *testing.T) {
 	svc := NewOrganizationServiceServer(newMemStore())
 	ctx := context.Background()
 
-	team, err := svc.CreateTeam(ctx, &pb.CreateTeamRequest{Name: "Backend", DepartmentId: "d-1"})
-	if err != nil || team.Name != "Backend" || team.DepartmentId != "d-1" {
-		t.Fatalf("CreateTeam: %v %v", err, team)
+	resp, err := svc.CreateTeam(ctx, &pb.CreateTeamRequest{Name: "Backend", DepartmentId: "d-1"})
+	if err != nil || resp.Team.Name != "Backend" || resp.Team.DepartmentId != "d-1" {
+		t.Fatalf("CreateTeam: %v %v", err, resp)
 	}
 
 	list, err := svc.GetTeams(ctx, &pb.GetTeamsRequest{DepartmentId: "d-1"})
@@ -200,12 +199,12 @@ func TestOrganizationService_Team(t *testing.T) {
 		t.Fatalf("GetTeams: expected 1, got %d (%v)", len(list.Teams), err)
 	}
 
-	updated, err := svc.UpdateTeam(ctx, &pb.UpdateTeamRequest{Id: team.Id, Name: "Backend Updated", DepartmentId: "d-1"})
-	if err != nil || updated.Name != "Backend Updated" {
+	updated, err := svc.UpdateTeam(ctx, &pb.UpdateTeamRequest{Id: resp.Team.Id, Name: "Backend Updated", DepartmentId: "d-1"})
+	if err != nil || updated.Team.Name != "Backend Updated" {
 		t.Fatalf("UpdateTeam: %v %v", err, updated)
 	}
 
-	del, err := svc.DeleteTeam(ctx, &pb.DeleteTeamRequest{Id: team.Id})
+	del, err := svc.DeleteTeam(ctx, &pb.DeleteTeamRequest{Id: resp.Team.Id})
 	if err != nil || !del.Success {
 		t.Fatalf("DeleteTeam: %v %v", err, del)
 	}
@@ -217,14 +216,14 @@ func TestHolidayService_CRUD(t *testing.T) {
 	svc := NewHolidayServiceServer(newMemStore())
 	ctx := context.Background()
 
-	h, err := svc.CreateHoliday(ctx, &pb.CreateHolidayRequest{
+	resp, err := svc.CreateHoliday(ctx, &pb.CreateHolidayRequest{
 		Date:    "2024-07-14",
 		Name:    "Bastille Day",
 		Country: "fr",
 		Year:    2024,
 	})
-	if err != nil || h.Country != "FR" || h.Id == "" {
-		t.Fatalf("CreateHoliday: %v %v", err, h)
+	if err != nil || resp.Holiday.Country != "FR" || resp.Holiday.Id == "" {
+		t.Fatalf("CreateHoliday: %v %v", err, resp)
 	}
 
 	list, err := svc.GetHolidays(ctx, &pb.GetHolidaysRequest{Country: "fr", Year: 2024})
@@ -233,7 +232,7 @@ func TestHolidayService_CRUD(t *testing.T) {
 	}
 
 	_, err = svc.UpdateHoliday(ctx, &pb.UpdateHolidayRequest{
-		Id:      h.Id,
+		Id:      resp.Holiday.Id,
 		Date:    "2024-07-14",
 		Name:    "Bastille Day Updated",
 		Country: "fr",
@@ -243,7 +242,7 @@ func TestHolidayService_CRUD(t *testing.T) {
 		t.Fatalf("UpdateHoliday: %v", err)
 	}
 
-	del, err := svc.DeleteHoliday(ctx, &pb.DeleteHolidayRequest{Id: h.Id})
+	del, err := svc.DeleteHoliday(ctx, &pb.DeleteHolidayRequest{Id: resp.Holiday.Id})
 	if err != nil || !del.Success {
 		t.Fatalf("DeleteHoliday: %v %v", err, del)
 	}
