@@ -2,8 +2,8 @@ apiVersion: v2
 name: offly
 description: Modern time off and absence management system with Go backend (gRPC + REST) and React frontend
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
+version: 1.0.0
+appVersion: "1.0.0"
 keywords:
   - time-off
   - absence-management
