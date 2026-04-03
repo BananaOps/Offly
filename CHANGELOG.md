@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.0.0 (2026-04-03)
+
+
+### Features
+
+* init project ([#1](https://github.com/BananaOps/Offly/issues/1)) ([f3d96c7](https://github.com/BananaOps/Offly/commit/f3d96c7beb72164f6a3a7939f6884f721d3561c4))
+
 ## [Unreleased]
 
 ### Added
