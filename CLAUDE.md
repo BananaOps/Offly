@@ -89,8 +89,9 @@ endpoint is also unauthenticated by design (see the README warning).
 
 The mounted UI is the implementation of the Claude Design artboard
 `Offly - Calendrier & saisie.dc.html` (project `65b72c3d-7b3a-4629-bfbf-3d1cb393746c`, read with
-the `DesignSync` tool). Its design system lives in that project's `design.md` — read it before
-changing any visual decision; it is the authority on tokens, tone and the product's core rule.
+the `DesignSync` tool). **`design.md` at the repo root is the design system** — read it before
+changing any visual decision; it is the authority on tokens, tone, the logo and the product's
+core rule.
 
 `App.tsx` is only an auth bootstrap (resolves `/api/v1/auth/config`, absorbs the OIDC callback)
 and then renders `components/offly/OfflyApp.tsx`, which owns all data and the four screens:
