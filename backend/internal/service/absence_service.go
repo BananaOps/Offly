@@ -88,8 +88,18 @@ func (s *AbsenceServiceServer) GetAbsences(ctx context.Context, req *pb.GetAbsen
 }
 
 func (s *AbsenceServiceServer) UpdateAbsence(ctx context.Context, req *pb.UpdateAbsenceRequest) (*pb.UpdateAbsenceResponse, error) {
+	// UpdateAbsenceRequest ne transporte ni userId ni teamName. Sans relecture
+	// préalable, le UPDATE écraserait user_id avec une chaîne vide et détacherait
+	// l'absence de son propriétaire — ce qui la rend aussi invisible au RBAC.
+	existing, err := s.storage.GetAbsenceByID(req.Id)
+	if err != nil {
+		return nil, err
+	}
+
 	absence := &storage.Absence{
 		ID:        req.Id,
+		UserID:    existing.UserID,
+		TeamName:  existing.TeamName,
 		StartDate: req.StartDate.AsTime(),
 		EndDate:   req.EndDate.AsTime(),
 		Reason:    req.Reason,
@@ -102,10 +112,12 @@ func (s *AbsenceServiceServer) UpdateAbsence(ctx context.Context, req *pb.Update
 
 	return &pb.UpdateAbsenceResponse{Absence: &pb.Absence{
 		Id:        absence.ID,
+		UserId:    absence.UserID,
 		StartDate: timestamppb.New(absence.StartDate),
 		EndDate:   timestamppb.New(absence.EndDate),
 		Reason:    absence.Reason,
 		Status:    absence.Status,
+		TeamName:  absence.TeamName,
 	}}, nil
 }
 

@@ -262,3 +262,57 @@ func TestHolidayService_ImportHolidays(t *testing.T) {
 		t.Fatalf("ImportHolidays: expected 2 imported, got %d (%v)", resp.ImportedCount, err)
 	}
 }
+
+// UpdateAbsence ne doit pas détacher l'absence de son propriétaire : la requête
+// ne transporte pas de userId, le service doit donc le relire avant d'écrire.
+func TestUpdateAbsencePreservesOwner(t *testing.T) {
+	store := storage.NewMemoryStorage()
+	svc := NewAbsenceServiceServer(store)
+	ctx := context.Background()
+
+	created, err := svc.CreateAbsence(ctx, &pb.CreateAbsenceRequest{
+		UserId:    "user-42",
+		StartDate: timestamppb.New(time.Date(2026, 9, 14, 0, 0, 0, 0, time.UTC)),
+		EndDate:   timestamppb.New(time.Date(2026, 9, 14, 23, 59, 59, 0, time.UTC)),
+		Reason:    "Time Off",
+	})
+	if err != nil {
+		t.Fatalf("CreateAbsence: %v", err)
+	}
+	id := created.Absence.Id
+
+	// Passage journée -> matin, comme le fait le cycle de saisie de la grille.
+	updated, err := svc.UpdateAbsence(ctx, &pb.UpdateAbsenceRequest{
+		Id:        id,
+		StartDate: timestamppb.New(time.Date(2026, 9, 14, 0, 0, 0, 0, time.UTC)),
+		EndDate:   timestamppb.New(time.Date(2026, 9, 14, 11, 59, 59, 0, time.UTC)),
+		Reason:    "Morning",
+		Status:    "pending",
+	})
+	if err != nil {
+		t.Fatalf("UpdateAbsence: %v", err)
+	}
+	if updated.Absence.UserId != "user-42" {
+		t.Errorf("la réponse a perdu le userId: %q", updated.Absence.UserId)
+	}
+
+	stored, err := store.GetAbsenceByID(id)
+	if err != nil {
+		t.Fatalf("GetAbsenceByID: %v", err)
+	}
+	if stored.UserID != "user-42" {
+		t.Errorf("l'absence stockée a perdu son propriétaire: %q", stored.UserID)
+	}
+
+	list, err := svc.GetAbsences(ctx, &pb.GetAbsencesRequest{
+		UserId:    "user-42",
+		StartDate: timestamppb.New(time.Date(2026, 9, 14, 0, 0, 0, 0, time.UTC)),
+		EndDate:   timestamppb.New(time.Date(2026, 9, 14, 23, 59, 59, 0, time.UTC)),
+	})
+	if err != nil {
+		t.Fatalf("GetAbsences: %v", err)
+	}
+	if len(list.Absences) != 1 {
+		t.Fatalf("attendu 1 absence pour user-42 après update, obtenu %d", len(list.Absences))
+	}
+}

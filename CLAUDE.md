@@ -87,11 +87,38 @@ endpoint is also unauthenticated by design (see the README warning).
 
 ### Frontend
 
-`frontend/src/App.tsx` is a single-page tab switcher (`absences | presences | users | teams | holidays`) holding users/teams/today's-absences state and passing `loadData` down as `onUpdate`. No router, no state library.
+The mounted UI is the implementation of the Claude Design artboard
+`Offly - Calendrier & saisie.dc.html` (project `65b72c3d-7b3a-4629-bfbf-3d1cb393746c`, read with
+the `DesignSync` tool). Its design system lives in that project's `design.md` — read it before
+changing any visual decision; it is the authority on tokens, tone and the product's core rule.
 
-`api.ts` and `api/holidays.ts` are hand-written axios clients against `/api/v1` with `withCredentials: true`; `types.ts` is hand-maintained and **not** generated from the proto. The gateway emits camelCase JSON but some paths return snake_case, so `api.ts` normalizes (`u.teamId ?? u.team_id`) — keep that pattern when adding fields.
+`App.tsx` is only an auth bootstrap (resolves `/api/v1/auth/config`, absorbs the OIDC callback)
+and then renders `components/offly/OfflyApp.tsx`, which owns all data and the four screens:
+`Rail` + `CalendarScreen | TeamsScreen | PeopleScreen | HolidaysScreen`. No router, no state library.
 
-Vite dev server proxies `/api` to `localhost:8080`. UI is Tailwind + a small shadcn-style `components/ui/` set; dark mode via `hooks/useDarkMode.ts`.
+`lib/halfday.ts` is the load-bearing module. The design models an absence as one value per person
+per day (`am | pm | full`); the backend stores RFC3339 bounds plus a reason string. That module is
+the bridge both ways — `partOf`/`buildAbsenceIndex` to read, `boundsFor` to write — and also owns
+coverage (per half-day, minimum of the two, holidays leave the denominator). Absence writes keep
+the historical reason encoding (`☀️ Time Off (Morning)`) so existing rows and the Go MCP
+`absenceKind` keep agreeing; the UI never renders that text.
+
+`design/offly.css` holds the tokens as CSS custom properties under `.offly`. Tailwind is still
+configured but the design screens do not use it — its palette is the older blue corp one.
+
+Absences are fetched for the whole year, not the visible window: "Posé", "Prochaine absence" and
+"Prochaine tension" are global figures.
+
+The pre-redesign components (`AbsenceGrid`, `PresenceView`, `UserManagement`, `TeamManagement`,
+`HolidayManagement`, `Sidebar`, `Banner`, `Footer`) are still in the tree but no longer mounted —
+they are the source of the remaining eslint errors. Delete them once the redesign is accepted.
+
+`api.ts` and `api/holidays.ts` are hand-written axios clients against `/api/v1` with
+`withCredentials: true`; `types.ts` is hand-maintained and **not** generated from the proto. The
+gateway emits camelCase JSON but some paths return snake_case, so `api.ts` normalizes
+(`u.teamId ?? u.team_id`) — keep that pattern when adding fields.
+
+Vite dev server proxies `/api` to `localhost:8080`.
 
 ## Conventions
 
