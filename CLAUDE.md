@@ -72,6 +72,19 @@ Off by default. `AUTH_ENABLED=true` turns on OIDC (Dex in dev, see `dex/` and `S
 
 This authorization logic lives in the HTTP layer, not in the services — the gRPC services themselves are unauthenticated.
 
+### MCP server
+
+`internal/mcp` exposes read-only tools over the MCP streamable HTTP transport, mounted at `/mcp`
+on the same mux as `/api/` when `MCP_ENABLED=true` (off by default). It uses the official
+`github.com/modelcontextprotocol/go-sdk` — `mcpsdk.AddTool` infers the JSON schema from the
+handler's Go input/output types, so there is no schema to hand-write; the `jsonschema:"..."`
+struct tags become the property descriptions.
+
+The handlers talk to `storage.Storage` directly, which means they **bypass `rbacMiddleware`
+entirely**. That is why every tool is read-only — adding a write tool without first extracting the
+ownership rules out of `cmd/server/main.go` would let any caller mutate anyone's absences. The
+endpoint is also unauthenticated by design (see the README warning).
+
 ### Frontend
 
 `frontend/src/App.tsx` is a single-page tab switcher (`absences | presences | users | teams | holidays`) holding users/teams/today's-absences state and passing `loadData` down as `onUpdate`. No router, no state library.

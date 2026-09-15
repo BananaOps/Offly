@@ -176,6 +176,7 @@ helm upgrade offly offly/offly
 | `AUTH_ENABLED` | Enable SSO authentication | `false` |
 | `AUTH_ISSUER_URL` | OIDC issuer URL | — |
 | `AUTH_CLIENT_ID` | OIDC client ID | — |
+| `MCP_ENABLED` | Expose the read-only MCP server at `/mcp` | `false` |
 
 ## 🔐 SSO Authentication
 
@@ -191,6 +192,34 @@ Browser ──PKCE──▶ Dex ──ID Token──▶ Backend ──JWT verify
 | `user` | Read all · Edit own profile & absences only |
 
 See [SSO-README.md](SSO-README.md) for the full configuration guide.
+
+## 🤖 MCP Server
+
+Offly can expose its data to LLM agents through the [Model Context Protocol](https://modelcontextprotocol.io).
+Set `MCP_ENABLED=true` and the server serves the streamable HTTP transport at **`/mcp`**, on the
+same port as the REST API — no extra binary, no extra port.
+
+| Tool | Description |
+|------|-------------|
+| `list_users` | Every user with team, country and job profile |
+| `list_teams` | Teams, optionally filtered by department, with member counts |
+| `list_absences` | Absences overlapping a `YYYY-MM-DD` date range |
+| `list_holidays` | Public holidays, optionally filtered by country and year |
+| `team_presence` | Who is present/away in a team on a day, accounting for absences **and** each member's public holidays |
+
+Register it with Claude Code:
+
+```bash
+claude mcp add --transport http offly http://localhost:8080/mcp
+```
+
+> ⚠️ **The endpoint is unauthenticated and must not be exposed publicly.** It bypasses the
+> `AUTH_ENABLED` / RBAC layer entirely — anyone who can reach `/mcp` can read every absence.
+> Keep it on an internal network or behind an authenticating proxy.
+>
+> All tools are **read-only**. Writes are deliberately not exposed: the "users may only modify
+> their own absences" rules live in the HTTP middleware and are not reachable from the MCP
+> handlers, so a write tool would let any caller act on behalf of anyone.
 
 ## 🔌 API
 

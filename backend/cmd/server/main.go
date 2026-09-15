@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"absence-management/internal/auth"
+	offlymcp "absence-management/internal/mcp"
 	"absence-management/internal/service"
 	"absence-management/internal/storage"
 	pb "absence-management/proto/absence/v1"
@@ -21,6 +22,13 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+)
+
+// Injected at build time through -ldflags; see the backend stage of the Dockerfile.
+var (
+	Version   = "dev"
+	BuildDate = "unknown"
+	GitCommit = "unknown"
 )
 
 func main() {
@@ -132,6 +140,14 @@ func startRESTGateway(store storage.Storage) error {
 
 	// Serve OpenAPI spec
 	mainHandler.Handle("/openapi/", http.StripPrefix("/openapi/", http.FileServer(http.Dir("./proto/absence/v1"))))
+
+	// MCP server (opt-in via MCP_ENABLED). The endpoint is unauthenticated and
+	// exposes read-only tools, so it must not be reachable from the public
+	// internet without a proxy in front of it.
+	if os.Getenv("MCP_ENABLED") == "true" {
+		mainHandler.Handle("/mcp", offlymcp.Handler(store, Version))
+		log.Println("MCP server enabled at /mcp (unauthenticated, read-only)")
+	}
 
 	// API routes
 	// Auth config endpoint (always available for the frontend to know if SSO is enabled)
