@@ -26,39 +26,40 @@
 
 | Feature | Description |
 |---------|-------------|
-| 📅 **Calendar Grid** | Visual month-by-month absence grid per user & team |
-| 👥 **Team Management** | Organize users into teams with availability tracking |
-| 🏖️ **Absence Types** | Full day, morning only, afternoon only |
-| 🌍 **Public Holidays** | Per-country holiday management |
-| 🔍 **Quick Search** | Instant search across users and teams |
-| 🌙 **Dark Mode** | Full light/dark theme support |
-| 📊 **Presence View** | Real-time daily attendance overview |
-| 📤 **Export** | CSV and PDF export of absence reports |
+| 📅 **Half-day grid** | Two-week team planner. One click on a cell posts an absence: full day → morning → afternoon → free |
+| 📉 **Coverage threshold** | Per half-day team coverage, always visible. Below 50% the interface flags it — it never blocks |
+| 🌍 **Per-country holidays** | A holiday follows the person's country, not the company calendar. Hatched, not clickable, and out of the coverage denominator |
+| 👥 **Teams & people** | Team coverage cards, people table with team, job profile, country and next absence |
+| 🏷️ **Job profiles** | Filter the planner and the people table by profile; the filter only offers profiles actually in use |
+| 📤 **CSV export** | Absences over any date range, scoped to everyone, a team or one person |
+| 📥 **CSV import** | Public holidays, with a row-by-row preview before anything is written (JSON also accepted) |
+| 🤖 **MCP server** | Optional read-only Model Context Protocol endpoint for LLM agents |
 | 🔐 **SSO / OIDC** | Optional SSO authentication via Dex (PKCE flow) |
 | 🛡️ **RBAC** | Role-based access control (admin / user) |
 | 🚀 **Self-hosted** | Single Docker image — no external services required |
 
 ## 📸 Screenshots
 
-| Calendar View | Teams |
+| Planner — half-day grid & coverage | Teams — coverage of the day |
 |---|---|
-| ![Calendar](docs/screenshots/home.png) | ![Teams](docs/screenshots/teams.png) |
+| ![Planner](docs/screenshots/home.png) | ![Teams](docs/screenshots/teams.png) |
 
-| Users | Holidays |
+| People — profiles & next absence | Holidays — per country, import / export |
 |---|---|
-| ![Users](docs/screenshots/users.png) | ![Holidays](docs/screenshots/holidays.png) |
+| ![People](docs/screenshots/users.png) | ![Holidays](docs/screenshots/holidays.png) |
 
 ## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                     Browser (React)                      │
-│         TypeScript · Tailwind CSS · Vite 8              │
+│      TypeScript · design tokens (CSS) · Vite 8          │
 └───────────────────────┬─────────────────────────────────┘
-                        │ HTTP / REST
+                        │ HTTP / REST          MCP (opt-in)
 ┌───────────────────────▼─────────────────────────────────┐
-│                    Go Backend                            │
-│   gRPC · gRPC-Gateway · Protocol Buffers                │
+│                    Go Backend  :8080                     │
+│   /api/  gRPC-Gateway → gRPC :50051 (loopback)          │
+│   /mcp   Model Context Protocol      /docs  Swagger UI  │
 ├─────────────────┬───────────────────────────────────────┤
 │   SQLite (default)    │   MongoDB (optional)            │
 └───────────────────────┴─────────────────────────────────┘
@@ -66,12 +67,17 @@
 
 The **single Docker image** embeds both the Go binary and the compiled React SPA. The backend serves the frontend static files and provides the REST/gRPC API.
 
+Every REST call is a real gRPC call: the gateway dials the in-process gRPC server on loopback.
+
+The interface follows **[`design.md`](design.md)** — tokens, tone, component inventory and the product's core rule (you declare a portion of a day, never a leave type). Read it before changing anything visual.
+
 ## 🛠️ Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | Go 1.26, gRPC, gRPC-Gateway, Protocol Buffers |
-| Frontend | React 18, TypeScript 5, Tailwind CSS 3, Vite 8 |
+| Backend | Go 1.26, gRPC, gRPC-Gateway, Protocol Buffers, MCP Go SDK |
+| Frontend | React 18, TypeScript 5, Vite 8, CSS design tokens |
+| Typography | IBM Plex Sans / IBM Plex Mono |
 | Database | SQLite (default) · MongoDB (optional) |
 | Auth | Dex (OIDC/PKCE), JWT, JWKS |
 | Container | Docker (multi-stage, Alpine) |
@@ -176,7 +182,14 @@ helm upgrade offly offly/offly
 | `AUTH_ENABLED` | Enable SSO authentication | `false` |
 | `AUTH_ISSUER_URL` | OIDC issuer URL | — |
 | `AUTH_CLIENT_ID` | OIDC client ID | — |
+| `AUTH_CLIENT_SECRET` | OIDC client secret, used on the callback exchange | — |
+| `AUTH_JWKS_URL` | JWKS endpoint | `<issuer>/keys` |
+| `AUTH_JWKS_CACHE_TTL` | JWKS cache lifetime, in seconds | `3600` |
+| `AUTH_ADMIN_EMAILS` | Comma-separated emails granted the `admin` role (`ADMIN_EMAILS` also read) | — |
 | `MCP_ENABLED` | Expose the read-only MCP server at `/mcp` | `false` |
+
+`HTTP_PORT` and `GRPC_PORT` are read at startup; an unparseable value logs a warning and falls
+back to the default. gRPC always binds to loopback — it is reached only by the in-process gateway.
 
 ## 🔐 SSO Authentication
 
@@ -247,7 +260,7 @@ Services: `AbsenceService` · `UserService` · `OrganizationService` · `Holiday
 
 ```bash
 task setup            # Install deps + generate protobuf code
-task dev              # Start backend + frontend (hot reload)
+task dev              # Start backend + frontend (hot reload, SQLite — no external service)
 task build            # Build the full application
 task test             # Run all tests
 task lint             # Lint backend + frontend
@@ -268,20 +281,28 @@ offly/
 │   ├── cmd/server/          # Server entry point
 │   ├── internal/
 │   │   ├── auth/            # OIDC, JWT, RBAC middleware
+│   │   ├── mcp/             # Read-only MCP server (opt-in)
 │   │   ├── service/         # gRPC service implementations
 │   │   └── storage/         # SQLite + MongoDB adapters
 │   └── proto/               # Protocol Buffer definitions
 ├── frontend/
 │   └── src/
-│       ├── components/      # React components
-│       │   ├── AbsenceGrid  # Main calendar grid
-│       │   ├── PresenceView # Daily attendance view
-│       │   ├── UserManagement
-│       │   ├── TeamManagement
-│       │   └── HolidayManagement
-│       ├── api.ts           # REST API client
-│       ├── auth.ts          # PKCE / JWT helpers
-│       └── types.ts         # TypeScript types
+│       ├── components/offly/  # The interface (see design.md)
+│       │   ├── OfflyApp       # Shell: data + screen switching
+│       │   ├── Rail           # Navigation
+│       │   ├── CalendarScreen # Half-day grid, coverage, entry
+│       │   ├── TeamsScreen · PeopleScreen · HolidaysScreen
+│       │   ├── ExportMenu     # CSV export of absences
+│       │   └── HolidayTransfer# Holiday import / export
+│       ├── design/offly.css   # Design tokens
+│       ├── lib/
+│       │   ├── halfday.ts     # am|pm|full model, coverage
+│       │   ├── csv.ts         # CSV read / write
+│       │   └── profiles.ts    # Job profile labels
+│       ├── api.ts             # REST API client
+│       ├── auth.ts            # PKCE / JWT helpers
+│       └── types.ts           # TypeScript types
+├── design.md                # Design system — read before any visual change
 ├── helm/offly/              # Helm chart for Kubernetes
 ├── dex/                     # Dex OIDC provider (dev/test)
 ├── Dockerfile               # Multi-stage build (frontend + backend)

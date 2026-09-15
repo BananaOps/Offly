@@ -72,6 +72,11 @@ Off by default. `AUTH_ENABLED=true` turns on OIDC (Dex in dev, see `dex/` and `S
 
 This authorization logic lives in the HTTP layer, not in the services — the gRPC services themselves are unauthenticated.
 
+`UpdateUserRequest` carries both `title` (field 5, the historical name) and `job_profile`
+(field 6); the service prefers `job_profile` and falls back to `title`. Before that field existed
+the client sent `jobProfile`, which the gateway dropped — every user update silently wiped the
+profile. Keep sending `jobProfile`.
+
 ### MCP server
 
 `internal/mcp` exposes read-only tools over the MCP streamable HTTP transport, mounted at `/mcp`
@@ -107,12 +112,28 @@ the historical reason encoding (`☀️ Time Off (Morning)`) so existing rows an
 `design/offly.css` holds the tokens as CSS custom properties under `.offly`. Tailwind is still
 configured but the design screens do not use it — its palette is the older blue corp one.
 
+`lib/csv.ts` does CSV read/write (RFC 4180 quoting, `,`/`;` detection, UTF-8 BOM so Excel does not
+mangle accents) and drives both `ExportMenu` (absences) and `HolidayTransfer` (holidays). An export
+re-reads its range from the server rather than using the loaded index — the index only covers one
+year, so a straddling range would silently ship an incomplete file.
+
+`lib/profiles.ts` owns the French, emoji-free job-profile labels. `JOB_PROFILES` in `types.ts` is
+the source of the stored *values* only; its labels are English with a leading emoji, which
+design.md forbids in the UI. `usedProfiles()` returns only profiles actually worn by someone — the
+filter hides itself when none are set, while the People column stays and shows `—`.
+
 Absences are fetched for the whole year, not the visible window: "Posé", "Prochaine absence" and
 "Prochaine tension" are global figures.
 
+The team and profile filters live in `OfflyApp` and are shared by the Calendar and People screens
+on purpose — changing screen must not silently redefine the scope.
+
 The pre-redesign components (`AbsenceGrid`, `PresenceView`, `UserManagement`, `TeamManagement`,
-`HolidayManagement`, `Sidebar`, `Banner`, `Footer`) are still in the tree but no longer mounted —
-they are the source of the remaining eslint errors. Delete them once the redesign is accepted.
+`HolidayManagement`, `Sidebar`, `Banner`, `Footer`, `QuickSearch`, `Logo`) are still in the tree
+but no longer mounted — they are the source of the remaining eslint errors. Delete them once the
+redesign is accepted. Three capabilities went with them and have **no replacement yet**: dark mode
+(`hooks/useDarkMode.ts`), the daily presence view, and all CRUD for users, teams and holidays —
+so a job profile can currently only be set through the API.
 
 `api.ts` and `api/holidays.ts` are hand-written axios clients against `/api/v1` with
 `withCredentials: true`; `types.ts` is hand-maintained and **not** generated from the proto. The

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -30,6 +31,19 @@ var (
 	BuildDate = "unknown"
 	GitCommit = "unknown"
 )
+
+// envPort reads a port from the environment, falling back to def. The Helm chart
+// injects HTTP_PORT and GRPC_PORT, so ignoring them would make the Service point
+// at a port nothing listens on.
+func envPort(name, def string) string {
+	if v := os.Getenv(name); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 && n < 65536 {
+			return v
+		}
+		log.Printf("%s=%q is not a valid port, falling back to %s", name, v, def)
+	}
+	return def
+}
 
 func main() {
 	// Initialize storage based on STORAGE_TYPE env var
@@ -64,17 +78,20 @@ func main() {
 		log.Fatalln("Unknown storage type (supported: sqlite, mongodb, hybrid)")
 	}
 
+	grpcAddr := "127.0.0.1:" + envPort("GRPC_PORT", "50051")
+	httpAddr := ":" + envPort("HTTP_PORT", "8080")
+
 	// Démarrer le serveur gRPC
-	go startGRPCServer(store)
+	go startGRPCServer(store, grpcAddr)
 
 	// Démarrer la gateway REST
-	if err := startRESTGateway(store); err != nil {
+	if err := startRESTGateway(store, grpcAddr, httpAddr); err != nil {
 		log.Fatalf("Failed to start REST gateway: %v", err)
 	}
 }
 
-func startGRPCServer(store storage.Storage) {
-	lis, err := net.Listen("tcp", "127.0.0.1:50051")
+func startGRPCServer(store storage.Storage, addr string) {
+	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
@@ -86,13 +103,13 @@ func startGRPCServer(store storage.Storage) {
 	pb.RegisterOrganizationServiceServer(grpcServer, service.NewOrganizationServiceServer(store))
 	pb.RegisterHolidayServiceServer(grpcServer, service.NewHolidayServiceServer(store))
 
-	log.Println("gRPC server listening on :50051")
+	log.Printf("gRPC server listening on %s", addr)
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
 }
 
-func startRESTGateway(store storage.Storage) error {
+func startRESTGateway(store storage.Storage, grpcAddr, httpAddr string) error {
 	ctx := context.Background()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -100,16 +117,16 @@ func startRESTGateway(store storage.Storage) error {
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 
-	if err := pb.RegisterAbsenceServiceHandlerFromEndpoint(ctx, mux, "127.0.0.1:50051", opts); err != nil {
+	if err := pb.RegisterAbsenceServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts); err != nil {
 		return err
 	}
-	if err := pb.RegisterUserServiceHandlerFromEndpoint(ctx, mux, "127.0.0.1:50051", opts); err != nil {
+	if err := pb.RegisterUserServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts); err != nil {
 		return err
 	}
-	if err := pb.RegisterOrganizationServiceHandlerFromEndpoint(ctx, mux, "127.0.0.1:50051", opts); err != nil {
+	if err := pb.RegisterOrganizationServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts); err != nil {
 		return err
 	}
-	if err := pb.RegisterHolidayServiceHandlerFromEndpoint(ctx, mux, "127.0.0.1:50051", opts); err != nil {
+	if err := pb.RegisterHolidayServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts); err != nil {
 		return err
 	}
 
@@ -179,9 +196,9 @@ func startRESTGateway(store storage.Storage) error {
 	fs := http.FileServer(http.Dir("./web/dist"))
 	mainHandler.Handle("/", spaHandler(fs))
 
-	log.Println("REST gateway and web server listening on :8080")
+	log.Printf("REST gateway and web server listening on %s", httpAddr)
 	srv := &http.Server{
-		Addr:         ":8080",
+		Addr:         httpAddr,
 		Handler:      mainHandler,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,

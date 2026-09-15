@@ -100,31 +100,38 @@ task pre-commit       # Format + Lint + Test
 
 ```
 offly/
-├── backend/              # API Go + gRPC
-│   ├── cmd/server/      # Point d'entrée
+├── backend/                  # API Go + gRPC
+│   ├── cmd/server/          # Point d'entrée
 │   ├── internal/
-│   │   ├── service/     # Logique métier
-│   │   └── storage/     # MongoDB + Memory
-│   └── proto/           # Définitions protobuf
-├── frontend/            # React + TypeScript
+│   │   ├── auth/            # OIDC, JWT, RBAC
+│   │   ├── mcp/             # Serveur MCP (optionnel)
+│   │   ├── service/         # Logique métier
+│   │   └── storage/         # SQLite · MongoDB · mémoire
+│   └── proto/               # Définitions protobuf
+├── frontend/                 # React + TypeScript
 │   └── src/
-│       ├── components/  # Composants UI
-│       └── api.ts       # Client API
-└── Taskfile.yml        # Automatisation
+│       ├── components/offly/ # Les 4 écrans + rail
+│       ├── design/offly.css  # Tokens du design system
+│       ├── lib/              # Modèle demi-journée, CSV, profils
+│       └── api.ts            # Client API
+├── design.md                 # Design system
+└── Taskfile.yml             # Automatisation
 ```
 
 ## Fonctionnalités
 
-✅ Déclaration d'absences via grille calendaire  
-✅ Gestion des utilisateurs  
-✅ Organisation par départements et équipes  
-✅ API REST et gRPC  
-✅ Base de données MongoDB  
-✅ Interface moderne avec Tailwind CSS  
+✅ Saisie d'absence directement dans la grille — journée, matin ou après-midi  
+✅ Couverture d'équipe par demi-journée, avec alerte sous le seuil  
+✅ Jours fériés par pays de la personne  
+✅ Filtres par équipe et par profil métier  
+✅ Export CSV des absences, import/export CSV des jours fériés  
+✅ API REST et gRPC, serveur MCP optionnel  
+✅ SQLite par défaut, MongoDB en option  
 
 ## Troubleshooting
 
 ### MongoDB ne démarre pas
+<!-- Uniquement si vous avez choisi STORAGE_TYPE=mongodb ; par défaut Offly utilise SQLite. -->
 ```bash
 task mongo:stop
 docker ps -a | grep mongo  # Vérifier l'état
