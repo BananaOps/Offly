@@ -55,10 +55,8 @@ Cette commande va :
 ### 3. Lancer l'application
 
 ```bash
-# Démarrer MongoDB
-task mongo:start
-
 # Lancer l'application (backend + frontend)
+# SQLite par défaut : aucun service externe à démarrer
 task dev
 ```
 
@@ -66,7 +64,9 @@ L'application sera accessible sur :
 - **Frontend**: http://localhost:3000
 - **API REST**: http://localhost:8080
 - **gRPC**: localhost:50051
-- **MongoDB**: localhost:27017
+
+> Pour développer sur MongoDB à la place : `task mongo:start` puis `STORAGE_TYPE=mongodb task dev`
+> (MongoDB écoute alors sur localhost:27017).
 
 ## Commandes Utiles
 

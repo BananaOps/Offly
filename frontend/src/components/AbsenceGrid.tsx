@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, addMonths, subMonths } from 'date-fns'
 import { enUS } from 'date-fns/locale'
@@ -22,6 +22,22 @@ interface GroupedUsers {
   teamName: string
   users: User[]
 }
+
+// Helpers purs : aucune dépendance au state du composant
+const formatDateLocal = (date: Date): string => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const isWeekend = (day: Date) => {
+  const dayOfWeek = day.getDay()
+  return dayOfWeek === 0 || dayOfWeek === 6
+}
+
+const dayStartUTC = (d: Date) => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0))
+const dayEndUTC = (d: Date) => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59))
 
 export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -63,10 +79,39 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
     }
   }, [focusUserId, users])
 
-  const days = eachDayOfInterval({
-    start: startOfMonth(currentDate),
-    end: endOfMonth(currentDate),
-  })
+  const days = useMemo(
+    () => eachDayOfInterval({ start: startOfMonth(currentDate), end: endOfMonth(currentDate) }),
+    [currentDate]
+  )
+
+  // Bornes UTC de chaque jour, pré-calculées en millisecondes : la comparaison
+  // d'overlap se fait ensuite sans allouer le moindre objet Date.
+  const dayBounds = useMemo(
+    () => days.map(day => ({
+      key: formatDateLocal(day),
+      start: dayStartUTC(day).getTime(),
+      end: dayEndUTC(day).getTime(),
+    })),
+    [days]
+  )
+
+  // Index `${userId}-${yyyy-MM-dd}` -> absence.
+  // Construit une fois par chargement en O(absences × jours) au lieu de rescanner
+  // toute la liste d'absences pour chacune des users × jours cellules de la grille.
+  const absenceIndex = useMemo(() => {
+    const index = new Map<string, Absence>()
+    for (const absence of absences) {
+      const start = parseISO(absence.startDate).getTime()
+      const end = parseISO(absence.endDate).getTime()
+      for (const bound of dayBounds) {
+        if (end < bound.start || start > bound.end) continue
+        const key = `${absence.userId}-${bound.key}`
+        // On conserve la sémantique précédente (Array.find) : la première absence gagne
+        if (!index.has(key)) index.set(key, absence)
+      }
+    }
+    return index
+  }, [absences, dayBounds])
 
   useEffect(() => {
     loadAbsences()
@@ -128,7 +173,7 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
     }
   }
 
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = useMemo(() => users.filter(user => {
     if (selectedTeam && user.teamId !== selectedTeam) return false
     if (selectedProfile && user.jobProfile !== selectedProfile) return false
     if (searchQuery) {
@@ -136,55 +181,42 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
       if (!user.name.toLowerCase().includes(q) && !(user.email || '').toLowerCase().includes(q)) return false
     }
     return true
-  })
+  }), [users, selectedTeam, selectedProfile, searchQuery])
 
   // Group users by team
-  const groupedUsers: GroupedUsers[] = teams
-    .filter(team => !selectedTeam || team.id === selectedTeam)
-    .map(team => ({
-      teamId: team.id,
-      teamName: team.name,
-      users: filteredUsers.filter(u => u.teamId === team.id)
-    }))
-    .filter(group => group.users.length > 0)
+  const groupedUsers: GroupedUsers[] = useMemo(() => {
+    const groups = teams
+      .filter(team => !selectedTeam || team.id === selectedTeam)
+      .map(team => ({
+        teamId: team.id,
+        teamName: team.name,
+        users: filteredUsers.filter(u => u.teamId === team.id)
+      }))
+      .filter(group => group.users.length > 0)
 
-  // Users without team
-  const usersWithoutTeam = filteredUsers.filter(u => !u.teamId)
-  if (usersWithoutTeam.length > 0) {
-    groupedUsers.push({
-      teamId: '',
-      teamName: 'No Team',
-      users: usersWithoutTeam
-    })
-  }
+    // Users without team
+    const usersWithoutTeam = filteredUsers.filter(u => !u.teamId)
+    if (usersWithoutTeam.length > 0) {
+      groups.push({
+        teamId: '',
+        teamName: 'No Team',
+        users: usersWithoutTeam
+      })
+    }
+    return groups
+  }, [teams, selectedTeam, filteredUsers])
 
   // Calculate team availability for a specific day
   const getTeamAvailability = (teamUsers: User[], day: Date) => {
+    const dateStr = formatDateLocal(day)
     const totalUsers = teamUsers.length
-    const presentUsers = teamUsers.filter(user => {
-      const hasUserAbsence = hasAbsence(user.id, day)
-      const hasUserHoliday = getUserHoliday(user.id, day)
-      return !hasUserAbsence && !hasUserHoliday
-    }).length
+    let presentUsers = 0
+    for (const user of teamUsers) {
+      const key = `${user.id}-${dateStr}`
+      if (!absenceIndex.has(key) && !userHolidays.get(key)) presentUsers++
+    }
     const percentage = (presentUsers / totalUsers) * 100
     return { presentUsers, totalUsers, percentage }
-  }
-
-  const dayStartUTC = (d: Date) => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0))
-  const dayEndUTC = (d: Date) => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59))
-
-  const overlapsDay = (start: Date, end: Date, day: Date) => {
-    const ds = dayStartUTC(day)
-    const de = dayEndUTC(day)
-    return !(end < ds || start > de)
-  }
-
-  const hasAbsence = (userId: string, day: Date) => {
-    return absences.some(absence => {
-      const start = parseISO(absence.startDate)
-      const end = parseISO(absence.endDate)
-      return absence.userId === userId && overlapsDay(start, end, day)
-    })
   }
 
   const canUserEdit = (userEmail: string): boolean => {
@@ -222,11 +254,7 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
     }
 
     // Single day toggle
-    const existing = absences.find(absence => {
-      const start = parseISO(absence.startDate)
-      const end = parseISO(absence.endDate)
-      return absence.userId === userId && overlapsDay(start, end, day)
-    })
+    const existing = absenceIndex.get(`${userId}-${formatDateLocal(day)}`)
 
     if (existing) {
       await deleteAbsence(existing.id)
@@ -285,23 +313,11 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
 
 
 
-  const isWeekend = (day: Date) => {
-    const dayOfWeek = day.getDay()
-    return dayOfWeek === 0 || dayOfWeek === 6
-  }
-
   const [userHolidays, setUserHolidays] = useState<Map<string, Holiday | null>>(new Map())
 
   useEffect(() => {
     loadUserHolidays()
   }, [currentDate, users])
-
-  const formatDateLocal = (date: Date): string => {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }
 
   const getCountryFlag = (countryCode: string): string => {
     if (!countryCode) return ''
@@ -314,39 +330,48 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
   }
 
   const loadUserHolidays = async () => {
-    const holidayMap = new Map<string, Holiday | null>()
     const year = currentDate.getFullYear()
-    
-    // Charger les jours fériés pour tous les pays des utilisateurs
-    const countries = [...new Set(users.map(u => u.country?.toUpperCase()).filter(Boolean))]
-    
-    for (const country of countries) {
-      try {
-        const holidays = await getHolidaysForCountryAndYear(country!, year)
-        days.forEach(day => {
-          const dateStr = formatDateLocal(day)
-          const holiday = holidays.find(h => h.date === dateStr)
-          users.forEach(user => {
-            if (user.country?.toUpperCase() === country) {
-              const key = `${user.id}-${dateStr}`
-              if (holiday) {
-                holidayMap.set(key, holiday)
-              }
-            }
-          })
-        })
-      } catch (error) {
-        console.error(`Error loading holidays for ${country}:`, error)
-      }
-    }
-    
-    setUserHolidays(holidayMap)
-  }
 
-  const getUserHoliday = (userId: string, day: Date): Holiday | null => {
-    const dateStr = formatDateLocal(day)
-    const key = `${userId}-${dateStr}`
-    return userHolidays.get(key) || null
+    // Regrouper les utilisateurs par pays une seule fois
+    const usersByCountry = new Map<string, User[]>()
+    for (const user of users) {
+      const country = user.country?.toUpperCase()
+      if (!country) continue
+      const bucket = usersByCountry.get(country)
+      if (bucket) bucket.push(user)
+      else usersByCountry.set(country, [user])
+    }
+
+    // Les pays sont chargés en parallèle (et servis par le cache de holidayManager)
+    const entries = [...usersByCountry.entries()]
+    const results = await Promise.all(
+      entries.map(async ([country]) => {
+        try {
+          return await getHolidaysForCountryAndYear(country, year)
+        } catch (error) {
+          console.error(`Error loading holidays for ${country}:`, error)
+          return [] as Holiday[]
+        }
+      })
+    )
+
+    // On itère sur les jours fériés du mois (une poignée) plutôt que sur
+    // jours × utilisateurs pour chaque pays.
+    const daysInMonth = new Set(dayBounds.map(b => b.key))
+    const holidayMap = new Map<string, Holiday | null>()
+    results.forEach((holidays, i) => {
+      const countryUsers = entries[i][1]
+      for (const holiday of holidays) {
+        if (!daysInMonth.has(holiday.date)) continue
+        for (const user of countryUsers) {
+          const key = `${user.id}-${holiday.date}`
+          // Parité avec Array.find : en cas de doublon sur une date, le premier gagne
+          if (!holidayMap.has(key)) holidayMap.set(key, holiday)
+        }
+      }
+    })
+
+    setUserHolidays(holidayMap)
   }
 
   const buildExportRows = (scopeUsers: User[]) => {
@@ -653,15 +678,12 @@ export default function AbsenceGrid({ users, teams, focusUserId }: Props) {
                         <div className="text-xs text-slate-400 mt-0.5">{user.email}</div>
                       </td>
                       {days.map(day => {
-                        const absence = absences.find(a => {
-                          const start = parseISO(a.startDate)
-                          const end = parseISO(a.endDate)
-                          return a.userId === user.id && overlapsDay(start, end, day)
-                        })
+                        const cellKey = `${user.id}-${formatDateLocal(day)}`
+                        const absence = absenceIndex.get(cellKey)
                         const isHalfDay = absence?.reason.includes('Morning') || absence?.reason.includes('Afternoon')
                         const isMorning = absence?.reason.includes('Morning')
                         const isRangeSelected = rangeStart?.userId === user.id && isSameDay(rangeStart.date, day)
-                        const holiday = getUserHoliday(user.id, day)
+                        const holiday = userHolidays.get(cellKey) ?? null
                         const isWeekendDay = isWeekend(day)
                         return (
                           <td

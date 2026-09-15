@@ -123,9 +123,9 @@ tasks:
 
   # Démarrage de l'application
   dev:
-    desc: Lancer l'application en mode développement (backend + frontend)
-    deps:
-      - mongo:start
+    # SQLite est le stockage par défaut du backend (cf. main.go), aucun service externe requis.
+    # Pour développer sur MongoDB : task mongo:start puis STORAGE_TYPE=mongodb task dev
+    desc: Lancer l'application en mode développement avec SQLite (backend + frontend)
     cmds:
       - task: dev:all
 
@@ -199,8 +199,7 @@ tasks:
       - echo "✅ Projet configuré avec succès!"
       - echo ""
       - echo "Prochaines étapes:"
-      - echo "  1. task mongo:start  # Démarrer MongoDB"
-      - echo "  2. task dev          # Lancer l'application"
+      - echo "  task dev  # Lancer l'application (SQLite, aucun service externe requis)"
 
   # Vérification avant commit
   pre-commit:
