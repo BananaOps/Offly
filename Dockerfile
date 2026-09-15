@@ -57,8 +57,8 @@ ENV SQLITE_DB_PATH=/app/data/offly.db
 # Copy backend binary
 COPY --from=backend-builder /app/bin/server ./server
 
-# Copy OpenAPI specs for Swagger UI
-COPY --from=backend-builder /app/proto/*.swagger.json ./proto/
+# Copy OpenAPI specs for Swagger UI (if they exist)
+COPY --from=backend-builder /app/proto/ ./proto/
 
 # Copy frontend build
 COPY --from=frontend-builder /app/frontend/dist ./web/dist
