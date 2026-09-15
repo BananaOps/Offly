@@ -1,3 +1,8 @@
+# NOTE : ce fichier n'est PAS appliqué. Le contexte de build est la racine du
+# dépôt (voir docker-compose.yml), et Docker ne lit que le .dockerignore du
+# contexte. Les exclusions effectives sont dans /.dockerignore.
+# Conservé pour un éventuel build lancé depuis ce dossier.
+
 # Dependencies
 node_modules/
 

@@ -1,0 +1,41 @@
+# Le contexte de build est la racine du dépôt (docker-compose : context: .).
+# Docker ne lit QUE le .dockerignore du contexte : frontend/.dockerignore n'est
+# jamais appliqué. Sans ce fichier, `COPY frontend/ ./` recopiait les node_modules
+# de l'hôte par-dessus le résultat du `npm ci`, et l'image était donc construite
+# à partir de l'état de la machine plutôt que du lockfile.
+
+# Dépendances et sorties de build — réinstallées et régénérées dans l'image
+**/node_modules
+**/dist
+backend/bin
+
+# Historique et outillage
+.git
+.gitignore
+.github
+.task
+.claude
+.vscode
+.playwright-mcp
+.skaffold
+skaffold.yaml
+
+# Déploiement et docs : non copiés par le Dockerfile
+docs
+helm
+dex
+*.md
+release-please-config.json
+.release-please-manifest.json
+k6-seed-data.js
+
+# Données locales et secrets
+**/*.db
+.env
+.env.*
+**/*.log
+
+# Divers
+.DS_Store
+Thumbs.db
+*.swp
