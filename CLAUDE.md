@@ -147,3 +147,7 @@ Vite dev server proxies `/api` to `localhost:8080`.
 - Conventional Commits are enforced in CI (`.github/workflows/conventional-commit.yml`) and drive Release Please, which also bumps `helm/offly/Chart.yaml` version + appVersion.
 - Comments and task descriptions are a mix of French and English — match the surrounding file.
 - The Dockerfile is a three-stage build; the final image expects the SPA at `./web/dist` and the swagger JSON at `./proto/`, relative to the working dir.
+- The build context is the repo root, so `/.dockerignore` is the only one Docker reads —
+  `frontend/.dockerignore` is inert. Keep `**/node_modules` excluded: `COPY frontend/ ./` runs
+  *after* `npm ci` and would otherwise overwrite it with the host's tree, building the bundle from
+  the developer's machine rather than the lockfile.

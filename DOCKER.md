@@ -185,7 +185,20 @@ The final image is optimized for size:
 - Static binary with no runtime dependencies
 - Compressed frontend assets
 
-Expected image size: ~50-80 MB
+Measured image size: **~33 MB**.
+
+### Build context
+
+The build context is the **repository root** (`docker-compose.yml` uses `context: .`), and Docker
+only honours the `.dockerignore` sitting at the context root. `frontend/.dockerignore` is therefore
+never applied — the exclusions that matter live in `/.dockerignore`.
+
+That file is load-bearing, not cosmetic. Without it, `COPY frontend/ ./` copies the host's
+`frontend/node_modules` **over** the result of the preceding `npm ci`, so the bundle ends up built
+from whatever is installed on the developer's machine instead of from `package-lock.json` — and the
+context sent to the daemon grows from ~450 KB to ~330 MB.
+
+If you add a build stage that needs a path currently excluded, update `/.dockerignore`.
 
 ## Security
 
