@@ -12,6 +12,7 @@ import {
   parseDay,
 } from '../../lib/halfday'
 import { countries } from '../../utils/holidayManager'
+import { profileLabel, usedProfiles } from '../../lib/profiles'
 
 interface Props {
   users: User[]
@@ -21,16 +22,19 @@ interface Props {
   holidays: Map<string, Holiday>
   selectedTeam: string
   onSelectTeam: (id: string) => void
+  selectedProfile: string
+  onSelectProfile: (value: string) => void
   currentUser?: User
 }
 
 const COUNTRY_NAMES = new Map(countries.map(c => [c.code, c.name]))
 
 const COLUMNS = [
-  { label: 'Personne', width: 240 },
-  { label: 'Équipe', width: 110 },
-  { label: 'Pays', width: 170 },
-  { label: 'Posé', width: 120 },
+  { label: 'Personne', width: 230 },
+  { label: 'Équipe', width: 105 },
+  { label: 'Profil', width: 130 },
+  { label: 'Pays', width: 150 },
+  { label: 'Posé', width: 110 },
   { label: 'Prochaine absence', flex: true },
   { label: "Aujourd'hui", width: 92, right: true },
 ]
@@ -43,11 +47,14 @@ export default function PeopleScreen({
   holidays,
   selectedTeam,
   onSelectTeam,
+  selectedProfile,
+  onSelectProfile,
   currentUser,
 }: Props) {
   const [query, setQuery] = useState('')
 
   const teamNames = useMemo(() => new Map(teams.map(t => [t.id, t.name])), [teams])
+  const profiles = useMemo(() => usedProfiles(users), [users])
 
   // Demi-journées posées et prochaine absence, dérivées de l'index d'absences.
   const rows = useMemo(() => {
@@ -65,7 +72,14 @@ export default function PeopleScreen({
     const q = query.trim().toLowerCase()
     return users
       .filter(u => selectedTeam === 'all' || u.teamId === selectedTeam)
-      .filter(u => !q || u.name.toLowerCase().includes(q) || (u.email ?? '').toLowerCase().includes(q))
+      .filter(u => !selectedProfile || u.jobProfile === selectedProfile)
+      .filter(
+        u =>
+          !q ||
+          u.name.toLowerCase().includes(q) ||
+          (u.email ?? '').toLowerCase().includes(q) ||
+          profileLabel(u.jobProfile).toLowerCase().includes(q)
+      )
       .sort((a, b) => a.name.localeCompare(b.name))
       .map(user => {
         const holiday = holidayFor(holidays, user, today)
@@ -88,7 +102,7 @@ export default function PeopleScreen({
               : { label: 'Présent', className: 'o-pill' },
         }
       })
-  }, [users, absences, holidays, today, selectedTeam, query])
+  }, [users, absences, holidays, today, selectedTeam, selectedProfile, query])
 
   return (
     <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
@@ -129,6 +143,22 @@ export default function PeopleScreen({
             </button>
           ))}
         </div>
+        {profiles.length > 0 && (
+          <select
+            className="o-field"
+            style={{ height: 27, maxWidth: 200 }}
+            value={selectedProfile}
+            onChange={e => onSelectProfile(e.target.value)}
+            aria-label="Filtrer par profil"
+          >
+            <option value="">Tous les profils</option>
+            {profiles.map(p => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       <div style={{ padding: '16px 22px 22px', overflowX: 'auto' }}>
@@ -174,7 +204,7 @@ export default function PeopleScreen({
                 borderBottom: '1px solid rgba(20,20,30,.05)',
               }}
             >
-              <div style={{ width: 240, display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+              <div style={{ width: 230, display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                 <div
                   className={`o-avatar o-avatar--lg${row.user.id === currentUser?.id ? ' o-avatar--self' : ''}`}
                   aria-hidden="true"
@@ -183,12 +213,18 @@ export default function PeopleScreen({
                 </div>
                 <span className="o-truncate o-body">{row.user.name}</span>
               </div>
-              <span style={{ width: 110, font: "400 12px 'IBM Plex Sans', sans-serif", color: '#5a5a6b' }}>
+              <span style={{ width: 105, font: "400 12px 'IBM Plex Sans', sans-serif", color: '#5a5a6b' }}>
                 {row.user.teamId ? (teamNames.get(row.user.teamId) ?? '—') : '—'}
               </span>
               <span
+                className="o-truncate"
+                style={{ width: 130, font: "400 12px 'IBM Plex Sans', sans-serif", color: '#5a5a6b' }}
+              >
+                {profileLabel(row.user.jobProfile) || '—'}
+              </span>
+              <span
                 style={{
-                  width: 170,
+                  width: 150,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 7,
@@ -203,7 +239,7 @@ export default function PeopleScreen({
                     : '—'}
                 </span>
               </span>
-              <span style={{ width: 120 }} className="o-mono">
+              <span style={{ width: 110 }} className="o-mono">
                 {row.posted}
               </span>
               <span style={{ flex: 1 }} className="o-mono-sm">

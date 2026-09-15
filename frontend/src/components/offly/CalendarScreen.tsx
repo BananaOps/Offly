@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Holiday, Team, User } from '../../types'
+import ExportMenu from './ExportMenu'
+import { usedProfiles } from '../../lib/profiles'
 import {
   Coverage,
   PART_LABEL,
@@ -27,8 +29,11 @@ interface Props {
   today: string
   groups: Group[]
   teams: Team[]
+  users: User[]
   selectedTeam: string
   onSelectTeam: (id: string) => void
+  selectedProfile: string
+  onSelectProfile: (value: string) => void
   absences: Map<string, Placed>
   holidays: Map<string, Holiday>
   threshold: number
@@ -54,8 +59,11 @@ export default function CalendarScreen({
   today,
   groups,
   teams,
+  users,
   selectedTeam,
   onSelectTeam,
+  selectedProfile,
+  onSelectProfile,
   absences,
   holidays,
   threshold,
@@ -104,6 +112,7 @@ export default function CalendarScreen({
   const firstAlert = alerts[0]
 
   const rangeLabel = days.length ? `${longDate(days[0])} → ${longDate(days[days.length - 1])}` : ''
+  const profiles = usedProfiles(users)
 
   // « Poser une absence » a besoin de savoir pour qui. Hors SSO l'application
   // n'identifie personne : le bouton n'est alors pas rendu du tout, la saisie
@@ -148,6 +157,12 @@ export default function CalendarScreen({
             ›
           </button>
         </div>
+        <ExportMenu
+          windowFrom={days[0] ?? ''}
+          windowTo={days[days.length - 1] ?? ''}
+          users={users}
+          teams={teams}
+        />
         {canUseEntryButton && (
           <button type="button" className="o-btn" onClick={openEntry} title="Ouvre la saisie sur aujourd'hui">
             Poser une absence
@@ -186,6 +201,24 @@ export default function CalendarScreen({
             {team.name}
           </button>
         ))}
+
+        {/* Le filtre n'apparaît que si des profils sont réellement renseignés. */}
+        {profiles.length > 0 && (
+          <select
+            className="o-field"
+            style={{ height: 27, marginLeft: 'auto', maxWidth: 200 }}
+            value={selectedProfile}
+            onChange={e => onSelectProfile(e.target.value)}
+            aria-label="Filtrer par profil"
+          >
+            <option value="">Tous les profils</option>
+            {profiles.map(p => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       <div ref={gridRef} style={{ padding: '0 22px 16px', flex: 1, minHeight: 0, overflow: 'auto' }}>

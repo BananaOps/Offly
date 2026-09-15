@@ -294,7 +294,10 @@ message UpdateUserRequest {
   string name = 2;
   string email = 3;
   string country = 4;
+  // Conservé pour les clients existants : historiquement, title portait le profil.
   string title = 5;
+  // Champ explicite, aligné sur User.job_profile. Prioritaire sur title.
+  string job_profile = 6;
 }
 
 message UpdateUserResponse {

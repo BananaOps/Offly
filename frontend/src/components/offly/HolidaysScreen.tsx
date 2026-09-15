@@ -2,16 +2,18 @@ import { useMemo, useState } from 'react'
 import { Holiday, User } from '../../types'
 import { countryFlag, countryName, isWeekend, parseDay } from '../../lib/halfday'
 import { countries } from '../../utils/holidayManager'
+import HolidayTransfer from './HolidayTransfer'
 
 interface Props {
   holidays: Holiday[]
   users: User[]
   year: number
+  onImported: () => void
 }
 
 const COUNTRY_NAMES = new Map(countries.map(c => [c.code, c.name]))
 
-export default function HolidaysScreen({ holidays, users, year }: Props) {
+export default function HolidaysScreen({ holidays, users, year, onImported }: Props) {
   const [filter, setFilter] = useState('all')
 
   const grouped = useMemo(() => {
@@ -47,6 +49,10 @@ export default function HolidaysScreen({ holidays, users, year }: Props) {
       <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid var(--hairline)' }}>
         <h1 className="o-h1">Jours fériés {year}</h1>
         <p className="o-sub">Un calendrier par pays. Une case hachurée dans le planning vient d'ici.</p>
+      </div>
+
+      <div style={{ padding: '16px 22px 0' }}>
+        <HolidayTransfer holidays={holidays} year={year} onImported={onImported} />
       </div>
 
       <div style={{ padding: '16px 22px 0', display: 'flex', gap: 6, flexWrap: 'wrap' }}>

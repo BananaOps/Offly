@@ -102,6 +102,12 @@ Un seul niveau de titre par écran. Pas de gras dans le corps de texte : la hié
 - **CommandBar** — saisie en français, chips de relecture (date + portion), suggestions cliquables, total et Confirmer.
 - **SegmentedControl** — 3 options max, piste `--track`, vignette blanche portée par une ombre légère.
 
+### Échanges
+- **ExportMenu** (Calendrier) — bouton secondaire « Exporter » dans la barre d'outils, ouvrant un popover : plage de dates Du / Au, SegmentedControl de périmètre (Tout / Équipe / Personne), sélecteur si besoin, encadré de résumé (période + nombre d'absences), bouton primaire pleine largeur. La plage part de la période affichée et la suit tant qu'on n'y touche pas ; dès qu'elle est modifiée, un lien fantôme « Revenir à la période affichée » apparaît. Une plage inversée affiche « Plage invalide » et bloque l'export.
+- **HolidayTransfer** (Jours fériés) — carte en tête d'écran : « Exporter » en bouton secondaire, zone de dépôt pointillée pour l'import, puis aperçu ligne à ligne avant validation. Chaque ligne porte une pastille « Prêt » (`--accent-soft`) ou le motif du rejet (`--alert-soft`). Rien n'est envoyé avant confirmation explicite.
+- **Popover** — même élévation que le menu flottant de saisie (`0 8px 24px`), rayon de carte, ancré sous son déclencheur.
+- **Dropzone** — bordure pointillée `--border`, fond `--surface-2` ; au survol ou au glisser, bordure `--accent` et fond `--accent-soft`.
+
 ### Chrome & communs
 - **Rail** — logo, 4 entrées (Calendrier, Équipes, Personnes, Jours fériés), bloc « Prochains fériés » en pied.
 - **RangeNav** — ‹ / Aujourd'hui / › dans un même conteneur bordé.
@@ -114,14 +120,15 @@ Un seul niveau de titre par écran. Pas de gras dans le corps de texte : la hié
 
 ### Écrans secondaires
 - **TeamCard** (Équipes) — nom, effectif, répartition par drapeau, deux barres de couverture matin / après-midi (rose sous le seuil), liste des membres avec drapeau et badge d'état du jour, pied « Prochaine tension ».
-- **PeopleTable** (Personnes) — recherche, chips d'équipe, lignes : avatar, nom, équipe, drapeau + pays, demi-journées posées, prochaine absence, badge du jour.
+- **PeopleTable** (Personnes) — recherche, chips d'équipe, filtre de profil, lignes : avatar, nom, équipe, profil, drapeau + pays, demi-journées posées, prochaine absence, badge du jour. La recherche porte aussi sur le libellé de profil.
+- **ProfileFilter** (Calendrier, Personnes) — sélecteur à choix unique aligné à droite de la rangée de chips. Il ne propose que les profils réellement portés par au moins une personne, et disparaît si aucun n'est renseigné : un filtre qui ne peut rien renvoyer n'a pas sa place. La colonne, elle, reste affichée avec « — » — le manque doit rester visible.
 - **HolidayCountryCard** (Jours fériés) — en-tête drapeau 20 px + pays + code ISO, liste des dates en mono avec le nom du jour ; les dates tombant un week-end sont marquées par le tag « week-end », pas par un gris affaibli.
 - **CountryFilterChips** — chips avec drapeau, sélection unique.
 
 **Règle drapeaux.** Le pays est toujours porté par un drapeau emoji, jamais par une couleur : 12 px dans une ligne de grille, 12–14 px dans une liste, 20 px en en-tête de carte. Le code ISO reste disponible en `title` ou en pastille mono. Le drapeau est le seul emoji autorisé dans l'interface.
 
 ### À concevoir
-File de validation manager, exports RH, gestion des fériés par pays (écran d'administration), variante sombre, états vides et de chargement.
+File de validation manager, gestion des fériés par pays (écran d'administration), variante sombre, états vides et de chargement.
 
 ---
 
@@ -135,7 +142,30 @@ File de validation manager, exports RH, gestion des fériés par pays (écran d'
 
 ---
 
-## 5. Logo
+## 5. Échanges de fichiers
+
+- **CSV, pas XLSX.** Le CSV se lit partout, se relit sans dépendance et se versionne. Un BOM UTF-8 est toujours écrit en tête, sinon Excel affiche « FÃªte » à la place de « Fête ».
+- **Les en-têtes sont en français**, comme le reste de l'interface. À la lecture, les alias courants sont acceptés (`name`, `country`, `year`) pour absorber les fichiers produits ailleurs, ainsi que le point-virgule comme séparateur.
+- **Un import ne part jamais sans aperçu.** On lit, on valide ligne à ligne, on affiche ce qui passe et ce qui est rejeté avec son motif, et l'utilisateur confirme. Une ligne invalide n'empêche pas les autres de passer.
+- **Un motif de rejet nomme le problème**, pas sa catégorie : « Code pays ISO à 2 lettres attendu », jamais « Ligne invalide ».
+- **Ce qui sort doit pouvoir rentrer.** Un fichier exporté par Offly se réimporte sans rejet — c'est la garantie qui rend l'export utilisable comme sauvegarde.
+- **Un export relit ses données.** Le périmètre exporté est requis au serveur pour la plage demandée, jamais pris dans ce que l'écran a déjà chargé : la grille ne tient qu'une année, et une plage à cheval produirait un fichier incomplet sans le signaler. Le compteur affiché est donc toujours celui du fichier produit.
+- **Une absence multi-jours est une ligne**, avec ses bornes réelles — pas une ligne par jour couvert.
+- Le JSON reste accepté en lecture pour les jours fériés : l'ancienne interface n'exportait que cela.
+
+---
+
+## 6. Profils
+
+Le profil (`jobProfile`) qualifie le métier d'une personne : Développement, Ops / SRE, Design, QA, Product Owner, Data, CoDir, IT Corp, Business Owner, ML, Instrumentation, Optimisation, Helpdesk, Support, Autre.
+
+- **Les libellés vivent dans `frontend/src/lib/profiles.ts`**, en français et sans emoji. Le référentiel `JOB_PROFILES` de `types.ts` porte des libellés anglais préfixés d'un emoji, hérités de l'ancienne interface : ils restent la source des *valeurs* stockées, jamais du texte affiché.
+- **Le profil filtre, il ne groupe pas.** La grille reste groupée par équipe — design.md §1.3 : l'écran répond d'abord à « qui manque dans l'équipe ? ».
+- **Le filtre est partagé** entre le Calendrier et l'écran Personnes : on ne redéfinit pas un périmètre en changeant d'écran.
+
+---
+
+## 7. Logo
 
 La marque est le **créneau** : les deux demi-barres empilées de `HalfDayCell`, matin au-dessus, après-midi en dessous. Le logo est donc le composant central du produit réduit à son plus simple appareil — il ne raconte pas « calendrier » en général, il raconte la demi-journée.
 

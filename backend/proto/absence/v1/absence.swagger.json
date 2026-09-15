@@ -6,16 +6,20 @@
   },
   "tags": [
     {
-      "name": "AbsenceService"
+      "name": "AbsenceService",
+      "description": "Service de gestion des absences"
     },
     {
-      "name": "UserService"
+      "name": "UserService",
+      "description": "Service de gestion des utilisateurs"
     },
     {
-      "name": "OrganizationService"
+      "name": "OrganizationService",
+      "description": "Service de gestion des départements et équipes"
     },
     {
-      "name": "HolidayService"
+      "name": "HolidayService",
+      "description": "Service de gestion des jours fériés"
     }
   ],
   "consumes": [
@@ -1245,7 +1249,12 @@
           "type": "string"
         },
         "title": {
-          "type": "string"
+          "type": "string",
+          "description": "Conservé pour les clients existants : historiquement, title portait le profil."
+        },
+        "jobProfile": {
+          "type": "string",
+          "description": "Champ explicite, aligné sur User.job_profile. Prioritaire sur title."
         }
       }
     },

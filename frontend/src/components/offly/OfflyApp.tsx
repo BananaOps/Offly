@@ -35,12 +35,15 @@ export default function OfflyApp() {
   const [holidays, setHolidays] = useState<Holiday[]>([])
   const [absenceIndex, setAbsenceIndex] = useState<Map<string, Placed>>(new Map())
   const [selectedTeam, setSelectedTeam] = useState('all')
+  const [selectedProfile, setSelectedProfile] = useState('')
   const [windowStart, setWindowStart] = useState(() => startOfWeek(new Date()))
   const [threshold] = useState(DEFAULT_THRESHOLD)
   const [currentEmail, setCurrentEmail] = useState<string | null>(() =>
     getAuthConfig().enabled ? getCachedUserEmail() : null
   )
   const [error, setError] = useState<string | null>(null)
+  // Incrémenté après un import : force le rechargement des jours fériés.
+  const [holidayEpoch, setHolidayEpoch] = useState(0)
 
   const today = formatDay(new Date())
   const days = useMemo(() => workingDays(windowStart, WINDOW), [windowStart])
@@ -105,7 +108,7 @@ export default function OfflyApp() {
     return () => {
       cancelled = true
     }
-  }, [users, year])
+  }, [users, year, holidayEpoch])
 
   const holidayIndex = useMemo(() => buildHolidayIndex(holidays), [holidays])
 
@@ -121,7 +124,11 @@ export default function OfflyApp() {
   )
 
   const groups: Group[] = useMemo(() => {
-    const visible = users.filter(u => selectedTeam === 'all' || u.teamId === selectedTeam)
+    const visible = users.filter(
+      u =>
+        (selectedTeam === 'all' || u.teamId === selectedTeam) &&
+        (!selectedProfile || u.jobProfile === selectedProfile)
+    )
     const byName = (a: User, b: User) => a.name.localeCompare(b.name)
     const result: Group[] = teams
       .filter(team => selectedTeam === 'all' || team.id === selectedTeam)
@@ -135,7 +142,7 @@ export default function OfflyApp() {
     const orphans = visible.filter(u => !u.teamId).sort(byName)
     if (orphans.length > 0) result.push({ id: '__none__', name: 'Sans équipe', members: orphans })
     return result
-  }, [users, teams, selectedTeam])
+  }, [users, teams, selectedTeam, selectedProfile])
 
   const visibleCount = useMemo(() => groups.reduce((n, g) => n + g.members.length, 0), [groups])
 
@@ -217,8 +224,11 @@ export default function OfflyApp() {
             today={today}
             groups={groups}
             teams={teams}
+            users={users}
             selectedTeam={selectedTeam}
             onSelectTeam={setSelectedTeam}
+            selectedProfile={selectedProfile}
+            onSelectProfile={setSelectedProfile}
             absences={absenceIndex}
             holidays={holidayIndex}
             threshold={threshold}
@@ -254,11 +264,20 @@ export default function OfflyApp() {
             holidays={holidayIndex}
             selectedTeam={selectedTeam}
             onSelectTeam={setSelectedTeam}
+            selectedProfile={selectedProfile}
+            onSelectProfile={setSelectedProfile}
             currentUser={currentUser}
           />
         )}
 
-        {screen === 'holidays' && <HolidaysScreen holidays={holidays} users={users} year={year} />}
+        {screen === 'holidays' && (
+          <HolidaysScreen
+            holidays={holidays}
+            users={users}
+            year={year}
+            onImported={() => setHolidayEpoch(e => e + 1)}
+          />
+        )}
       </div>
     </div>
   )

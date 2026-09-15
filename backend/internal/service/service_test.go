@@ -316,3 +316,45 @@ func TestUpdateAbsencePreservesOwner(t *testing.T) {
 		t.Fatalf("attendu 1 absence pour user-42 après update, obtenu %d", len(list.Absences))
 	}
 }
+
+// Le client envoie job_profile ; historiquement seul title existait et le
+// service écrasait alors le profil avec une chaîne vide.
+func TestUpdateUserAcceptsJobProfile(t *testing.T) {
+	store := storage.NewMemoryStorage()
+	svc := NewUserServiceServer(store)
+	ctx := context.Background()
+
+	created, err := svc.CreateUser(ctx, &pb.CreateUserRequest{Name: "Amine", Email: "a@offly.io", Country: "fr"})
+	if err != nil {
+		t.Fatalf("CreateUser: %v", err)
+	}
+	id := created.User.Id
+
+	got, err := svc.UpdateUser(ctx, &pb.UpdateUserRequest{
+		Id: id, Name: "Amine", Email: "a@offly.io", Country: "FR", JobProfile: "dev",
+	})
+	if err != nil {
+		t.Fatalf("UpdateUser: %v", err)
+	}
+	if got.User.JobProfile != "dev" {
+		t.Errorf("job_profile perdu dans la réponse : %q", got.User.JobProfile)
+	}
+
+	users, _ := store.GetUsers()
+	for _, u := range users {
+		if u.ID == id && u.JobProfile != "dev" {
+			t.Errorf("job_profile perdu en base : %q", u.JobProfile)
+		}
+	}
+
+	// title reste accepté pour les clients qui ne connaissent que lui.
+	legacy, err := svc.UpdateUser(ctx, &pb.UpdateUserRequest{
+		Id: id, Name: "Amine", Email: "a@offly.io", Country: "FR", Title: "ops",
+	})
+	if err != nil {
+		t.Fatalf("UpdateUser (title): %v", err)
+	}
+	if legacy.User.JobProfile != "ops" {
+		t.Errorf("title ignoré : %q", legacy.User.JobProfile)
+	}
+}

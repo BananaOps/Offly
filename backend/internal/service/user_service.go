@@ -128,7 +128,13 @@ func (s *UserServiceServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRe
 			u.Name = req.Name
 			u.Email = req.Email
 			u.Country = strings.ToUpper(req.Country)
-			u.JobProfile = req.Title
+			// job_profile est le champ explicite ; title est l'ancien nom, conservé
+			// pour les clients qui l'utilisent encore.
+			if req.JobProfile != "" {
+				u.JobProfile = req.JobProfile
+			} else {
+				u.JobProfile = req.Title
+			}
 			_ = s.storage.UpdateUser(u)
 			return &pb.UpdateUserResponse{User: &pb.User{
 				Id:         u.ID,
