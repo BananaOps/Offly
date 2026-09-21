@@ -51,6 +51,8 @@ The following table lists the configurable parameters of the Offly chart and the
 | `env.db.host` | MongoDB host | `offly-mongodb` |
 | `env.db.port` | MongoDB port | `27017` |
 | `env.db.name` | MongoDB database name | `offly` |
+| `env.storageType` | `sqlite` or `mongodb` | `mongodb` |
+| `env.mcpEnabled` | Expose the read-only MCP server at `/mcp` | `false` |
 | `resources.limits.cpu` | CPU limit | `500m` |
 | `resources.limits.memory` | Memory limit | `256Mi` |
 | `resources.requests.cpu` | CPU request | `100m` |
@@ -157,3 +159,16 @@ helm dependency update ./helm/offly
 ## Support
 
 For issues and questions, please visit: https://github.com/BananaOps/offly
+
+## MCP server
+
+`env.mcpEnabled=true` exposes a read-only Model Context Protocol endpoint at `/mcp`, on the same
+port as the REST API.
+
+```bash
+helm upgrade --install offly ./helm/offly --set env.mcpEnabled=true
+```
+
+The endpoint is **unauthenticated** — it bypasses `AUTH_ENABLED` and RBAC entirely, so anyone able
+to reach it can read every absence. Only enable it on an internal network, or behind a proxy that
+carries the authentication.

@@ -62,6 +62,8 @@ spec:
               value: {{ .Values.service.grpc.port | quote }}
             - name: HTTP_PORT
               value: {{ .Values.service.http.port | quote }}
+            - name: MCP_ENABLED
+              value: {{ .Values.env.mcpEnabled | default false | quote }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

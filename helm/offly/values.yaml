@@ -26,6 +26,10 @@ env:
     host: offly-mongodb
     port: 27017
     name: offly
+  # Expose le serveur MCP (lecture seule) sur /mcp.
+  # L'endpoint n'est pas authentifié : ne l'activer que derrière un réseau interne
+  # ou un proxy qui porte l'authentification.
+  mcpEnabled: true
 
 image:
   repository: bananaops/offly

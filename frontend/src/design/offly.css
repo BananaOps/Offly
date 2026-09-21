@@ -467,6 +467,89 @@
   box-shadow: var(--shadow-menu);
 }
 
+/* --- Sélecteur de plage --- */
+
+/* Déclencheur : porte la plage courante, comme une barre d'adresse du temps.
+   C'est la seule commande de la barre d'outils qui affiche un état plutôt qu'une
+   action, d'où la bordure et le fond de champ. */
+.o-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-ctl);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+.o-range:hover,
+.o-range[aria-expanded='true'] {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+.o-range__value {
+  font: 500 11.5px 'IBM Plex Mono', monospace;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.o-range__caret {
+  font-size: 9px;
+  color: var(--faint);
+}
+
+.o-popover--range {
+  width: 452px;
+  right: auto;
+  left: 0;
+}
+.o-range__cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.o-range__quick {
+  border-left: 1px solid var(--hairline);
+  padding-left: 16px;
+  min-width: 0;
+}
+/* La liste défile au lieu d'allonger le panneau : les douze mois à venir y
+   tiennent, et le panneau garde la hauteur d'une carte. */
+.o-range__list {
+  max-height: 208px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.o-range__item {
+  flex: none;
+  text-align: left;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: 400 12px 'IBM Plex Sans', sans-serif;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.o-range__item:hover,
+.o-range__item:focus-visible {
+  outline: none;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.o-range__item[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 500;
+}
+
 /* --- Segmented control (3 options max, design.md §3) --- */
 
 .o-segmented {

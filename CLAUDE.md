@@ -122,8 +122,12 @@ the source of the stored *values* only; its labels are English with a leading em
 design.md forbids in the UI. `usedProfiles()` returns only profiles actually worn by someone — the
 filter hides itself when none are set, while the People column stays and shows `—`.
 
-Absences are fetched for the whole year, not the visible window: "Posé", "Prochaine absence" and
-"Prochaine tension" are global figures.
+The displayed period is a free range (`lib/ranges.ts`, `RangePicker`), not a fixed window — the
+arrows shift it by its own length. Absences are fetched for every *year* the range spans, never
+just the range: "Posé", "Prochaine absence" and "Prochaine tension" are global figures, and a
+range straddling 31 December would otherwise show its January columns empty — a click there would
+then create a duplicate instead of cycling the cell. `MAX_COLUMNS` caps the grid at 70 working
+days; the overflow is stated in the sub-line rather than silently dropped.
 
 The team and profile filters live in `OfflyApp` and are shared by the Calendar and People screens
 on purpose — changing screen must not silently redefine the scope.

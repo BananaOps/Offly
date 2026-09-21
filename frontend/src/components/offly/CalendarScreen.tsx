@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Holiday, Team, User } from '../../types'
 import ExportMenu from './ExportMenu'
+import RangePicker from './RangePicker'
+import { Range } from '../../lib/ranges'
 import { usedProfiles } from '../../lib/profiles'
 import {
   Coverage,
@@ -14,6 +16,7 @@ import {
   holidayFor,
   initialsOf,
   longDate,
+  mediumDate,
   parseDay,
   shortDow,
 } from '../../lib/halfday'
@@ -44,9 +47,40 @@ interface Props {
   onPrev: () => void
   onNext: () => void
   onToday: () => void
+  range: Range
+  onRangeChange: (range: Range) => void
+  /** Colonnes retirées par le plafond d'affichage ; 0 si la plage tient entière. */
+  truncated: number
   canEdit: (user: User) => boolean
   currentUser?: User
 }
+
+/** Colonne des noms : collée à gauche, pour survivre au défilement horizontal
+    qu'une plage large impose désormais. */
+const stickyName: React.CSSProperties = {
+  width: 'var(--name-col)',
+  flex: 'none',
+  position: 'sticky',
+  // `left: 0` colle au bord de la boîte de contenu et laisse les cases défiler à
+  // nu dans les 22 px de gouttière ; on recule le point d'ancrage d'autant et on
+  // le compense en padding, pour que le texte reste aligné sur la barre d'outils.
+  left: -22,
+  marginLeft: -22,
+  paddingLeft: 22,
+  boxSizing: 'content-box',
+  zIndex: 1,
+  background: 'var(--surface)',
+  // Le bloc doit occuper toute la hauteur de la ligne : plus court, il laisse
+  // dépasser le haut et le bas des cases qui défilent derrière lui.
+  alignSelf: 'stretch',
+}
+
+/**
+ * Bloc porteur de la grille. `max-content` le rend aussi large que la plage :
+ * sans cela les éléments collants (noms, en-têtes d'équipe) n'ont pas de
+ * conteneur où tenir et sortent du cadre dès qu'on défile horizontalement.
+ */
+const gridBlock: React.CSSProperties = { minWidth: 'max-content' }
 
 interface Alert {
   teamName: string
@@ -74,6 +108,9 @@ export default function CalendarScreen({
   onPrev,
   onNext,
   onToday,
+  range,
+  onRangeChange,
+  truncated,
   canEdit,
   currentUser,
 }: Props) {
@@ -111,7 +148,7 @@ export default function CalendarScreen({
   alerts.sort((a, b) => a.day.localeCompare(b.day))
   const firstAlert = alerts[0]
 
-  const rangeLabel = days.length ? `${longDate(days[0])} → ${longDate(days[days.length - 1])}` : ''
+  const rangeLabel = `${mediumDate(range.from)} → ${mediumDate(range.to)}`
   const profiles = usedProfiles(users)
 
   // « Poser une absence » a besoin de savoir pour qui. Hors SSO l'application
@@ -142,10 +179,13 @@ export default function CalendarScreen({
         <div style={{ flex: 1, minWidth: 0 }}>
           <h1 className="o-h1">Calendrier d'équipe</h1>
           <p className="o-sub">
-            {rangeLabel} · {peopleCount} {peopleCount > 1 ? 'personnes' : 'personne'} · {groups.length}{' '}
+            {rangeLabel} · {days.length} {days.length > 1 ? 'jours ouvrés' : 'jour ouvré'} ·{' '}
+            {peopleCount} {peopleCount > 1 ? 'personnes' : 'personne'} · {groups.length}{' '}
             {groups.length > 1 ? 'équipes' : 'équipe'}
+            {truncated > 0 && ` · ${truncated} ${truncated > 1 ? 'jours non affichés' : 'jour non affiché'}`}
           </p>
         </div>
+        <RangePicker from={range.from} to={range.to} onChange={onRangeChange} />
         <div className="o-navgroup">
           <button type="button" className="o-ghost" onClick={onPrev} aria-label="Période précédente">
             ‹
@@ -158,8 +198,8 @@ export default function CalendarScreen({
           </button>
         </div>
         <ExportMenu
-          windowFrom={days[0] ?? ''}
-          windowTo={days[days.length - 1] ?? ''}
+          windowFrom={range.from}
+          windowTo={range.to}
           users={users}
           teams={teams}
         />
@@ -222,7 +262,12 @@ export default function CalendarScreen({
       </div>
 
       <div ref={gridRef} style={{ padding: '0 22px 16px', flex: 1, minHeight: 0, overflow: 'auto' }}>
-        <div style={{ minWidth: 'var(--name-col)' }}>
+        {days.length === 0 ? (
+          <p className="o-secondary" style={{ padding: '24px 0' }}>
+            Aucun jour ouvré dans cette plage. Choisissez une période qui contient au moins un jour de semaine.
+          </p>
+        ) : (
+        <div style={gridBlock}>
           {/* En-tête collant : sur un planning long, savoir à quel jour correspond
               une colonne reste nécessaire après défilement. */}
           <div
@@ -234,11 +279,12 @@ export default function CalendarScreen({
               display: 'flex',
               alignItems: 'flex-end',
               gap: 4,
-              paddingLeft: 'var(--name-col)',
+              minWidth: 'max-content',
               paddingTop: 14,
               paddingBottom: 6,
             }}
           >
+            <div style={stickyName} />
             {days.map(day => (
               <div key={day} style={{ flex: 1, textAlign: 'center', minWidth: 30 }}>
                 <div className="o-label">{shortDow(day)}</div>
@@ -265,21 +311,23 @@ export default function CalendarScreen({
           {groups.map(group => (
             <div key={group.id} style={{ marginBottom: 18 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 0 7px' }}>
-                <span className="o-team-name">{group.name}</span>
-                <span className="o-mono-sm">
-                  {group.members.length} pers.
-                </span>
+                <div style={{ ...stickyName, width: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="o-team-name">{group.name}</span>
+                  <span className="o-mono-sm">{group.members.length} pers.</span>
+                </div>
                 <span className="o-hr" />
               </div>
 
               {group.members.map(member => {
                 const editable = canEdit(member)
                 return (
-                  <div key={member.id} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+                  <div
+                    key={member.id}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3, minWidth: 'max-content' }}
+                  >
                     <div
                       style={{
-                        width: 'var(--name-col)',
-                        flex: 'none',
+                        ...stickyName,
                         display: 'flex',
                         alignItems: 'center',
                         gap: 8,
@@ -397,10 +445,16 @@ export default function CalendarScreen({
               })}
 
               {showCoverage && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 5 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 5, minWidth: 'max-content' }}>
                   <div
                     className="o-label"
-                    style={{ width: 'var(--name-col)', flex: 'none', paddingRight: 8, textAlign: 'right' }}
+                    style={{
+                      ...stickyName,
+                      paddingRight: 8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-end',
+                    }}
                   >
                     Couverture min
                   </div>
@@ -432,6 +486,7 @@ export default function CalendarScreen({
           ))}
 
         </div>
+        )}
       </div>
 
       <Legend threshold={threshold} />

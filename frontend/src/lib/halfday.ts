@@ -52,6 +52,29 @@ export const workingDays = (start: Date, n: number): string[] => {
   return out
 }
 
+/** Jours ouvrés de `from` à `to` inclus, week-ends exclus. */
+export const workingDaysBetween = (from: string, to: string): string[] => {
+  const out: string[] = []
+  const cursor = parseDay(from)
+  const last = parseDay(to).getTime()
+  while (cursor.getTime() <= last) {
+    if (!isWeekend(cursor)) out.push(formatDay(cursor))
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  return out
+}
+
+/** `n` jours calendaires après `day` — `n` peut être négatif. */
+export const addDays = (day: string, n: number): string => {
+  const cursor = parseDay(day)
+  cursor.setDate(cursor.getDate() + n)
+  return formatDay(cursor)
+}
+
+/** Nombre de jours calendaires entre deux dates, bornes incluses. */
+export const daysBetween = (from: string, to: string): number =>
+  Math.round((parseDay(to).getTime() - parseDay(from).getTime()) / 86400000) + 1
+
 export const shiftWorkingDays = (start: Date, n: number): Date => {
   const cursor = new Date(start)
   let remaining = Math.abs(n)
@@ -238,6 +261,11 @@ export const formatDays = (halves: number): string => {
 
 export const longDate = (day: string): string =>
   parseDay(day).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+
+/** « 22 sept. 2026 » — porte l'année, contrairement à `longDate`, parce qu'une
+    plage peut enjamber le 31 décembre. */
+export const mediumDate = (day: string): string =>
+  parseDay(day).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
 
 export const shortDow = (day: string): string =>
   parseDay(day).toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')

@@ -110,7 +110,8 @@ Un seul niveau de titre par écran. Pas de gras dans le corps de texte : la hié
 
 ### Chrome & communs
 - **Rail** — logo, 4 entrées (Calendrier, Équipes, Personnes, Jours fériés), bloc « Prochains fériés » en pied.
-- **RangeNav** — ‹ / Aujourd'hui / › dans un même conteneur bordé.
+- **RangeNav** — ‹ / Aujourd'hui / › dans un même conteneur bordé. Les flèches décalent la plage de sa propre durée.
+- **RangePicker** (Calendrier) — déclencheur bordé portant la plage courante (mono, avec l'année), ouvrant un popover à deux colonnes : saisie absolue Du / Au + « Appliquer » à gauche, liste de plages rapides cherchable à droite (semaine, quinzaine, 30 jours, mois courant, trimestre suivant, puis les douze mois à venir un par un). Le raccourci est le chemin normal, la saisie absolue le recours. La plage appliquée ne bouge qu'au clic : une plage a deux bornes, l'appliquer à chaque frappe ferait recharger sur un état intermédiaire.
 - **FilterChips** — sélection unique, chip active en `--ink`.
 - **AlertBanner** — pastille ronde, titre, détail ; fond `--alert-soft`.
 - **Button** — primaire `--ink` → `--accent` au hover ; secondaire blanc bordé ; fantôme dans les barres d'outils. Un bouton sans sujet n'est pas rendu plutôt que rendu désactivé.

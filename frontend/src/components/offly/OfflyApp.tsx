@@ -6,16 +6,18 @@ import { getAuthConfig, getCachedUserEmail, getCurrentUser } from '../../auth'
 import {
   Part,
   Placed,
+  addDays,
   boundsFor,
   buildAbsenceIndex,
   buildHolidayIndex,
   cellKey,
+  daysBetween,
   formatDay,
   nextPart,
-  shiftWorkingDays,
-  startOfWeek,
   workingDays,
+  workingDaysBetween,
 } from '../../lib/halfday'
+import { MAX_COLUMNS, Range, defaultRange } from '../../lib/ranges'
 import Rail, { ScreenId } from './Rail'
 import CalendarScreen, { Group } from './CalendarScreen'
 import TeamsScreen from './TeamsScreen'
@@ -23,10 +25,18 @@ import PeopleScreen from './PeopleScreen'
 import HolidaysScreen from './HolidaysScreen'
 import '../../design/offly.css'
 
-/** Fenêtre du planning : 10 jours ouvrés, comme la maquette. */
-const WINDOW = 10
 /** design.md §4 : le seuil est un réglage, pas une constante. */
 const DEFAULT_THRESHOLD = 50
+
+/**
+ * Décale la plage d'une longueur entière, dans un sens ou dans l'autre. Les
+ * flèches conservent ainsi la durée choisie : parcourir un mois se fait mois par
+ * mois, pas par pas fixe de deux semaines.
+ */
+const shiftRange = (range: Range, direction: 1 | -1): Range => {
+  const span = daysBetween(range.from, range.to) * direction
+  return { from: addDays(range.from, span), to: addDays(range.to, span) }
+}
 
 export default function OfflyApp() {
   const [screen, setScreen] = useState<ScreenId>('calendar')
@@ -36,7 +46,7 @@ export default function OfflyApp() {
   const [absenceIndex, setAbsenceIndex] = useState<Map<string, Placed>>(new Map())
   const [selectedTeam, setSelectedTeam] = useState('all')
   const [selectedProfile, setSelectedProfile] = useState('')
-  const [windowStart, setWindowStart] = useState(() => startOfWeek(new Date()))
+  const [range, setRange] = useState<Range>(() => defaultRange())
   const [threshold] = useState(DEFAULT_THRESHOLD)
   const [currentEmail, setCurrentEmail] = useState<string | null>(() =>
     getAuthConfig().enabled ? getCachedUserEmail() : null
@@ -46,8 +56,26 @@ export default function OfflyApp() {
   const [holidayEpoch, setHolidayEpoch] = useState(0)
 
   const today = formatDay(new Date())
-  const days = useMemo(() => workingDays(windowStart, WINDOW), [windowStart])
-  const year = windowStart.getFullYear()
+  // Une plage ne contenant que des week-ends ne produit aucune colonne : l'écran
+  // le dit au lieu d'afficher une grille vide sans explication.
+  const allDays = useMemo(() => workingDaysBetween(range.from, range.to), [range])
+  const days = useMemo(() => allDays.slice(0, MAX_COLUMNS), [allDays])
+  const truncated = allDays.length - days.length
+
+  /**
+   * Années réellement couvertes par la plage. Une plage à cheval sur le 31 décembre
+   * chargerait sinon ses colonnes de janvier sans absences ni fériés, et un clic y
+   * créerait un doublon au lieu de faire cycler la case.
+   */
+  const firstYear = Number((days[0] ?? range.from).slice(0, 4))
+  const lastYear = Number((days[days.length - 1] ?? range.to).slice(0, 4))
+  const spannedYears = useMemo(() => {
+    const out: number[] = []
+    for (let y = firstYear; y <= lastYear; y++) out.push(y)
+    return out
+  }, [firstYear, lastYear])
+  // L'écran « Jours fériés » reste sur un millésime : celui où commence la plage.
+  const year = firstYear
 
   useEffect(() => {
     if (!getAuthConfig().enabled) return
@@ -62,8 +90,8 @@ export default function OfflyApp() {
    * Équipes) sont des totaux globaux, qu'une fenêtre de dix jours fausserait.
    */
   const fetchAbsences = useCallback(
-    () => getAbsences(undefined, `${year}-01-01`, `${year}-12-31`).then(buildAbsenceIndex),
-    [year]
+    () => getAbsences(undefined, `${firstYear}-01-01`, `${lastYear}-12-31`).then(buildAbsenceIndex),
+    [firstYear, lastYear]
   )
 
   useEffect(() => {
@@ -100,7 +128,8 @@ export default function OfflyApp() {
   useEffect(() => {
     let cancelled = false
     const codes = [...new Set(users.map(u => u.country?.toUpperCase()).filter(Boolean))] as string[]
-    Promise.all(codes.map(code => getHolidaysForCountryAndYear(code, year)))
+    const pairs = codes.flatMap(code => spannedYears.map(y => ({ code, y })))
+    Promise.all(pairs.map(({ code, y }) => getHolidaysForCountryAndYear(code, y)))
       .then(lists => {
         if (!cancelled) setHolidays(lists.flat())
       })
@@ -108,9 +137,15 @@ export default function OfflyApp() {
     return () => {
       cancelled = true
     }
-  }, [users, year, holidayEpoch])
+  }, [users, spannedYears, holidayEpoch])
 
   const holidayIndex = useMemo(() => buildHolidayIndex(holidays), [holidays])
+
+  // L'écran « Jours fériés » est titré d'un millésime : on ne lui passe que celui-ci.
+  const holidaysOfYear = useMemo(
+    () => holidays.filter(h => h.date.startsWith(`${year}-`)),
+    [holidays, year]
+  )
 
   const currentUser = useMemo(
     () => (currentEmail ? users.find(u => u.email === currentEmail) : undefined),
@@ -236,9 +271,12 @@ export default function OfflyApp() {
             peopleCount={visibleCount}
             onCycle={onCycle}
             onSet={applyPart}
-            onPrev={() => setWindowStart(s => shiftWorkingDays(s, -WINDOW))}
-            onNext={() => setWindowStart(s => shiftWorkingDays(s, WINDOW))}
-            onToday={() => setWindowStart(startOfWeek(new Date()))}
+            onPrev={() => setRange(shiftRange(range, -1))}
+            onNext={() => setRange(shiftRange(range, 1))}
+            onToday={() => setRange(defaultRange())}
+            onRangeChange={setRange}
+            range={range}
+            truncated={truncated}
             canEdit={canEdit}
             currentUser={currentUser}
           />
@@ -272,7 +310,7 @@ export default function OfflyApp() {
 
         {screen === 'holidays' && (
           <HolidaysScreen
-            holidays={holidays}
+            holidays={holidaysOfYear}
             users={users}
             year={year}
             onImported={() => setHolidayEpoch(e => e + 1)}
