@@ -1,8 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Holiday, Team, User } from '../../types'
-import { createAbsence, deleteAbsence, getAbsences, getTeams, getUsers, updateAbsence } from '../../api'
+import {
+  UserDraft,
+  assignUserToTeam,
+  createAbsence,
+  createUser,
+  deleteAbsence,
+  deleteUser,
+  getAbsences,
+  getTeams,
+  getUsers,
+  updateAbsence,
+  updateUser,
+} from '../../api'
 import { getHolidaysForCountryAndYear } from '../../utils/holidayManager'
-import { getAuthConfig, getCachedUserEmail, getCurrentUser } from '../../auth'
+import { getAuthConfig, getCachedUserEmail, getCurrentUser, isAdmin } from '../../auth'
 import {
   Part,
   Placed,
@@ -51,6 +63,8 @@ export default function OfflyApp() {
   const [currentEmail, setCurrentEmail] = useState<string | null>(() =>
     getAuthConfig().enabled ? getCachedUserEmail() : null
   )
+  // Sans SSO, tout le monde administre : le backend n'exige alors aucune identité.
+  const [admin, setAdmin] = useState(() => !getAuthConfig().enabled || isAdmin())
   const [error, setError] = useState<string | null>(null)
   // Incrémenté après un import : force le rechargement des jours fériés.
   const [holidayEpoch, setHolidayEpoch] = useState(0)
@@ -80,7 +94,11 @@ export default function OfflyApp() {
   useEffect(() => {
     if (!getAuthConfig().enabled) return
     getCurrentUser()
-      .then(user => user && setCurrentEmail(user.email))
+      .then(user => {
+        if (!user) return
+        setCurrentEmail(user.email)
+        setAdmin(user.role === 'admin')
+      })
       .catch(() => undefined)
   }, [])
 
@@ -158,6 +176,46 @@ export default function OfflyApp() {
     [currentEmail]
   )
 
+  // Une fiche est modifiable par son titulaire ; un administrateur les modifie toutes.
+  const canEditPerson = useCallback((user: User) => admin || canEdit(user), [admin, canEdit])
+
+  /**
+   * Enregistre une fiche. L'équipe passe par son propre endpoint : `UpdateUser` ne
+   * porte pas `team_id`, et le lui ajouter ferait effacer l'équipe par tout client
+   * qui ne l'enverrait pas — la panne qu'a connue `jobProfile`.
+   */
+  const savePerson = useCallback(
+    async (draft: UserDraft) => {
+      if (draft.id) {
+        const before = users.find(u => u.id === draft.id)
+        await updateUser({ ...draft, id: draft.id })
+        if ((before?.teamId ?? '') !== (draft.teamId ?? '')) {
+          await assignUserToTeam(draft.id, draft.teamId ?? '')
+        }
+      } else {
+        const created = await createUser(draft)
+        // Le backend dédoublonne sur l'e-mail et renvoie la fiche existante : sans
+        // ce contrôle, la création semblerait avoir abouti sans rien créer.
+        if (users.some(u => u.id === created.id)) {
+          throw new Error('Cette personne existe déjà : même adresse e-mail.')
+        }
+      }
+      setUsers(await getUsers())
+    },
+    [users]
+  )
+
+  // La suppression emporte les absences côté serveur : on relit l'index.
+  const deletePerson = useCallback(
+    async (person: User) => {
+      await deleteUser(person.id)
+      const [nextUsers, index] = await Promise.all([getUsers(), fetchAbsences()])
+      setUsers(nextUsers)
+      setAbsenceIndex(index)
+    },
+    [fetchAbsences]
+  )
+
   const groups: Group[] = useMemo(() => {
     const visible = users.filter(
       u =>
@@ -208,14 +266,22 @@ export default function OfflyApp() {
             start.getUTCMonth() === end.getUTCMonth() &&
             start.getUTCDate() === end.getUTCDate()
           if (!spansOneDay) {
-            setError('Cette absence couvre plusieurs jours : modifiez-la depuis la période complète.')
+            setError(
+              'Cette absence couvre plusieurs jours : modifiez-la depuis la période complète.'
+            )
             return
           }
           if (!part) {
             await deleteAbsence(existing.absence.id)
           } else {
             const { startIso, endIso, reason } = boundsFor(day, part)
-            await updateAbsence(existing.absence.id, startIso, endIso, reason, existing.absence.status || 'pending')
+            await updateAbsence(
+              existing.absence.id,
+              startIso,
+              endIso,
+              reason,
+              existing.absence.status || 'pending'
+            )
           }
         } else if (part) {
           const { startIso, endIso, reason } = boundsFor(day, part)
@@ -245,7 +311,15 @@ export default function OfflyApp() {
     <div className="offly" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Rail screen={screen} onScreenChange={setScreen} upcomingHolidays={upcomingHolidays} />
 
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
         {error && (
           <div className="o-alert" style={{ margin: '14px 22px 0' }} role="status">
             <span className="o-alert__dot" />
@@ -305,6 +379,10 @@ export default function OfflyApp() {
             selectedProfile={selectedProfile}
             onSelectProfile={setSelectedProfile}
             currentUser={currentUser}
+            isAdmin={admin}
+            canEdit={canEditPerson}
+            onSavePerson={savePerson}
+            onDeletePerson={deletePerson}
           />
         )}
 

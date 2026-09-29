@@ -950,6 +950,13 @@
         },
         "country": {
           "type": "string"
+        },
+        "teamId": {
+          "type": "string",
+          "description": "Équipe et profil sont posés à la création : sans eux, l'écran Personnes\ndevrait enchaîner trois appels et laisser une fiche incomplète en cas d'échec."
+        },
+        "jobProfile": {
+          "type": "string"
         }
       },
       "title": "User messages"

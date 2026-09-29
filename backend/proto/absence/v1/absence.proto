@@ -259,6 +259,10 @@ message CreateUserRequest {
   string name = 1;
   string email = 2;
   string country = 3;
+  // Équipe et profil sont posés à la création : sans eux, l'écran Personnes
+  // devrait enchaîner trois appels et laisser une fiche incomplète en cas d'échec.
+  string team_id = 4;
+  string job_profile = 5;
 }
 
 message CreateUserResponse {

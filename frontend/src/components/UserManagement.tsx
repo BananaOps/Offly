@@ -1,16 +1,27 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faUserPlus, faUserGroup, faEdit, faTrash, faSave, faTimes, faMagnifyingGlass, faXmark, faFileImport, faSpinner, faCheckCircle, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons'
+import {
+  faUserPlus,
+  faUserGroup,
+  faEdit,
+  faTrash,
+  faSave,
+  faTimes,
+  faMagnifyingGlass,
+  faXmark,
+  faFileImport,
+  faSpinner,
+  faCheckCircle,
+  faExclamationTriangle,
+} from '@fortawesome/free-solid-svg-icons'
 import { User, Team, JOB_PROFILES, JobProfile } from '../types'
 import { createUser, assignUserToTeam, updateUser, deleteUser, createTeam } from '../api'
 import { countries } from '../utils/holidayManager'
 import { getAuthConfig } from '../auth'
 
 function countryFlag(code: string): string {
-  return code.toUpperCase().replace(/./g, c =>
-    String.fromCodePoint(c.charCodeAt(0) + 127397)
-  )
+  return code.toUpperCase().replace(/./g, c => String.fromCodePoint(c.charCodeAt(0) + 127397))
 }
 
 interface Props {
@@ -56,7 +67,7 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = (ev) => {
+    reader.onload = ev => {
       // Remove BOM if present
       let text = ev.target?.result as string
       text = text.replace(/^\uFEFF/, '')
@@ -64,7 +75,9 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
       // Detect separator (;  ,  or tab)
       const firstLine = lines[0]
       const sep = firstLine.includes(';') ? ';' : firstLine.includes('\t') ? '\t' : ','
-      const headers = lines[0].split(sep).map(h => h.trim().toLowerCase().replace(/^"|"$/g, '').replace(/\s+/g, '_'))
+      const headers = lines[0]
+        .split(sep)
+        .map(h => h.trim().toLowerCase().replace(/^"|"$/g, '').replace(/\s+/g, '_'))
       const rows: ImportRow[] = []
 
       // Helper: find value by multiple possible header keys
@@ -84,9 +97,12 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
         const byValue = JOB_PROFILES.find(p => p.value === lower)
         if (byValue) return byValue.value
         // Label match (without emoji)
-        const byLabel = JOB_PROFILES.find(p =>
-          p.label.toLowerCase().replace(/^[^\p{L}]+/u, '').trim() === lower ||
-          p.label.toLowerCase().includes(lower)
+        const byLabel = JOB_PROFILES.find(
+          p =>
+            p.label
+              .toLowerCase()
+              .replace(/^[^\p{L}]+/u, '')
+              .trim() === lower || p.label.toLowerCase().includes(lower)
         )
         if (byLabel) return byLabel.value
         // Partial value match
@@ -100,9 +116,26 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
         const firstName = findCol(cols, 'prénom', 'prenom', 'firstname', 'first_name', 'first')
         const lastName = findCol(cols, 'nom', 'lastname', 'last_name', 'last', 'nom_de_famille')
         const email = findCol(cols, 'email', 'mail', 'e-mail', 'adresse_email', 'adresse_mail')
-        const rawProfile = findCol(cols, 'profile', 'profil', 'job_profile', 'poste', 'role', 'rôle', 'fonction')
+        const rawProfile = findCol(
+          cols,
+          'profile',
+          'profil',
+          'job_profile',
+          'poste',
+          'role',
+          'rôle',
+          'fonction'
+        )
         const profile = normalizeProfile(rawProfile)
-        const teamName = findCol(cols, 'team', 'équipe', 'equipe', 'team_name', 'nom_équipe', 'nom_equipe')
+        const teamName = findCol(
+          cols,
+          'team',
+          'équipe',
+          'equipe',
+          'team_name',
+          'nom_équipe',
+          'nom_equipe'
+        )
         const country = findCol(cols, 'pays', 'country', 'pays_code', 'country_code').toUpperCase()
         if (!firstName && !lastName && !email) continue
         const matchedTeam = teams.find(t => t.name.toLowerCase() === teamName.toLowerCase())
@@ -120,10 +153,13 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
       }
       setImportRows(rows)
       const emailsAndNames = new Set(
-        users.flatMap(u => [
-          u.email ? u.email.toLowerCase() : null,
-          u.name.toLowerCase().replace(/\s+/g, ' ').trim(),
-        ].filter(Boolean) as string[])
+        users.flatMap(
+          u =>
+            [
+              u.email ? u.email.toLowerCase() : null,
+              u.name.toLowerCase().replace(/\s+/g, ' ').trim(),
+            ].filter(Boolean) as string[]
+        )
       )
       setExistingEmailsAtParse(emailsAndNames)
       setImportDone(false)
@@ -138,7 +174,9 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
 
     // Build a local cache of team name -> id (including newly created ones)
     const teamCache: Record<string, string> = {}
-    teams.forEach(t => { teamCache[t.name.toLowerCase()] = t.id })
+    teams.forEach(t => {
+      teamCache[t.name.toLowerCase()] = t.id
+    })
 
     // Build identity key (email if present, else normalized full name) -> existing user id
     const identityKey = (email: string, name: string) =>
@@ -162,7 +200,11 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
           userId = existingId
         } else {
           // New user → create
-          const created = await createUser(row.name, row.email || '', row.country || undefined)
+          const created = await createUser({
+            name: row.name,
+            email: row.email || '',
+            country: row.country || undefined,
+          })
           userId = created.id
           existingByKey[key] = userId
         }
@@ -178,10 +220,20 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
         }
 
         // Update name/country/profile AFTER team assignment so nothing gets overwritten
-        await updateUser(userId, row.name, row.email, row.country || undefined, row.profile || undefined)
+        await updateUser({
+          id: userId,
+          name: row.name,
+          email: row.email,
+          country: row.country || undefined,
+          jobProfile: row.profile || undefined,
+        })
         updated[i] = { ...row, status: 'ok' }
       } catch (err: any) {
-        updated[i] = { ...row, status: 'error', error: err?.response?.data?.message || err.message || 'Error' }
+        updated[i] = {
+          ...row,
+          status: 'error',
+          error: err?.response?.data?.message || err.message || 'Error',
+        }
       }
       setImportRows([...updated])
     }
@@ -201,7 +253,7 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await createUser(name, email, country)
+      await createUser({ name, email, country })
       setName('')
       setEmail('')
       setCountry('')
@@ -238,7 +290,13 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
 
   const handleUpdateUser = async (userId: string) => {
     try {
-      await updateUser(userId, editName, editEmail, editCountry, editJobProfile || undefined)
+      await updateUser({
+        id: userId,
+        name: editName,
+        email: editEmail,
+        country: editCountry,
+        jobProfile: editJobProfile || undefined,
+      })
       setEditingUser(null)
       onUpdate()
     } catch (error) {
@@ -270,7 +328,11 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
         </h2>
         {!getAuthConfig().enabled && (
           <button
-            onClick={() => { setShowImport(true); setImportRows([]); setImportDone(false) }}
+            onClick={() => {
+              setShowImport(true)
+              setImportRows([])
+              setImportDone(false)
+            }}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium"
           >
             <FontAwesomeIcon icon={faFileImport} className="text-xs" />
@@ -280,12 +342,14 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
       </div>
       {!getAuthConfig().enabled && (
         <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3">
-          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Add user</p>
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
+            Add user
+          </p>
           <form onSubmit={handleCreateUser} className="flex flex-wrap gap-2">
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={e => setName(e.target.value)}
               placeholder="Full name"
               required
               className="px-2 py-1.5 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 min-w-[140px]"
@@ -293,17 +357,21 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
             <input
               type="text"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={e => setEmail(e.target.value)}
               placeholder="Email (optional)"
               className="px-2 py-1.5 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500 min-w-[160px]"
             />
             <select
               value={country}
-              onChange={(e) => setCountry(e.target.value)}
+              onChange={e => setCountry(e.target.value)}
               className="px-2 py-1.5 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
             >
               <option value="">Country…</option>
-              {countries.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+              {countries.map(c => (
+                <option key={c.code} value={c.code}>
+                  {c.name}
+                </option>
+              ))}
             </select>
             <button
               type="submit"
@@ -319,7 +387,9 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
       {getAuthConfig().enabled && (
         <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center gap-2">
           <FontAwesomeIcon icon={faUserGroup} className="text-blue-500 text-sm shrink-0" />
-          <p className="text-sm text-blue-700 dark:text-blue-300">SSO is enabled — users are created automatically on first login.</p>
+          <p className="text-sm text-blue-700 dark:text-blue-300">
+            SSO is enabled — users are created automatically on first login.
+          </p>
         </div>
       )}
 
@@ -327,7 +397,10 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
         {/* Search & filters bar */}
         <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 flex flex-wrap gap-2 items-center">
           <div className="relative flex-1 min-w-[140px]">
-            <FontAwesomeIcon icon={faMagnifyingGlass} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[11px] pointer-events-none" />
+            <FontAwesomeIcon
+              icon={faMagnifyingGlass}
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-[11px] pointer-events-none"
+            />
             <input
               type="text"
               value={search}
@@ -336,7 +409,10 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
               className="w-full pl-7 pr-6 py-1.5 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
                 <FontAwesomeIcon icon={faXmark} className="text-[10px]" />
               </button>
             )}
@@ -347,7 +423,11 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
             className="py-1.5 px-2 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
           >
             <option value="">All teams</option>
-            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            {teams.map(t => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
           </select>
           <select
             value={filterProfile}
@@ -355,65 +435,102 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
             className="py-1.5 px-2 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
           >
             <option value="">All profiles</option>
-            {JOB_PROFILES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+            {JOB_PROFILES.map(p => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
           </select>
           {(search || filterTeam || filterProfile) && (
-            <span className="text-xs text-slate-400">{filteredUsers.length} / {users.length}</span>
+            <span className="text-xs text-slate-400">
+              {filteredUsers.length} / {users.length}
+            </span>
           )}
         </div>
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
           <thead className="bg-slate-50 dark:bg-slate-900">
             <tr>
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Name</th>
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email</th>
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Country</th>
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Team</th>
-              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Profile</th>
-              <th className="px-4 py-2.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Name
+              </th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Email
+              </th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Country
+              </th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Team
+              </th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Profile
+              </th>
+              <th className="px-4 py-2.5 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
             {filteredUsers.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-400">No users match your search.</td></tr>
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-400">
+                  No users match your search.
+                </td>
+              </tr>
             )}
             {filteredUsers.map(user => (
-              <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+              <tr
+                key={user.id}
+                className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+              >
                 <td className="px-4 py-2.5 whitespace-nowrap text-sm font-medium text-slate-700 dark:text-slate-200">
                   {editingUser === user.id ? (
                     <input
                       type="text"
                       value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
+                      onChange={e => setEditName(e.target.value)}
                       className="px-2 py-1 text-sm rounded border border-blue-400 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none"
                     />
-                  ) : user.name}
+                  ) : (
+                    user.name
+                  )}
                 </td>
                 <td className="px-4 py-2.5 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                   {editingUser === user.id ? (
                     <input
                       type="email"
                       value={editEmail}
-                      onChange={(e) => setEditEmail(e.target.value)}
+                      onChange={e => setEditEmail(e.target.value)}
                       className="px-2 py-1 text-sm rounded border border-blue-400 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none"
                     />
-                  ) : user.email}
+                  ) : (
+                    user.email
+                  )}
                 </td>
                 <td className="px-4 py-2.5 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
                   {editingUser === user.id ? (
                     <select
                       value={editCountry}
-                      onChange={(e) => setEditCountry(e.target.value)}
+                      onChange={e => setEditCountry(e.target.value)}
                       className="px-2 py-1 text-sm rounded border border-blue-400 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none"
                     >
                       <option value="">None</option>
-                      {countries.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                      {countries.map(c => (
+                        <option key={c.code} value={c.code}>
+                          {c.name}
+                        </option>
+                      ))}
                     </select>
-                  ) : (user.country ? (
+                  ) : user.country ? (
                     <span className="flex items-center gap-1.5">
                       <span>{countryFlag(user.country)}</span>
-                      <span>{countries.find(c => c.code === user.country)?.name ?? user.country}</span>
+                      <span>
+                        {countries.find(c => c.code === user.country)?.name ?? user.country}
+                      </span>
                     </span>
-                  ) : '-')}
+                  ) : (
+                    '-'
+                  )}
                 </td>
                 <td className="px-4 py-2.5 whitespace-nowrap text-sm">
                   {getAuthConfig().enabled ? (
@@ -423,11 +540,15 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
                   ) : (
                     <select
                       value={user.teamId || ''}
-                      onChange={(e) => handleAssignTeam(user.id, e.target.value)}
+                      onChange={e => handleAssignTeam(user.id, e.target.value)}
                       className="py-1 px-2 text-sm rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-500"
                     >
                       <option value="">None</option>
-                      {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      {teams.map(t => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
                     </select>
                   )}
                 </td>
@@ -439,38 +560,60 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
                       className="px-2 py-1 text-sm rounded border border-blue-400 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none"
                     >
                       <option value="">None</option>
-                      {JOB_PROFILES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                      {JOB_PROFILES.map(p => (
+                        <option key={p.value} value={p.value}>
+                          {p.label}
+                        </option>
+                      ))}
                     </select>
                   ) : (
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                      {user.jobProfile
-                        ? JOB_PROFILES.find(p => p.value === user.jobProfile)?.label ?? user.jobProfile
-                        : <span className="text-slate-400">—</span>}
+                      {user.jobProfile ? (
+                        (JOB_PROFILES.find(p => p.value === user.jobProfile)?.label ??
+                        user.jobProfile)
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
                     </span>
                   )}
                 </td>
                 <td className="px-4 py-2.5 whitespace-nowrap text-right text-sm">
-                  {!getAuthConfig().enabled && (
-                    editingUser === user.id ? (
+                  {!getAuthConfig().enabled &&
+                    (editingUser === user.id ? (
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => handleUpdateUser(user.id)} className="text-green-600 hover:text-green-500 dark:text-green-400 transition-colors" title="Save">
+                        <button
+                          onClick={() => handleUpdateUser(user.id)}
+                          className="text-green-600 hover:text-green-500 dark:text-green-400 transition-colors"
+                          title="Save"
+                        >
                           <FontAwesomeIcon icon={faSave} />
                         </button>
-                        <button onClick={cancelEdit} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors" title="Cancel">
+                        <button
+                          onClick={cancelEdit}
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                          title="Cancel"
+                        >
                           <FontAwesomeIcon icon={faTimes} />
                         </button>
                       </div>
                     ) : (
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => startEdit(user)} className="text-slate-300 hover:text-blue-500 transition-colors" title="Edit">
+                        <button
+                          onClick={() => startEdit(user)}
+                          className="text-slate-300 hover:text-blue-500 transition-colors"
+                          title="Edit"
+                        >
                           <FontAwesomeIcon icon={faEdit} />
                         </button>
-                        <button onClick={() => handleDeleteUser(user.id)} className="text-slate-300 hover:text-red-500 transition-colors" title="Delete">
+                        <button
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="text-slate-300 hover:text-red-500 transition-colors"
+                          title="Delete"
+                        >
                           <FontAwesomeIcon icon={faTrash} />
                         </button>
                       </div>
-                    )
-                  )}
+                    ))}
                 </td>
               </tr>
             ))}
@@ -478,125 +621,206 @@ export default function UserManagement({ users, teams, onUpdate }: Props) {
         </table>
       </div>
       {/* CSV Import Modal — rendered via portal to escape scroll containers */}
-      {showImport && createPortal(
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => !importing && setShowImport(false)}>
-          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                <FontAwesomeIcon icon={faFileImport} className="text-blue-600" />
-                Import users from CSV
-              </h3>
-              <button onClick={() => !importing && setShowImport(false)} className="text-slate-400 hover:text-slate-600">
-                <FontAwesomeIcon icon={faTimes} />
-              </button>
-            </div>
-
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 space-y-2">
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
-                Accepted columns <span className="text-slate-400">(CSV or <code className="bg-slate-100 dark:bg-slate-700 px-1 rounded">;</code> separated)</span>
-              </p>
-              <div className="bg-slate-100 dark:bg-slate-700/60 rounded-lg p-3 font-mono text-[11px] text-slate-600 dark:text-slate-300 overflow-x-auto">
-                <div className="text-slate-400 mb-1"># Required</div>
-                <div><span className="text-blue-500">prénom</span> / <span className="text-blue-500">prenom</span> / <span className="text-blue-500">firstname</span></div>
-                <div><span className="text-blue-500">nom</span> / <span className="text-blue-500">lastname</span></div>
-                <div className="mt-2 text-slate-400"># Optional</div>
-                <div><span className="text-slate-500">email</span> / <span className="text-slate-500">mail</span></div>
-                <div><span className="text-slate-500">pays</span> / <span className="text-slate-500">country</span> &nbsp;<span className="text-slate-400">(2-letter code: FR, US…)</span></div>
-                <div><span className="text-slate-500">profile</span> / <span className="text-slate-500">profil</span> &nbsp;<span className="text-slate-400">(dev, ops, design, qa, pm, data, codir, it_corp, bo, ml, instru, other)</span></div>
-                <div><span className="text-slate-500">team</span> / <span className="text-slate-500">équipe</span> &nbsp;<span className="text-slate-400">(created if missing)</span></div>
+      {showImport &&
+        createPortal(
+          <div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => !importing && setShowImport(false)}
+          >
+            <div
+              className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+                <h3 className="font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  <FontAwesomeIcon icon={faFileImport} className="text-blue-600" />
+                  Import users from CSV
+                </h3>
+                <button
+                  onClick={() => !importing && setShowImport(false)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
               </div>
-              <div className="mt-2 bg-slate-100 dark:bg-slate-700/60 rounded-lg p-3 font-mono text-[11px] text-slate-600 dark:text-slate-300 overflow-x-auto">
-                <div className="text-slate-400 mb-1"># Example</div>
-                <div>prénom;nom;email;pays;profile;team</div>
-                <div>Jean;Dupont;jean@corp.fr;FR;dev;Backend</div>
-                <div>Marie;Martin;;FR;pm;Product</div>
-              </div>
-              <label className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded cursor-pointer transition-colors">
-                <FontAwesomeIcon icon={faFileImport} />
-                Choose file
-                <input type="file" accept=".csv,.txt" onChange={handleCSVFile} className="hidden" />
-              </label>
-            </div>
 
-            {importRows.length > 0 && (
-              <>
-                <div className="overflow-y-auto flex-1 px-6 py-3">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-xs text-slate-400 uppercase border-b border-slate-100 dark:border-slate-700">
-                        <th className="pb-2 text-left font-medium">Action</th>
-                        <th className="pb-2 text-left font-medium">Name</th>
-                        <th className="pb-2 text-left font-medium">Email</th>
-                        <th className="pb-2 text-left font-medium">Country</th>
-                        <th className="pb-2 text-left font-medium">Profile</th>
-                        <th className="pb-2 text-left font-medium">Team</th>
-                        <th className="pb-2 text-left font-medium">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50 dark:divide-slate-700/50">
-                      {importRows.map((row, i) => {
-                        const rowKey = row.email ? row.email.toLowerCase() : row.name.toLowerCase().replace(/\s+/g, ' ').trim()
-                        const isExisting = existingEmailsAtParse.has(rowKey)
-                        const profileLabel = row.profile ? (JOB_PROFILES.find(p => p.value === row.profile)?.label ?? row.profile) : '—'
-                        return (
-                        <tr key={i} className="py-1">
-                          <td className="py-1.5 pr-3">
-                            {isExisting
-                              ? <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">update</span>
-                              : <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">create</span>}
-                          </td>
-                          <td className="py-1.5 pr-3 font-medium text-slate-800 dark:text-slate-100">{row.name || <span className="text-red-400">—</span>}</td>
-                          <td className="py-1.5 pr-3 text-slate-600 dark:text-slate-300">{row.email || <span className="text-slate-400">—</span>}</td>
-                          <td className="py-1.5 pr-3 text-slate-500">{row.country || '—'}</td>
-                          <td className="py-1.5 pr-3 text-slate-500">{profileLabel}</td>
-                          <td className="py-1.5 pr-3">
-                            {row.teamName ? (
-                              row.teamId
-                                ? <span className="text-emerald-600 dark:text-emerald-400">{row.teamName}</span>
-                                : <span className="text-blue-500" title="Will be created">{row.teamName} <span className="text-xs">(new)</span></span>
-                            ) : '—'}
-                          </td>
-                          <td className="py-1.5">
-                            {row.status === 'pending' && <span className="text-slate-400 text-xs">Pending</span>}
-                            {row.status === 'ok' && <FontAwesomeIcon icon={faCheckCircle} className="text-emerald-500" />}
-                            {row.status === 'error' && (
-                              <span className="text-red-500 text-xs flex items-center gap-1">
-                                <FontAwesomeIcon icon={faExclamationTriangle} />
-                                {row.error}
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
-                  <span className="text-sm text-slate-500">{importRows.length} row{importRows.length !== 1 ? 's' : ''} detected</span>
-                  <div className="flex gap-2">
-                    {importDone && (
-                      <button onClick={() => setShowImport(false)} className="px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded transition-colors">
-                        Close
-                      </button>
-                    )}
-                    {!importDone && (
-                      <button
-                        onClick={runImport}
-                        disabled={importing}
-                        className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white rounded flex items-center gap-2 transition-colors"
-                      >
-                        {importing && <FontAwesomeIcon icon={faSpinner} className="animate-spin" />}
-                        {importing ? 'Importing…' : 'Import'}
-                      </button>
-                    )}
+              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 space-y-2">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+                  Accepted columns{' '}
+                  <span className="text-slate-400">
+                    (CSV or <code className="bg-slate-100 dark:bg-slate-700 px-1 rounded">;</code>{' '}
+                    separated)
+                  </span>
+                </p>
+                <div className="bg-slate-100 dark:bg-slate-700/60 rounded-lg p-3 font-mono text-[11px] text-slate-600 dark:text-slate-300 overflow-x-auto">
+                  <div className="text-slate-400 mb-1"># Required</div>
+                  <div>
+                    <span className="text-blue-500">prénom</span> /{' '}
+                    <span className="text-blue-500">prenom</span> /{' '}
+                    <span className="text-blue-500">firstname</span>
+                  </div>
+                  <div>
+                    <span className="text-blue-500">nom</span> /{' '}
+                    <span className="text-blue-500">lastname</span>
+                  </div>
+                  <div className="mt-2 text-slate-400"># Optional</div>
+                  <div>
+                    <span className="text-slate-500">email</span> /{' '}
+                    <span className="text-slate-500">mail</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">pays</span> /{' '}
+                    <span className="text-slate-500">country</span> &nbsp;
+                    <span className="text-slate-400">(2-letter code: FR, US…)</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">profile</span> /{' '}
+                    <span className="text-slate-500">profil</span> &nbsp;
+                    <span className="text-slate-400">
+                      (dev, ops, design, qa, pm, data, codir, it_corp, bo, ml, instru, other)
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">team</span> /{' '}
+                    <span className="text-slate-500">équipe</span> &nbsp;
+                    <span className="text-slate-400">(created if missing)</span>
                   </div>
                 </div>
-              </>
-            )}
-          </div>
-        </div>
-      , document.body)}
-      </div>
+                <div className="mt-2 bg-slate-100 dark:bg-slate-700/60 rounded-lg p-3 font-mono text-[11px] text-slate-600 dark:text-slate-300 overflow-x-auto">
+                  <div className="text-slate-400 mb-1"># Example</div>
+                  <div>prénom;nom;email;pays;profile;team</div>
+                  <div>Jean;Dupont;jean@corp.fr;FR;dev;Backend</div>
+                  <div>Marie;Martin;;FR;pm;Product</div>
+                </div>
+                <label className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded cursor-pointer transition-colors">
+                  <FontAwesomeIcon icon={faFileImport} />
+                  Choose file
+                  <input
+                    type="file"
+                    accept=".csv,.txt"
+                    onChange={handleCSVFile}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {importRows.length > 0 && (
+                <>
+                  <div className="overflow-y-auto flex-1 px-6 py-3">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-xs text-slate-400 uppercase border-b border-slate-100 dark:border-slate-700">
+                          <th className="pb-2 text-left font-medium">Action</th>
+                          <th className="pb-2 text-left font-medium">Name</th>
+                          <th className="pb-2 text-left font-medium">Email</th>
+                          <th className="pb-2 text-left font-medium">Country</th>
+                          <th className="pb-2 text-left font-medium">Profile</th>
+                          <th className="pb-2 text-left font-medium">Team</th>
+                          <th className="pb-2 text-left font-medium">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50 dark:divide-slate-700/50">
+                        {importRows.map((row, i) => {
+                          const rowKey = row.email
+                            ? row.email.toLowerCase()
+                            : row.name.toLowerCase().replace(/\s+/g, ' ').trim()
+                          const isExisting = existingEmailsAtParse.has(rowKey)
+                          const profileLabel = row.profile
+                            ? (JOB_PROFILES.find(p => p.value === row.profile)?.label ??
+                              row.profile)
+                            : '—'
+                          return (
+                            <tr key={i} className="py-1">
+                              <td className="py-1.5 pr-3">
+                                {isExisting ? (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+                                    update
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
+                                    create
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-1.5 pr-3 font-medium text-slate-800 dark:text-slate-100">
+                                {row.name || <span className="text-red-400">—</span>}
+                              </td>
+                              <td className="py-1.5 pr-3 text-slate-600 dark:text-slate-300">
+                                {row.email || <span className="text-slate-400">—</span>}
+                              </td>
+                              <td className="py-1.5 pr-3 text-slate-500">{row.country || '—'}</td>
+                              <td className="py-1.5 pr-3 text-slate-500">{profileLabel}</td>
+                              <td className="py-1.5 pr-3">
+                                {row.teamName ? (
+                                  row.teamId ? (
+                                    <span className="text-emerald-600 dark:text-emerald-400">
+                                      {row.teamName}
+                                    </span>
+                                  ) : (
+                                    <span className="text-blue-500" title="Will be created">
+                                      {row.teamName} <span className="text-xs">(new)</span>
+                                    </span>
+                                  )
+                                ) : (
+                                  '—'
+                                )}
+                              </td>
+                              <td className="py-1.5">
+                                {row.status === 'pending' && (
+                                  <span className="text-slate-400 text-xs">Pending</span>
+                                )}
+                                {row.status === 'ok' && (
+                                  <FontAwesomeIcon
+                                    icon={faCheckCircle}
+                                    className="text-emerald-500"
+                                  />
+                                )}
+                                {row.status === 'error' && (
+                                  <span className="text-red-500 text-xs flex items-center gap-1">
+                                    <FontAwesomeIcon icon={faExclamationTriangle} />
+                                    {row.error}
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                    <span className="text-sm text-slate-500">
+                      {importRows.length} row{importRows.length !== 1 ? 's' : ''} detected
+                    </span>
+                    <div className="flex gap-2">
+                      {importDone && (
+                        <button
+                          onClick={() => setShowImport(false)}
+                          className="px-4 py-2 text-sm bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded transition-colors"
+                        >
+                          Close
+                        </button>
+                      )}
+                      {!importDone && (
+                        <button
+                          onClick={runImport}
+                          disabled={importing}
+                          className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white rounded flex items-center gap-2 transition-colors"
+                        >
+                          {importing && (
+                            <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
+                          )}
+                          {importing ? 'Importing…' : 'Import'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
+    </div>
   )
 }

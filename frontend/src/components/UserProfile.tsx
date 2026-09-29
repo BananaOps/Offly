@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faUser, faEnvelope, faGlobe, faUserGroup, faTimes, faSave } from '@fortawesome/free-solid-svg-icons'
+import {
+  faUser,
+  faEnvelope,
+  faGlobe,
+  faUserGroup,
+  faTimes,
+  faSave,
+} from '@fortawesome/free-solid-svg-icons'
 import { User, Team, JOB_PROFILES } from '../types'
 import { getUsers, getTeams, updateUser, assignUserToTeam } from '../api'
 import { countries } from '../utils/holidayManager'
@@ -24,11 +31,8 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
 
   const loadData = async () => {
     try {
-      const [usersData, teamsData] = await Promise.all([
-        getUsers(),
-        getTeams()
-      ])
-      
+      const [usersData, teamsData] = await Promise.all([getUsers(), getTeams()])
+
       const currentUser = usersData.find(u => u.email === userEmail)
       if (currentUser) {
         setUser(currentUser)
@@ -36,7 +40,7 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
         setTeamId(currentUser.teamId || '')
         setJobProfile(currentUser.jobProfile || '')
       }
-      
+
       setTeams(teamsData)
       setLoading(false)
     } catch (error) {
@@ -49,12 +53,12 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
     if (!user) return
 
     try {
-      await updateUser(user.id, user.name, user.email, country, jobProfile)
-      
+      await updateUser({ id: user.id, name: user.name, email: user.email, country, jobProfile })
+
       if (teamId !== user.teamId) {
         await assignUserToTeam(user.id, teamId)
       }
-      
+
       onClose()
     } catch (error) {
       console.error('Error saving profile:', error)
@@ -75,11 +79,15 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
     return null
   }
 
-
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 my-auto flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 my-auto flex flex-col max-h-[90vh]"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-6 flex-shrink-0">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <FontAwesomeIcon icon={faUser} className="text-primary" />
@@ -130,12 +138,14 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
             </label>
             <select
               value={country}
-              onChange={(e) => setCountry(e.target.value)}
+              onChange={e => setCountry(e.target.value)}
               className="w-full px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 bg-white dark:bg-gray-700 text-gray-900 dark:text-white cursor-pointer transition-all"
             >
               <option value="">Select country</option>
               {countries.map(c => (
-                <option key={c.code} value={c.code}>{c.name}</option>
+                <option key={c.code} value={c.code}>
+                  {c.name}
+                </option>
               ))}
             </select>
           </div>
@@ -148,12 +158,14 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
             </label>
             <select
               value={teamId}
-              onChange={(e) => setTeamId(e.target.value)}
+              onChange={e => setTeamId(e.target.value)}
               className="w-full px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 bg-white dark:bg-gray-700 text-gray-900 dark:text-white cursor-pointer transition-all"
             >
               <option value="">None</option>
               {teams.map(team => (
-                <option key={team.id} value={team.id}>{team.name}</option>
+                <option key={team.id} value={team.id}>
+                  {team.name}
+                </option>
               ))}
             </select>
           </div>
@@ -166,12 +178,14 @@ export default function UserProfile({ userEmail, onClose }: UserProfileProps) {
             </label>
             <select
               value={jobProfile}
-              onChange={(e) => setJobProfile(e.target.value)}
+              onChange={e => setJobProfile(e.target.value)}
               className="w-full px-4 py-2 rounded-lg border-2 border-gray-200 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 bg-white dark:bg-gray-700 text-gray-900 dark:text-white cursor-pointer transition-all"
             >
               <option value="">None</option>
               {JOB_PROFILES.map(p => (
-                <option key={p.value} value={p.value}>{p.label}</option>
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
               ))}
             </select>
           </div>

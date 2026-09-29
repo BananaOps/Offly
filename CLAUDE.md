@@ -135,9 +135,27 @@ on purpose — changing screen must not silently redefine the scope.
 The pre-redesign components (`AbsenceGrid`, `PresenceView`, `UserManagement`, `TeamManagement`,
 `HolidayManagement`, `Sidebar`, `Banner`, `Footer`, `QuickSearch`, `Logo`) are still in the tree
 but no longer mounted — they are the source of the remaining eslint errors. Delete them once the
-redesign is accepted. Three capabilities went with them and have **no replacement yet**: dark mode
-(`hooks/useDarkMode.ts`), the daily presence view, and all CRUD for users, teams and holidays —
-so a job profile can currently only be set through the API.
+redesign is accepted. Two capabilities went with them and have **no replacement yet**: dark mode
+(`hooks/useDarkMode.ts`) and the daily presence view. Team and holiday CRUD are still API-only;
+people CRUD came back with `PersonForm` (below).
+
+`components/offly/PersonForm.tsx` is the annuaire's only write surface: a modal opened from the
+People screen (« Ajouter une personne », or « Modifier » on a row) carrying name, email, team,
+profile and country. `OfflyApp.savePerson` writes it — `PUT /users/{id}` for the fields, then
+`POST /users/{id}/team` **only when the team changed**. `UpdateUserRequest` deliberately carries no
+`team_id`: adding one would let any client that omits it wipe the team, exactly the failure
+`jobProfile` already had. `CreateUserRequest` does carry `team_id` and `job_profile`, so a new
+person is one request and never lands half-filled. The backend de-duplicates on email and returns
+the *existing* record, so `savePerson` compares the returned id against the loaded users and raises
+« Cette personne existe déjà » rather than letting a silent no-op look like a creation.
+Deleting a person deletes their absences server-side (`UserServiceServer.DeleteUser`) — otherwise
+the rows stay in storage with no owner.
+
+Write actions follow the backend RBAC: creating and deleting are admin-only (`isAdmin()` from
+`auth.ts`, refreshed from `/api/v1/auth/me`), while a non-admin can edit their own record, team
+included — `POST /users/{id}/team` on one's own id passes `rbacMiddleware`. With `AUTH_ENABLED`
+off, everyone is an admin. Per design.md, a button without a subject is not rendered rather than
+rendered disabled.
 
 `api.ts` and `api/holidays.ts` are hand-written axios clients against `/api/v1` with
 `withCredentials: true`; `types.ts` is hand-maintained and **not** generated from the proto. The

@@ -5,8 +5,16 @@ import (
 	pb "absence-management/proto/absence/v1"
 	"context"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
+)
+
+// Bornes ouvertes pour balayer toutes les absences d'une personne : SQLite
+// compare les dates en SQL, un time.Time nul y exclurait toutes les lignes.
+var (
+	absenceEpoch   = time.Unix(0, 0).UTC()
+	absenceForever = time.Date(9999, time.December, 31, 0, 0, 0, 0, time.UTC)
 )
 
 type UserServiceServer struct {
@@ -41,10 +49,12 @@ func (s *UserServiceServer) CreateUser(ctx context.Context, req *pb.CreateUserRe
 	}
 
 	user := &storage.User{
-		ID:      uuid.New().String(),
-		Name:    req.Name,
-		Email:   req.Email,
-		Country: strings.ToUpper(req.Country),
+		ID:         uuid.New().String(),
+		Name:       req.Name,
+		Email:      req.Email,
+		Country:    strings.ToUpper(req.Country),
+		TeamID:     req.TeamId,
+		JobProfile: req.JobProfile,
 	}
 
 	if err := s.storage.CreateUser(user); err != nil {
@@ -52,10 +62,12 @@ func (s *UserServiceServer) CreateUser(ctx context.Context, req *pb.CreateUserRe
 	}
 
 	return &pb.CreateUserResponse{User: &pb.User{
-		Id:      user.ID,
-		Name:    user.Name,
-		Email:   user.Email,
-		Country: user.Country,
+		Id:         user.ID,
+		Name:       user.Name,
+		Email:      user.Email,
+		TeamId:     user.TeamID,
+		Country:    user.Country,
+		JobProfile: user.JobProfile,
 	}}, nil
 }
 
@@ -150,6 +162,14 @@ func (s *UserServiceServer) UpdateUser(ctx context.Context, req *pb.UpdateUserRe
 }
 
 func (s *UserServiceServer) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest) (*pb.DeleteUserResponse, error) {
+	// Les absences de la personne partent avec elle : sans cela elles resteraient
+	// en base sans porteur, invisibles dans l'interface et exportées par personne.
+	if absences, err := s.storage.GetAbsences(req.Id, absenceEpoch, absenceForever); err == nil {
+		for _, a := range absences {
+			_ = s.storage.DeleteAbsence(a.ID)
+		}
+	}
+
 	if err := s.storage.DeleteUser(req.Id); err != nil {
 		return &pb.DeleteUserResponse{Success: false}, err
 	}

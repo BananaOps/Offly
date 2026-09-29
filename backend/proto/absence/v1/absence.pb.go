@@ -839,10 +839,14 @@ func (x *DeleteAbsenceResponse) GetSuccess() bool {
 
 // User messages
 type CreateUserRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	Country       string                 `protobuf:"bytes,3,opt,name=country,proto3" json:"country,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Name    string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Email   string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	Country string                 `protobuf:"bytes,3,opt,name=country,proto3" json:"country,omitempty"`
+	// Équipe et profil sont posés à la création : sans eux, l'écran Personnes
+	// devrait enchaîner trois appels et laisser une fiche incomplète en cas d'échec.
+	TeamId        string `protobuf:"bytes,4,opt,name=team_id,json=teamId,proto3" json:"team_id,omitempty"`
+	JobProfile    string `protobuf:"bytes,5,opt,name=job_profile,json=jobProfile,proto3" json:"job_profile,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -894,6 +898,20 @@ func (x *CreateUserRequest) GetEmail() string {
 func (x *CreateUserRequest) GetCountry() string {
 	if x != nil {
 		return x.Country
+	}
+	return ""
+}
+
+func (x *CreateUserRequest) GetTeamId() string {
+	if x != nil {
+		return x.TeamId
+	}
+	return ""
+}
+
+func (x *CreateUserRequest) GetJobProfile() string {
+	if x != nil {
+		return x.JobProfile
 	}
 	return ""
 }
@@ -2734,11 +2752,14 @@ const file_absence_v1_absence_proto_rawDesc = "" +
 	"\x14DeleteAbsenceRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"1\n" +
 	"\x15DeleteAbsenceResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"W\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x91\x01\n" +
 	"\x11CreateUserRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x18\n" +
-	"\acountry\x18\x03 \x01(\tR\acountry\":\n" +
+	"\acountry\x18\x03 \x01(\tR\acountry\x12\x17\n" +
+	"\ateam_id\x18\x04 \x01(\tR\x06teamId\x12\x1f\n" +
+	"\vjob_profile\x18\x05 \x01(\tR\n" +
+	"jobProfile\":\n" +
 	"\x12CreateUserResponse\x12$\n" +
 	"\x04user\x18\x01 \x01(\v2\x10.absence.v1.UserR\x04user\"\x11\n" +
 	"\x0fGetUsersRequest\":\n" +

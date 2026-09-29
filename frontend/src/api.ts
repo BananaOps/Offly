@@ -9,24 +9,45 @@ const api = axios.create({
   withCredentials: true, // Send cookies with requests
 })
 
+/**
+ * La passerelle gRPC émet du camelCase, mais certains chemins renvoient encore du
+ * snake_case : on normalise ici plutôt que dans chaque écran.
+ */
+const normalizeUser = (u: any): User => ({
+  ...u,
+  teamId: u.teamId ?? u.team_id ?? '',
+  jobProfile: u.jobProfile ?? u.job_profile,
+})
+
 export const getUsers = async (): Promise<User[]> => {
-  const response = await api.get('/users')
-  const raw = response.data.users || []
-  return raw.map((u: any) => ({
-    ...u,
-    teamId: u.teamId ?? u.team_id,
-    jobProfile: u.jobProfile ?? u.job_profile,
-  }))
+  const raw = (await api.get('/users')).data.users || []
+  return raw.map(normalizeUser)
 }
 
-export const createUser = async (name: string, email: string, country?: string): Promise<User> => {
-  const response = await api.post('/users', { name, email, country })
-  return response.data
+/** Champs modifiables d'une personne ; `id` absent = création. */
+export interface UserDraft {
+  id?: string
+  name: string
+  email: string
+  country?: string
+  teamId?: string
+  jobProfile?: string
+}
+
+export const createUser = async (draft: UserDraft): Promise<User> => {
+  const response = await api.post('/users', {
+    name: draft.name,
+    email: draft.email,
+    country: draft.country ?? '',
+    teamId: draft.teamId ?? '',
+    jobProfile: draft.jobProfile ?? '',
+  })
+  return normalizeUser(response.data.user ?? response.data)
 }
 
 export const assignUserToTeam = async (userId: string, teamId: string): Promise<User> => {
   const response = await api.post(`/users/${userId}/team`, { userId, teamId })
-  return response.data
+  return normalizeUser(response.data.user ?? response.data)
 }
 
 export const getTeams = async (): Promise<Team[]> => {
@@ -40,7 +61,11 @@ export const createTeam = async (name: string): Promise<Team> => {
   return response.data
 }
 
-export const getAbsences = async (userId?: string, startDate?: string, endDate?: string): Promise<Absence[]> => {
+export const getAbsences = async (
+  userId?: string,
+  startDate?: string,
+  endDate?: string
+): Promise<Absence[]> => {
   const params: any = {}
   if (userId) params.userId = userId
   if (startDate) {
@@ -53,7 +78,7 @@ export const getAbsences = async (userId?: string, startDate?: string, endDate?:
     // Sinon, convertir YYYY-MM-DD en RFC3339
     params.endDate = endDate.includes('T') ? endDate : `${endDate}T23:59:59Z`
   }
-  
+
   const response = await api.get('/absences', { params })
   return response.data.absences || []
 }
@@ -97,9 +122,18 @@ export const deleteAbsence = async (id: string): Promise<void> => {
 }
 
 // User update and delete
-export const updateUser = async (id: string, name: string, email: string, country?: string, jobProfile?: string): Promise<User> => {
-  const response = await api.put(`/users/${id}`, { id, name, email, country, title: jobProfile })
-  return response.data
+export const updateUser = async (draft: UserDraft & { id: string }): Promise<User> => {
+  // `jobProfile` est le champ retenu par le service ; `title` reste envoyé pour les
+  // déploiements dont le backend est antérieur au champ explicite.
+  const response = await api.put(`/users/${draft.id}`, {
+    id: draft.id,
+    name: draft.name,
+    email: draft.email,
+    country: draft.country ?? '',
+    jobProfile: draft.jobProfile ?? '',
+    title: draft.jobProfile ?? '',
+  })
+  return normalizeUser(response.data.user ?? response.data)
 }
 
 export const deleteUser = async (id: string): Promise<void> => {

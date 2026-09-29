@@ -121,7 +121,9 @@ Un seul niveau de titre par écran. Pas de gras dans le corps de texte : la hié
 
 ### Écrans secondaires
 - **TeamCard** (Équipes) — nom, effectif, répartition par drapeau, deux barres de couverture matin / après-midi (rose sous le seuil), liste des membres avec drapeau et badge d'état du jour, pied « Prochaine tension ».
-- **PeopleTable** (Personnes) — recherche, chips d'équipe, filtre de profil, lignes : avatar, nom, équipe, profil, drapeau + pays, demi-journées posées, prochaine absence, badge du jour. La recherche porte aussi sur le libellé de profil.
+- **PeopleTable** (Personnes) — recherche, chips d'équipe, filtre de profil, lignes : avatar, nom, équipe, profil, drapeau + pays, demi-journées posées, prochaine absence, badge du jour, et « Modifier » en bouton fantôme en fin de ligne. La recherche porte aussi sur le libellé de profil.
+- **PersonForm** (Personnes) — fiche d'une personne en modale : nom, e-mail, équipe et profil côte à côte, pays. Ouverte par « Ajouter une personne » (bouton primaire en tête d'écran) ou par le « Modifier » d'une ligne. La suppression vit dans la fiche, à gauche du pied, et demande une confirmation nommant la personne et le sort de ses absences — pas de `confirm()` du navigateur. Le rose de l'alerte est la seule teinte qu'emprunte la suppression ; le système n'introduit pas de couleur de danger.
+- **Modal** — voile `rgba(20,20,30,.28)`, carte de 420 px centrée, même élévation qu'un menu flottant. Fermeture par Échap, par le voile ou par « Annuler ». Réservée à l'administration de l'annuaire : la saisie d'absence, elle, reste dans la grille.
 - **ProfileFilter** (Calendrier, Personnes) — sélecteur à choix unique aligné à droite de la rangée de chips. Il ne propose que les profils réellement portés par au moins une personne, et disparaît si aucun n'est renseigné : un filtre qui ne peut rien renvoyer n'a pas sa place. La colonne, elle, reste affichée avec « — » — le manque doit rester visible.
 - **HolidayCountryCard** (Jours fériés) — en-tête drapeau 20 px + pays + code ISO, liste des dates en mono avec le nom du jour ; les dates tombant un week-end sont marquées par le tag « week-end », pas par un gris affaibli.
 - **CountryFilterChips** — chips avec drapeau, sélection unique.
@@ -129,7 +131,7 @@ Un seul niveau de titre par écran. Pas de gras dans le corps de texte : la hié
 **Règle drapeaux.** Le pays est toujours porté par un drapeau emoji, jamais par une couleur : 12 px dans une ligne de grille, 12–14 px dans une liste, 20 px en en-tête de carte. Le code ISO reste disponible en `title` ou en pastille mono. Le drapeau est le seul emoji autorisé dans l'interface.
 
 ### À concevoir
-File de validation manager, gestion des fériés par pays (écran d'administration), variante sombre, états vides et de chargement.
+File de validation manager, administration des équipes (création, renommage, suppression), gestion des fériés par pays (écran d'administration), variante sombre, états vides et de chargement.
 
 ---
 
@@ -163,6 +165,7 @@ Le profil (`jobProfile`) qualifie le métier d'une personne : Développement, Op
 - **Les libellés vivent dans `frontend/src/lib/profiles.ts`**, en français et sans emoji. Le référentiel `JOB_PROFILES` de `types.ts` porte des libellés anglais préfixés d'un emoji, hérités de l'ancienne interface : ils restent la source des *valeurs* stockées, jamais du texte affiché.
 - **Le profil filtre, il ne groupe pas.** La grille reste groupée par équipe — design.md §1.3 : l'écran répond d'abord à « qui manque dans l'équipe ? ».
 - **Le filtre est partagé** entre le Calendrier et l'écran Personnes : on ne redéfinit pas un périmètre en changeant d'écran.
+- **Le profil se règle dans la fiche** (`PersonForm`), au même endroit que l'équipe et le pays : trois attributs d'annuaire, un seul formulaire.
 
 ---
 

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Holiday, Team, User } from '../../types'
+import { UserDraft } from '../../api'
 import {
   PART_LABEL,
   Placed,
@@ -13,6 +14,7 @@ import {
 } from '../../lib/halfday'
 import { countries } from '../../utils/holidayManager'
 import { profileLabel, usedProfiles } from '../../lib/profiles'
+import PersonForm from './PersonForm'
 
 interface Props {
   users: User[]
@@ -25,6 +27,12 @@ interface Props {
   selectedProfile: string
   onSelectProfile: (value: string) => void
   currentUser?: User
+  /** Administrateur : seul habilité à créer et supprimer une fiche. */
+  isAdmin: boolean
+  /** Fiches modifiables : la sienne, ou toutes pour un administrateur. */
+  canEdit: (user: User) => boolean
+  onSavePerson: (draft: UserDraft) => Promise<void>
+  onDeletePerson: (person: User) => Promise<void>
 }
 
 const COUNTRY_NAMES = new Map(countries.map(c => [c.code, c.name]))
@@ -37,6 +45,7 @@ const COLUMNS = [
   { label: 'Posé', width: 110 },
   { label: 'Prochaine absence', flex: true },
   { label: "Aujourd'hui", width: 92, right: true },
+  { label: '', width: 76, right: true },
 ]
 
 export default function PeopleScreen({
@@ -50,8 +59,14 @@ export default function PeopleScreen({
   selectedProfile,
   onSelectProfile,
   currentUser,
+  isAdmin,
+  canEdit,
+  onSavePerson,
+  onDeletePerson,
 }: Props) {
   const [query, setQuery] = useState('')
+  // `null` = aucune fiche ouverte, `undefined` = fiche vierge (création).
+  const [editing, setEditing] = useState<User | undefined | null>(null)
 
   const teamNames = useMemo(() => new Map(teams.map(t => [t.id, t.name])), [teams])
   const profiles = useMemo(() => usedProfiles(users), [users])
@@ -65,7 +80,8 @@ export default function PeopleScreen({
       postedBy.set(userId, (postedBy.get(userId) ?? 0) + (placed.part === 'full' ? 2 : 1))
       if (day >= today) {
         const current = nextBy.get(userId)
-        if (!current || day < current.day) nextBy.set(userId, { day, part: PART_LABEL[placed.part] })
+        if (!current || day < current.day)
+          nextBy.set(userId, { day, part: PART_LABEL[placed.part] })
       }
     }
 
@@ -105,15 +121,41 @@ export default function PeopleScreen({
   }, [users, absences, holidays, today, selectedTeam, selectedProfile, query])
 
   return (
-    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-      <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid var(--hairline)' }}>
-        <h1 className="o-h1">Personnes</h1>
-        <p className="o-sub">
-          {rows.length} {rows.length > 1 ? 'personnes' : 'personne'} · le pays détermine les jours fériés appliqués
-        </p>
+    <div
+      style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}
+    >
+      <div
+        style={{
+          padding: '18px 22px 14px',
+          borderBottom: '1px solid var(--hairline)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h1 className="o-h1">Personnes</h1>
+          <p className="o-sub">
+            {rows.length} {rows.length > 1 ? 'personnes' : 'personne'} · le pays détermine les jours
+            fériés appliqués
+          </p>
+        </div>
+        {isAdmin && (
+          <button type="button" className="o-btn" onClick={() => setEditing(undefined)}>
+            Ajouter une personne
+          </button>
+        )}
       </div>
 
-      <div style={{ padding: '16px 22px 0', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+      <div
+        style={{
+          padding: '16px 22px 0',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          flexWrap: 'wrap',
+        }}
+      >
         <input
           className="o-field"
           style={{ width: 230 }}
@@ -162,7 +204,7 @@ export default function PeopleScreen({
       </div>
 
       <div style={{ padding: '16px 22px 22px', overflowX: 'auto' }}>
-        <div style={{ minWidth: 900 }}>
+        <div style={{ minWidth: 980 }}>
           <div
             style={{
               display: 'flex',
@@ -204,7 +246,9 @@ export default function PeopleScreen({
                 borderBottom: '1px solid rgba(20,20,30,.05)',
               }}
             >
-              <div style={{ width: 230, display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+              <div
+                style={{ width: 230, display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}
+              >
                 <div
                   className={`o-avatar o-avatar--lg${row.user.id === currentUser?.id ? ' o-avatar--self' : ''}`}
                   aria-hidden="true"
@@ -213,12 +257,22 @@ export default function PeopleScreen({
                 </div>
                 <span className="o-truncate o-body">{row.user.name}</span>
               </div>
-              <span style={{ width: 105, font: "400 12px 'IBM Plex Sans', sans-serif", color: '#5a5a6b' }}>
+              <span
+                style={{
+                  width: 105,
+                  font: "400 12px 'IBM Plex Sans', sans-serif",
+                  color: '#5a5a6b',
+                }}
+              >
                 {row.user.teamId ? (teamNames.get(row.user.teamId) ?? '—') : '—'}
               </span>
               <span
                 className="o-truncate"
-                style={{ width: 130, font: "400 12px 'IBM Plex Sans', sans-serif", color: '#5a5a6b' }}
+                style={{
+                  width: 130,
+                  font: "400 12px 'IBM Plex Sans', sans-serif",
+                  color: '#5a5a6b',
+                }}
               >
                 {profileLabel(row.user.jobProfile) || '—'}
               </span>
@@ -232,10 +286,17 @@ export default function PeopleScreen({
                   color: '#5a5a6b',
                 }}
               >
-                {row.user.country && <span style={{ fontSize: 14, lineHeight: 1 }}>{countryFlag(row.user.country)}</span>}
+                {row.user.country && (
+                  <span style={{ fontSize: 14, lineHeight: 1 }}>
+                    {countryFlag(row.user.country)}
+                  </span>
+                )}
                 <span className="o-truncate">
                   {row.user.country
-                    ? countryName(row.user.country, COUNTRY_NAMES.get(row.user.country.toUpperCase()))
+                    ? countryName(
+                        row.user.country,
+                        COUNTRY_NAMES.get(row.user.country.toUpperCase())
+                      )
                     : '—'}
                 </span>
               </span>
@@ -248,10 +309,33 @@ export default function PeopleScreen({
               <span style={{ width: 92, display: 'flex', justifyContent: 'flex-end' }}>
                 <span className={row.status.className}>{row.status.label}</span>
               </span>
+              <span style={{ width: 76, display: 'flex', justifyContent: 'flex-end' }}>
+                {canEdit(row.user) && (
+                  <button
+                    type="button"
+                    className="o-ghost"
+                    onClick={() => setEditing(row.user)}
+                    aria-label={`Modifier ${row.user.name}`}
+                  >
+                    Modifier
+                  </button>
+                )}
+              </span>
             </div>
           ))}
         </div>
       </div>
+
+      {editing !== null && (
+        <PersonForm
+          person={editing}
+          teams={teams}
+          canDelete={isAdmin}
+          onSave={onSavePerson}
+          onDelete={onDeletePerson}
+          onClose={() => setEditing(null)}
+        />
+      )}
     </div>
   )
 }

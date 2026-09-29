@@ -55,44 +55,62 @@
 
 .o-h1 {
   margin: 0;
-  font: 600 18px/1.2 'IBM Plex Sans', sans-serif;
+  font:
+    600 18px/1.2 'IBM Plex Sans',
+    sans-serif;
   letter-spacing: -0.015em;
   color: var(--ink);
 }
 .o-sub {
   margin: 3px 0 0;
-  font: 400 12px 'IBM Plex Sans', sans-serif;
+  font:
+    400 12px 'IBM Plex Sans',
+    sans-serif;
   color: var(--muted);
 }
 .o-card-title {
-  font: 600 13px 'IBM Plex Sans', sans-serif;
+  font:
+    600 13px 'IBM Plex Sans',
+    sans-serif;
   color: var(--ink);
 }
 .o-team-name {
-  font: 600 11px 'IBM Plex Sans', sans-serif;
+  font:
+    600 11px 'IBM Plex Sans',
+    sans-serif;
   letter-spacing: 0.01em;
   color: var(--ink);
 }
 /* 9.5px sur --faint : 4.99:1 sur blanc, le plancher accessible de design.md §2. */
 .o-label {
-  font: 400 9.5px/1.4 'IBM Plex Mono', monospace;
+  font:
+    400 9.5px/1.4 'IBM Plex Mono',
+    monospace;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--faint);
 }
 .o-mono {
-  font: 500 11px 'IBM Plex Mono', monospace;
+  font:
+    500 11px 'IBM Plex Mono',
+    monospace;
 }
 .o-mono-sm {
-  font: 400 10.5px 'IBM Plex Mono', monospace;
+  font:
+    400 10.5px 'IBM Plex Mono',
+    monospace;
   color: var(--faint);
 }
 .o-body {
-  font: 400 12.5px 'IBM Plex Sans', sans-serif;
+  font:
+    400 12.5px 'IBM Plex Sans',
+    sans-serif;
   color: var(--ink);
 }
 .o-secondary {
-  font: 400 11.5px 'IBM Plex Sans', sans-serif;
+  font:
+    400 11.5px 'IBM Plex Sans',
+    sans-serif;
   color: var(--muted);
 }
 
@@ -105,9 +123,13 @@
   border-radius: 8px;
   background: var(--ink);
   color: #fff;
-  font: 500 12px 'IBM Plex Sans', sans-serif;
+  font:
+    500 12px 'IBM Plex Sans',
+    sans-serif;
   cursor: pointer;
-  transition: background 0.12s, transform 0.12s;
+  transition:
+    background 0.12s,
+    transform 0.12s;
 }
 .o-btn:hover {
   background: var(--accent);
@@ -131,9 +153,13 @@
   border-radius: 6px;
   background: transparent;
   color: var(--ink-2);
-  font: 500 11.5px 'IBM Plex Sans', sans-serif;
+  font:
+    500 11.5px 'IBM Plex Sans',
+    sans-serif;
   cursor: pointer;
-  transition: background 0.12s, color 0.12s;
+  transition:
+    background 0.12s,
+    color 0.12s;
 }
 .o-ghost:hover {
   background: var(--track);
@@ -161,9 +187,14 @@
   border-radius: var(--r-pill);
   background: var(--surface);
   color: var(--ink-2);
-  font: 400 11.5px 'IBM Plex Sans', sans-serif;
+  font:
+    400 11.5px 'IBM Plex Sans',
+    sans-serif;
   cursor: pointer;
-  transition: border-color 0.12s, background 0.12s, color 0.12s;
+  transition:
+    border-color 0.12s,
+    background 0.12s,
+    color 0.12s;
 }
 .o-chip:hover {
   border-color: var(--accent);
@@ -182,7 +213,9 @@
   border: 1px solid var(--border);
   border-radius: var(--r-ctl);
   background: var(--surface);
-  font: 400 12.5px 'IBM Plex Sans', sans-serif;
+  font:
+    400 12.5px 'IBM Plex Sans',
+    sans-serif;
   color: var(--ink);
   outline: none;
   transition: border-color 0.12s;
@@ -234,7 +267,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font: 500 9.5px 'IBM Plex Mono', monospace;
+  font:
+    500 9.5px 'IBM Plex Mono',
+    monospace;
   background: #f1f1f5;
   color: #7a7a8b;
 }
@@ -255,7 +290,9 @@
   justify-content: center;
   padding: 2px 8px;
   border-radius: 11px;
-  font: 500 10.5px 'IBM Plex Sans', sans-serif;
+  font:
+    500 10.5px 'IBM Plex Sans',
+    sans-serif;
   background: var(--track);
   color: #6b6b7b;
   white-space: nowrap;
@@ -348,7 +385,9 @@
   border: 0;
   border-radius: 6px;
   background: transparent;
-  font: 400 12px 'IBM Plex Sans', sans-serif;
+  font:
+    400 12px 'IBM Plex Sans',
+    sans-serif;
   color: var(--ink);
   cursor: pointer;
 }
@@ -394,8 +433,12 @@
   color: var(--ink-2);
   text-align: left;
   cursor: pointer;
-  font: 500 12.5px 'IBM Plex Sans', sans-serif;
-  transition: background 0.12s, color 0.12s;
+  font:
+    500 12.5px 'IBM Plex Sans',
+    sans-serif;
+  transition:
+    background 0.12s,
+    color 0.12s;
 }
 .o-rail__item:hover {
   background: var(--accent-soft);
@@ -483,7 +526,9 @@
   background: var(--surface);
   color: var(--ink-2);
   cursor: pointer;
-  transition: border-color 0.12s, color 0.12s;
+  transition:
+    border-color 0.12s,
+    color 0.12s;
 }
 .o-range:hover,
 .o-range[aria-expanded='true'] {
@@ -491,7 +536,9 @@
   color: var(--ink);
 }
 .o-range__value {
-  font: 500 11.5px 'IBM Plex Mono', monospace;
+  font:
+    500 11.5px 'IBM Plex Mono',
+    monospace;
   color: var(--ink);
   white-space: nowrap;
 }
@@ -531,7 +578,9 @@
   border: 0;
   border-radius: 6px;
   background: transparent;
-  font: 400 12px 'IBM Plex Sans', sans-serif;
+  font:
+    400 12px 'IBM Plex Sans',
+    sans-serif;
   color: var(--ink);
   cursor: pointer;
   white-space: nowrap;
@@ -566,9 +615,14 @@
   border-radius: var(--r-ctl);
   background: transparent;
   color: var(--muted);
-  font: 500 12px 'IBM Plex Sans', sans-serif;
+  font:
+    500 12px 'IBM Plex Sans',
+    sans-serif;
   cursor: pointer;
-  transition: background 0.14s, color 0.14s, box-shadow 0.14s;
+  transition:
+    background 0.14s,
+    color 0.14s,
+    box-shadow 0.14s;
 }
 .o-segmented__item[aria-pressed='true'] {
   background: var(--surface);
@@ -608,11 +662,56 @@
   color: var(--muted);
   cursor: pointer;
   text-align: center;
-  transition: border-color 0.12s, background 0.12s;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
 }
 .o-drop:hover,
 .o-drop:focus-within,
 .o-drop[data-over='true'] {
   border-color: var(--accent);
   background: var(--accent-soft);
+}
+
+/* --- Fiche modale (annuaire) --- */
+
+.o-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  background: rgba(20, 20, 30, 0.28);
+}
+.o-modal {
+  width: 420px;
+  max-width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid rgba(20, 20, 30, 0.1);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-menu);
+}
+
+/* Le rose ne sert qu'à l'alerte : une suppression l'emprunte, sans nouvelle teinte. */
+.o-btn--danger {
+  background: var(--alert-soft);
+  color: var(--alert-ink);
+  border: 1px solid #ffd3e7;
+}
+.o-btn--danger:hover {
+  background: #ffe3f0;
+  color: var(--alert-ink);
+  transform: none;
+}
+.o-ghost--danger {
+  color: var(--alert-ink);
+}
+.o-ghost--danger:hover {
+  background: var(--alert-soft);
+  color: var(--alert-ink);
 }
