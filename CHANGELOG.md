@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0](https://github.com/BananaOps/Offly/compare/v1.1.0...v1.2.0) (2026-10-01)
+
+
+### Features
+
+* add event management feature with CRUD operations ([0b4c6e7](https://github.com/BananaOps/Offly/commit/0b4c6e7d086def5ff37b2d6abc514db8cc08025f))
+* Enhance event categorization and display in calendar ([b3ed191](https://github.com/BananaOps/Offly/commit/b3ed1911883e97bde308491c71f359066ff70be3))
+* implement range selection for calendar with presets and absolute date input ([90829d3](https://github.com/BananaOps/Offly/commit/90829d38eae85137b70982f3260b5d7ac7432506))
+* implement team management features including creation, renaming, and deletion with proper handling of team members ([7b524b3](https://github.com/BananaOps/Offly/commit/7b524b3eadd93b94920d05c31f12a1aec2a597c1))
+* refactor country management to use centralized country directory and improve country handling in components ([8698a43](https://github.com/BananaOps/Offly/commit/8698a4372e3ac513b867a4ee8e8634159f3abe72))
+
 ## [1.1.0](https://github.com/BananaOps/Offly/compare/v1.0.0...v1.1.0) (2026-09-15)
 
 
