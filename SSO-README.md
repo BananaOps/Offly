@@ -39,12 +39,19 @@ Le frontend ne connaît ni l'issuer ni le client : il appelle seulement
 | Identité | Rôle Offly | Droits |
 |----------|-----------|--------|
 | Membre d'un groupe de `AUTH_ADMIN_GROUPS`, ou email dans `AUTH_ADMIN_EMAILS` | `admin` | Tout (organisation, jours fériés, utilisateurs, absences) |
-| Autre utilisateur autorisé | `user` | Lecture de tout ; écriture de son profil et de ses absences uniquement |
+| Autre utilisateur autorisé | `user` | Lecture de tout ; écriture de son profil, de ses absences, et des **événements** |
 | Hors `AUTH_ALLOWED_GROUPS` (si défini) | — | Connexion refusée (403) |
 | Non connecté | — | Lecture seule (GET) |
 
 Les groupes sont lus dans le claim `AUTH_GROUPS_CLAIM` (`groups` par défaut ;
 `roles` pour s'appuyer sur les *app roles* Entra ID).
+
+`/api/v1/events` est la **seule écriture ouverte à tout compte autorisé** : un
+repas d'équipe ou un midi jeux se propose, il ne s'administre pas. La règle est
+une autorisation explicite placée avant le refus par défaut du `rbacMiddleware` —
+la retirer ne libère pas l'endpoint, elle le ferme. Une identité hors
+`AUTH_ALLOWED_GROUPS` est traitée comme anonyme : elle lit, elle n'écrit pas,
+pas même un événement (`backend/cmd/server/rbac_test.go` épingle ces deux règles).
 
 ## Configuration
 

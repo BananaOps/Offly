@@ -186,6 +186,12 @@ helm upgrade offly offly/offly
 | `AUTH_CLIENT_SECRET` | OIDC client secret, used on the callback exchange | — |
 | `AUTH_JWKS_URL` | JWKS endpoint | `<issuer>/keys` |
 | `AUTH_JWKS_CACHE_TTL` | JWKS cache lifetime, in seconds | `3600` |
+| `AUTH_REDIRECT_URL` | Redirect URI registered at the provider | `http://localhost:8080/api/v1/auth/callback` |
+| `AUTH_POST_LOGIN_REDIRECT_URL` | Where the browser lands after login | `http://localhost:3000/` |
+| `AUTH_SCOPES` | Space-separated scopes (Entra ID: drop `groups`) | `openid profile email groups` |
+| `AUTH_GROUPS_CLAIM` | Claim holding the user's groups | `groups` |
+| `AUTH_ADMIN_GROUPS` | Comma-separated groups granted the `admin` role (`AUTH_ADMIN_GROUP` also read) | — |
+| `AUTH_ALLOWED_GROUPS` | Comma-separated groups allowed to log in; empty = any authenticated user | — |
 | `AUTH_ADMIN_EMAILS` | Comma-separated emails granted the `admin` role (`ADMIN_EMAILS` also read) | — |
 | `MCP_ENABLED` | Expose the read-only MCP server at `/mcp` | `false` |
 
@@ -194,16 +200,24 @@ back to the default. gRPC always binds to loopback — it is reached only by the
 
 ## 🔐 SSO Authentication
 
-Offly supports optional SSO via [Dex](https://dexidp.io) (OIDC/PKCE flow).
+Offly authenticates against any **OpenID Connect** provider — [Dex](https://dexidp.io) (bundled
+for development), **Microsoft Entra ID**, Keycloak… The backend drives the whole confidential
+authorization-code flow (state, nonce, PKCE); the frontend only ever calls `/api/v1/auth/login`.
 
 ```
-Browser ──PKCE──▶ Dex ──ID Token──▶ Backend ──JWT verify──▶ SQLite
+Browser ──login──▶ Backend ──authorize (state, nonce, PKCE)──▶ OIDC provider
+                       ◀── callback: code exchange, JWT verify, HttpOnly cookie
 ```
+
+Roles are granted **by group** (`AUTH_ADMIN_GROUPS`, read from the `AUTH_GROUPS_CLAIM` claim)
+and/or by email (`AUTH_ADMIN_EMAILS`).
 
 | Role | Permissions |
 |------|------------|
-| `admin` | Full access — users, teams, holidays, absences |
-| `user` | Read all · Edit own profile & absences only · Add and edit events |
+| `admin` | Full access — users, teams, holidays, absences, events |
+| `user` | Read all · Edit own profile & absences · Add and edit events |
+| Outside `AUTH_ALLOWED_GROUPS` | Login refused (403) |
+| Signed out | Read-only (GET) |
 
 See [SSO-README.md](SSO-README.md) for the full configuration guide.
 
