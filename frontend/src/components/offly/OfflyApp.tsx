@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Holiday, Team, User } from '../../types'
 import {
+  TeamDraft,
   UserDraft,
   assignUserToTeam,
   createAbsence,
+  createTeam,
   createUser,
   deleteAbsence,
+  deleteTeam,
   deleteUser,
   getAbsences,
   getTeams,
   getUsers,
   updateAbsence,
+  updateTeam,
   updateUser,
 } from '../../api'
 import { getHolidaysForCountryAndYear } from '../../utils/holidayManager'
@@ -216,13 +220,50 @@ export default function OfflyApp() {
     [fetchAbsences]
   )
 
-  const groups: Group[] = useMemo(() => {
+  /**
+   * Crée ou renomme une équipe. Comme pour les personnes, le backend renvoie
+   * l'équipe existante quand le nom est déjà pris : sans ce contrôle d'id, un
+   * doublon passerait pour une création réussie.
+   */
+  const saveTeam = useCallback(
+    async (draft: TeamDraft) => {
+      if (draft.id) {
+        await updateTeam(draft.id, draft.name)
+      } else {
+        const created = await createTeam(draft.name)
+        if (teams.some(t => t.id === created.id)) {
+          throw new Error('Cette équipe existe déjà : même nom.')
+        }
+      }
+      setTeams(await getTeams())
+    },
+    [teams]
+  )
+
+  // Le serveur détache les membres avant de supprimer l'équipe : on relit
+  // l'annuaire pour les voir repasser en « Sans équipe ».
+  const removeTeam = useCallback(async (team: Team) => {
+    await deleteTeam(team.id)
+    const [nextTeams, nextUsers] = await Promise.all([getTeams(), getUsers()])
+    setTeams(nextTeams)
+    setUsers(nextUsers)
+    // Un filtre resté sur l'équipe supprimée ne renverrait plus personne.
+    setSelectedTeam(current => (current === team.id ? 'all' : current))
+  }, [])
+
+  /**
+   * Les cartes de l'écran Équipes, équipes vides comprises : une équipe qu'on
+   * vient de créer n'a aucun membre, et sans carte il n'y aurait plus aucun
+   * chemin pour la renommer ou la supprimer.
+   */
+  const teamGroups: Group[] = useMemo(() => {
     const visible = users.filter(
       u =>
         (selectedTeam === 'all' || u.teamId === selectedTeam) &&
         (!selectedProfile || u.jobProfile === selectedProfile)
     )
     const byName = (a: User, b: User) => a.name.localeCompare(b.name)
+    const known = new Set(teams.map(team => team.id))
     const result: Group[] = teams
       .filter(team => selectedTeam === 'all' || team.id === selectedTeam)
       .map(team => ({
@@ -230,12 +271,20 @@ export default function OfflyApp() {
         name: team.name,
         members: visible.filter(u => u.teamId === team.id).sort(byName),
       }))
-      .filter(group => group.members.length > 0)
 
-    const orphans = visible.filter(u => !u.teamId).sort(byName)
+    // `teamId` pointant sur une équipe disparue : la personne est rangée ici,
+    // sinon elle ne figurerait sur aucun écran.
+    const orphans = visible.filter(u => !u.teamId || !known.has(u.teamId)).sort(byName)
     if (orphans.length > 0) result.push({ id: '__none__', name: 'Sans équipe', members: orphans })
     return result
   }, [users, teams, selectedTeam, selectedProfile])
+
+  // La grille, elle, n'affiche que les équipes peuplées : une ligne de groupe
+  // sans personne n'y porterait aucune information de couverture.
+  const groups: Group[] = useMemo(
+    () => teamGroups.filter(group => group.members.length > 0),
+    [teamGroups]
+  )
 
   const visibleCount = useMemo(() => groups.reduce((n, g) => n + g.members.length, 0), [groups])
 
@@ -358,12 +407,16 @@ export default function OfflyApp() {
 
         {screen === 'teams' && (
           <TeamsScreen
-            groups={groups}
+            groups={teamGroups}
+            teams={teams}
             today={today}
             scanDays={scanDays}
             absences={absenceIndex}
             holidays={holidayIndex}
             threshold={threshold}
+            isAdmin={admin}
+            onSaveTeam={saveTeam}
+            onDeleteTeam={removeTeam}
           />
         )}
 

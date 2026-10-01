@@ -56,9 +56,20 @@ export const getTeams = async (): Promise<Team[]> => {
   return teams.slice().sort((a: Team, b: Team) => a.name.localeCompare(b.name))
 }
 
+/** Champs modifiables d'une équipe ; `id` absent = création. */
+export interface TeamDraft {
+  id?: string
+  name: string
+}
+
+// La passerelle enveloppe la réponse dans `{ team: ... }` ; le repli couvre les
+// chemins qui renvoient l'objet nu.
+const unwrapTeam = (data: { team?: Team } | Team): Team =>
+  'team' in data && data.team ? data.team : (data as Team)
+
 export const createTeam = async (name: string): Promise<Team> => {
   const response = await api.post('/teams', { name })
-  return response.data
+  return unwrapTeam(response.data)
 }
 
 export const getAbsences = async (
@@ -143,7 +154,7 @@ export const deleteUser = async (id: string): Promise<void> => {
 // Team update and delete
 export const updateTeam = async (id: string, name: string): Promise<Team> => {
   const response = await api.put(`/teams/${id}`, { id, name })
-  return response.data
+  return unwrapTeam(response.data)
 }
 
 export const deleteTeam = async (id: string): Promise<void> => {

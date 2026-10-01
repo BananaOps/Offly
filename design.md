@@ -120,7 +120,8 @@ Un seul niveau de titre par écran. Pas de gras dans le corps de texte : la hié
 - **Avatar** — initiales sur 2 lettres, mono.
 
 ### Écrans secondaires
-- **TeamCard** (Équipes) — nom, effectif, répartition par drapeau, deux barres de couverture matin / après-midi (rose sous le seuil), liste des membres avec drapeau et badge d'état du jour, pied « Prochaine tension ».
+- **TeamCard** (Équipes) — nom, effectif, répartition par drapeau, deux barres de couverture matin / après-midi (rose sous le seuil), liste des membres avec drapeau et badge d'état du jour, pied « Prochaine tension ». Une équipe sans membre garde sa carte — sinon une équipe qu'on vient de créer serait introuvable — et affiche « — » plutôt que 100 % : sans personne, il n'y a pas de couverture.
+- **TeamForm** (Équipes) — fiche d'une équipe en modale : son nom, rien d'autre. L'appartenance se règle dans `PersonForm`, côté personne — c'est la personne qui change d'équipe, pas l'équipe qui change de personnes. Ouverte par « Créer une équipe » (bouton primaire en tête d'écran) ou par le « Modifier » d'une carte. À la création, la fiche dit que l'équipe naît vide et où rattacher ses membres. La suppression suit la règle de `PersonForm` : à gauche du pied, confirmation nommant l'équipe et le sort de ses membres — ils repassent en « Sans équipe », leurs absences sont conservées.
 - **PeopleTable** (Personnes) — recherche, chips d'équipe, filtre de profil, lignes : avatar, nom, équipe, profil, drapeau + pays, demi-journées posées, prochaine absence, badge du jour, et « Modifier » en bouton fantôme en fin de ligne. La recherche porte aussi sur le libellé de profil.
 - **PersonForm** (Personnes) — fiche d'une personne en modale : nom, e-mail, équipe et profil côte à côte, pays. Ouverte par « Ajouter une personne » (bouton primaire en tête d'écran) ou par le « Modifier » d'une ligne. La suppression vit dans la fiche, à gauche du pied, et demande une confirmation nommant la personne et le sort de ses absences — pas de `confirm()` du navigateur. Le rose de l'alerte est la seule teinte qu'emprunte la suppression ; le système n'introduit pas de couleur de danger.
 - **Modal** — voile `rgba(20,20,30,.28)`, carte de 420 px centrée, même élévation qu'un menu flottant. Fermeture par Échap, par le voile ou par « Annuler ». Réservée à l'administration de l'annuaire : la saisie d'absence, elle, reste dans la grille.
@@ -131,7 +132,7 @@ Un seul niveau de titre par écran. Pas de gras dans le corps de texte : la hié
 **Règle drapeaux.** Le pays est toujours porté par un drapeau emoji, jamais par une couleur : 12 px dans une ligne de grille, 12–14 px dans une liste, 20 px en en-tête de carte. Le code ISO reste disponible en `title` ou en pastille mono. Le drapeau est le seul emoji autorisé dans l'interface.
 
 ### À concevoir
-File de validation manager, administration des équipes (création, renommage, suppression), gestion des fériés par pays (écran d'administration), variante sombre, états vides et de chargement.
+File de validation manager, gestion des fériés par pays (écran d'administration), variante sombre, états vides et de chargement.
 
 ---
 

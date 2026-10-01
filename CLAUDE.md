@@ -146,10 +146,10 @@ The pre-redesign components (`AbsenceGrid`, `PresenceView`, `UserManagement`, `T
 `HolidayManagement`, `Sidebar`, `Banner`, `Footer`, `QuickSearch`, `Logo`) are still in the tree
 but no longer mounted — they are the source of the remaining eslint errors. Delete them once the
 redesign is accepted. Two capabilities went with them and have **no replacement yet**: dark mode
-(`hooks/useDarkMode.ts`) and the daily presence view. Team and holiday CRUD are still API-only;
-people CRUD came back with `PersonForm` (below).
+(`hooks/useDarkMode.ts`) and the daily presence view. Holiday CRUD is still API-only (import aside);
+people and team CRUD came back with `PersonForm` and `TeamForm` (below).
 
-`components/offly/PersonForm.tsx` is the annuaire's only write surface: a modal opened from the
+`components/offly/PersonForm.tsx` is the directory's write surface for people: a modal opened from the
 People screen (« Ajouter une personne », or « Modifier » on a row) carrying name, email, team,
 profile and country. `OfflyApp.savePerson` writes it — `PUT /users/{id}` for the fields, then
 `POST /users/{id}/team` **only when the team changed**. `UpdateUserRequest` deliberately carries no
@@ -160,6 +160,21 @@ the *existing* record, so `savePerson` compares the returned id against the load
 « Cette personne existe déjà » rather than letting a silent no-op look like a creation.
 Deleting a person deletes their absences server-side (`UserServiceServer.DeleteUser`) — otherwise
 the rows stay in storage with no owner.
+
+`components/offly/TeamForm.tsx` is the Teams screen's write surface — a modal carrying the team
+name and nothing else, opened by « Créer une équipe » in the header or « Modifier » on a card.
+Create, rename and delete are admin-only, which is just `rbacMiddleware` (`/teams` writes are
+admin-only). `OfflyApp.saveTeam` compares the id the backend returns against the loaded teams:
+`CreateTeam` returns the *existing* team on a name collision (same rule as `CreateUser` on email),
+so without that check a duplicate would look like a creation. `UpdateTeam` keeps the stored
+`department_id` when the request omits it — the rename path sends only the name, and the service
+would otherwise detach the team, exactly the `jobProfile` failure. `DeleteTeam` detaches its
+members server-side (`OrganizationServiceServer.DeleteTeam`); a dangling `team_id` would make them
+vanish from every screen, belonging to no team and not to « Sans équipe » either. `teamGroups` in
+`OfflyApp` keeps empty teams — a team just created has no member, and without a card there would be
+no way back to it — while `groups`, which feeds the calendar, is `teamGroups` minus the empty ones.
+It also treats an unknown `team_id` as « Sans équipe », so a row deleted straight through the API
+cannot hide anyone.
 
 Write actions follow the backend RBAC: creating and deleting are admin-only (`isAdmin()` from
 `auth.ts`, refreshed from `/api/v1/auth/me`), while a non-admin can edit their own record, team

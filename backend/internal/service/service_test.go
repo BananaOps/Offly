@@ -210,6 +210,69 @@ func TestOrganizationService_Team(t *testing.T) {
 	}
 }
 
+func TestOrganizationService_TeamDeduplicatesByName(t *testing.T) {
+	svc := NewOrganizationServiceServer(newMemStore())
+	ctx := context.Background()
+
+	first, err := svc.CreateTeam(ctx, &pb.CreateTeamRequest{Name: "Backend"})
+	if err != nil {
+		t.Fatalf("CreateTeam: %v", err)
+	}
+
+	// Même nom à la casse et aux espaces près : on récupère l'équipe existante,
+	// pas une seconde. C'est ce que l'interface attend pour signaler le doublon.
+	again, err := svc.CreateTeam(ctx, &pb.CreateTeamRequest{Name: "  backend "})
+	if err != nil || again.Team.Id != first.Team.Id {
+		t.Fatalf("expected the existing team, got %v (%v)", again, err)
+	}
+
+	list, _ := svc.GetTeams(ctx, &pb.GetTeamsRequest{})
+	if len(list.Teams) != 1 {
+		t.Fatalf("expected 1 team, got %d", len(list.Teams))
+	}
+}
+
+func TestOrganizationService_RenameKeepsDepartment(t *testing.T) {
+	svc := NewOrganizationServiceServer(newMemStore())
+	ctx := context.Background()
+
+	created, _ := svc.CreateTeam(ctx, &pb.CreateTeamRequest{Name: "Backend", DepartmentId: "d-1"})
+
+	// Le renommage depuis l'interface n'envoie pas de département.
+	updated, err := svc.UpdateTeam(ctx, &pb.UpdateTeamRequest{Id: created.Team.Id, Name: "Plateforme"})
+	if err != nil || updated.Team.DepartmentId != "d-1" {
+		t.Fatalf("rename dropped the department: %v (%v)", updated, err)
+	}
+}
+
+func TestOrganizationService_DeleteTeamDetachesMembers(t *testing.T) {
+	store := newMemStore()
+	svc := NewOrganizationServiceServer(store)
+	users := NewUserServiceServer(store)
+	ctx := context.Background()
+
+	team, _ := svc.CreateTeam(ctx, &pb.CreateTeamRequest{Name: "Backend"})
+	created, err := users.CreateUser(ctx, &pb.CreateUserRequest{
+		Name: "Alice", Email: "alice@offly.io", TeamId: team.Team.Id,
+	})
+	if err != nil {
+		t.Fatalf("CreateUser: %v", err)
+	}
+
+	if _, err := svc.DeleteTeam(ctx, &pb.DeleteTeamRequest{Id: team.Team.Id}); err != nil {
+		t.Fatalf("DeleteTeam: %v", err)
+	}
+
+	// Sans détachement, la personne garderait un team_id fantôme et sortirait
+	// de l'interface : ni dans une équipe, ni dans « Sans équipe ».
+	after, _ := users.GetUsers(ctx, &pb.GetUsersRequest{})
+	for _, u := range after.Users {
+		if u.Id == created.User.Id && u.TeamId != "" {
+			t.Fatalf("expected an empty team_id, got %q", u.TeamId)
+		}
+	}
+}
+
 // --- HolidayService ---
 
 func TestHolidayService_CRUD(t *testing.T) {

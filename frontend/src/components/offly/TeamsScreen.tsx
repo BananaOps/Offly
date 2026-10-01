@@ -1,4 +1,6 @@
-import { Holiday, User } from '../../types'
+import { useState } from 'react'
+import { Holiday, Team, User } from '../../types'
+import { TeamDraft } from '../../api'
 import {
   PART_LABEL,
   Placed,
@@ -10,14 +12,21 @@ import {
 } from '../../lib/halfday'
 import { countryFlag } from '../../lib/countries'
 import { Group } from './CalendarScreen'
+import TeamForm from './TeamForm'
 
 interface Props {
+  /** Une carte par équipe, les vides comprises, plus « Sans équipe ». */
   groups: Group[]
+  teams: Team[]
   today: string
   scanDays: string[]
   absences: Map<string, Placed>
   holidays: Map<string, Holiday>
   threshold: number
+  /** Administrateur : seul habilité à écrire sur `/teams` (règle RBAC du backend). */
+  isAdmin: boolean
+  onSaveTeam: (draft: TeamDraft) => Promise<void>
+  onDeleteTeam: (team: Team) => Promise<void>
 }
 
 /** État du jour d'une personne : férié, portion posée, ou présent (design.md §3). */
@@ -33,12 +42,41 @@ function statusToday(
   return { label: 'Présent', className: 'o-pill' }
 }
 
-export default function TeamsScreen({ groups, today, scanDays, absences, holidays, threshold }: Props) {
+export default function TeamsScreen({
+  groups,
+  teams,
+  today,
+  scanDays,
+  absences,
+  holidays,
+  threshold,
+  isAdmin,
+  onSaveTeam,
+  onDeleteTeam,
+}: Props) {
+  // `null` = aucune fiche ouverte, `undefined` = fiche vierge (création).
+  const [editing, setEditing] = useState<Team | undefined | null>(null)
+
   return (
     <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-      <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid var(--hairline)' }}>
-        <h1 className="o-h1">Équipes</h1>
-        <p className="o-sub">Couverture du jour, demi-journée par demi-journée · seuil {threshold}%</p>
+      <div
+        style={{
+          padding: '18px 22px 14px',
+          borderBottom: '1px solid var(--hairline)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h1 className="o-h1">Équipes</h1>
+          <p className="o-sub">Couverture du jour, demi-journée par demi-journée · seuil {threshold}%</p>
+        </div>
+        {isAdmin && (
+          <button type="button" className="o-btn" onClick={() => setEditing(undefined)}>
+            Créer une équipe
+          </button>
+        )}
       </div>
 
       <div
@@ -50,9 +88,13 @@ export default function TeamsScreen({ groups, today, scanDays, absences, holiday
         }}
       >
         {groups.map(group => {
+          const team = teams.find(t => t.id === group.id)
           const cov = coverageFor(group.members, today, absences, holidays, threshold)
           const amPercent = cov?.amPercent ?? 100
           const pmPercent = cov?.pmPercent ?? 100
+          // Une équipe sans membre n'a pas de couverture : « — », comme la pastille
+          // d'une équipe entièrement fériée (design.md §3). 100 % serait un mensonge.
+          const empty = group.members.length === 0
 
           const byCountry = new Map<string, number>()
           for (const member of group.members) {
@@ -90,6 +132,16 @@ export default function TeamsScreen({ groups, today, scanDays, absences, holiday
                     </span>
                   ))}
                 </div>
+                {isAdmin && team && (
+                  <button
+                    type="button"
+                    className="o-ghost"
+                    onClick={() => setEditing(team)}
+                    aria-label={`Modifier ${team.name}`}
+                  >
+                    Modifier
+                  </button>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: 12, marginTop: 14 }}>
@@ -97,19 +149,22 @@ export default function TeamsScreen({ groups, today, scanDays, absences, holiday
                   { label: 'Matin', value: amPercent },
                   { label: 'Après-midi', value: pmPercent },
                 ].map(bar => {
-                  const low = bar.value < threshold
+                  const low = !empty && bar.value < threshold
                   return (
                     <div key={bar.label} style={{ flex: 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                         <span className="o-label">{bar.label}</span>
-                        <span className="o-mono" style={{ color: low ? 'var(--alert-ink)' : 'var(--ink)' }}>
-                          {bar.value}%
+                        <span
+                          className="o-mono"
+                          style={{ color: low ? 'var(--alert-ink)' : empty ? 'var(--muted)' : 'var(--ink)' }}
+                        >
+                          {empty ? '—' : `${bar.value}%`}
                         </span>
                       </div>
                       <div className="o-bar">
                         <div
                           className={`o-bar__fill${low ? ' o-bar__fill--low' : ''}`}
-                          style={{ width: `${bar.value}%` }}
+                          style={{ width: empty ? 0 : `${bar.value}%` }}
                         />
                       </div>
                     </div>
@@ -118,6 +173,11 @@ export default function TeamsScreen({ groups, today, scanDays, absences, holiday
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginTop: 14 }}>
+                {group.members.length === 0 && (
+                  <p className="o-secondary">
+                    Aucun membre — rattachez-en depuis leur fiche, écran Personnes.
+                  </p>
+                )}
                 {group.members.map(member => {
                   const status = statusToday(member, today, absences, holidays)
                   return (
@@ -166,6 +226,16 @@ export default function TeamsScreen({ groups, today, scanDays, absences, holiday
           )
         })}
       </div>
+
+      {editing !== null && (
+        <TeamForm
+          team={editing}
+          members={groups.find(g => g.id === editing?.id)?.members ?? []}
+          onSave={onSaveTeam}
+          onDelete={onDeleteTeam}
+          onClose={() => setEditing(null)}
+        />
+      )}
     </div>
   )
 }
