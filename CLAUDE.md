@@ -117,6 +117,16 @@ mangle accents) and drives both `ExportMenu` (absences) and `HolidayTransfer` (h
 re-reads its range from the server rather than using the loaded index — the index only covers one
 year, so a straddling range would silently ship an incomplete file.
 
+`lib/countries.ts` is the single country directory: the complete ISO 3166-1 alpha-2 code list
+(249 + `XK`), with the *names* resolved at runtime by `Intl.DisplayNames` in French — so there is
+no translation table to maintain and nothing to add when a country is "missing" (the old
+hand-curated list in `utils/holidayManager.ts`, which lacked Turkey among others, is now a
+re-export kept for the unmounted legacy components). `countryFlag` / `countryName` live there too
+(they used to sit in `lib/halfday.ts`). `countryOptions(extra)` appends any stored code the ISO
+list does not know, so editing a person imported with an off-list code never silently clears it.
+The backend validates nothing (`strings.ToUpper` only) and the holiday CSV import accepts any
+two-letter code, so the list is a typing convenience, not a constraint.
+
 `lib/profiles.ts` owns the French, emoji-free job-profile labels. `JOB_PROFILES` in `types.ts` is
 the source of the stored *values* only; its labels are English with a leading emoji, which
 design.md forbids in the UI. `usedProfiles()` returns only profiles actually worn by someone — the

@@ -3,12 +3,12 @@ import {
   PART_LABEL,
   Placed,
   cellKey,
-  countryFlag,
   coverageFor,
   holidayFor,
   initialsOf,
   longDate,
 } from '../../lib/halfday'
+import { countryFlag } from '../../lib/countries'
 import { Group } from './CalendarScreen'
 
 interface Props {

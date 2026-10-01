@@ -11,7 +11,6 @@ import {
   Part,
   Placed,
   cellKey,
-  countryFlag,
   coverageFor,
   holidayFor,
   initialsOf,
@@ -20,6 +19,7 @@ import {
   parseDay,
   shortDow,
 } from '../../lib/halfday'
+import { countryFlag } from '../../lib/countries'
 
 export interface Group {
   id: string

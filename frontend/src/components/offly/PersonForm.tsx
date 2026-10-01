@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { JOB_PROFILES, Team, User } from '../../types'
 import { UserDraft } from '../../api'
-import { countries } from '../../utils/holidayManager'
-import { countryFlag } from '../../lib/halfday'
+import { countryFlag, countryOptions } from '../../lib/countries'
 import { profileLabel } from '../../lib/profiles'
 
 interface Props {
@@ -15,11 +14,6 @@ interface Props {
   onDelete: (person: User) => Promise<void>
   onClose: () => void
 }
-
-const COUNTRY_OPTIONS = countries
-  .slice()
-  .sort((a, b) => a.name.localeCompare(b.name))
-  .map(c => ({ code: c.code, label: `${countryFlag(c.code)} ${c.name}` }))
 
 const PROFILE_OPTIONS = JOB_PROFILES.map(p => ({
   value: p.value,
@@ -60,6 +54,10 @@ export default function PersonForm({ person, teams, canDelete, onSave, onDelete,
     document.addEventListener('keydown', esc)
     return () => document.removeEventListener('keydown', esc)
   }, [onClose])
+
+  // Le code déjà porté par la fiche est injecté : s'il sort de la liste ISO
+  // (import ancien), une modification ne doit pas l'effacer en silence.
+  const countryList = useMemo(() => countryOptions([person?.country]), [person?.country])
 
   const teamOptions = useMemo(
     () => teams.slice().sort((a, b) => a.name.localeCompare(b.name)),
@@ -206,9 +204,9 @@ export default function PersonForm({ person, teams, canDelete, onSave, onDelete,
             onChange={e => setCountry(e.target.value)}
           >
             <option value="">Aucun — pas de jours fériés appliqués</option>
-            {COUNTRY_OPTIONS.map(c => (
+            {countryList.map(c => (
               <option key={c.code} value={c.code}>
-                {c.label}
+                {countryFlag(c.code)} {c.name}
               </option>
             ))}
           </select>

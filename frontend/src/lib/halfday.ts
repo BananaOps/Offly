@@ -216,33 +216,6 @@ export const coverageFor = (
   return { active: active.length, amPercent, pmPercent, minPercent, belowThreshold: minPercent < threshold }
 }
 
-export const countryFlag = (code?: string): string => {
-  if (!code || code.length !== 2) return ''
-  return String.fromCodePoint(...code.toUpperCase().split('').map(c => 127397 + c.charCodeAt(0)))
-}
-
-/**
- * Nom de pays en français. L'annuaire du repo (utils/holidayManager) est en anglais ;
- * design.md impose une UI francophone, d'où la localisation via Intl avec repli.
- */
-const regionNames = (() => {
-  try {
-    return new Intl.DisplayNames(['fr'], { type: 'region' })
-  } catch {
-    return null
-  }
-})()
-
-export const countryName = (code: string | undefined, fallback?: string): string => {
-  if (!code) return fallback ?? ''
-  const upper = code.toUpperCase()
-  try {
-    return regionNames?.of(upper) ?? fallback ?? upper
-  } catch {
-    return fallback ?? upper
-  }
-}
-
 export const initialsOf = (name: string): string =>
   name
     .split(' ')

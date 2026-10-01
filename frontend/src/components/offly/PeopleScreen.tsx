@@ -5,14 +5,12 @@ import {
   PART_LABEL,
   Placed,
   cellKey,
-  countryFlag,
-  countryName,
   formatDays,
   holidayFor,
   initialsOf,
   parseDay,
 } from '../../lib/halfday'
-import { countries } from '../../utils/holidayManager'
+import { countryFlag, countryName } from '../../lib/countries'
 import { profileLabel, usedProfiles } from '../../lib/profiles'
 import PersonForm from './PersonForm'
 
@@ -34,8 +32,6 @@ interface Props {
   onSavePerson: (draft: UserDraft) => Promise<void>
   onDeletePerson: (person: User) => Promise<void>
 }
-
-const COUNTRY_NAMES = new Map(countries.map(c => [c.code, c.name]))
 
 const COLUMNS = [
   { label: 'Personne', width: 230 },
@@ -292,12 +288,7 @@ export default function PeopleScreen({
                   </span>
                 )}
                 <span className="o-truncate">
-                  {row.user.country
-                    ? countryName(
-                        row.user.country,
-                        COUNTRY_NAMES.get(row.user.country.toUpperCase())
-                      )
-                    : '—'}
+                  {row.user.country ? countryName(row.user.country) : '—'}
                 </span>
               </span>
               <span style={{ width: 110 }} className="o-mono">
