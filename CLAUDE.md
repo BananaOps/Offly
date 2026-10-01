@@ -61,16 +61,32 @@ Storage structs are plain Go (no proto tags); the service layer maps between `st
 
 ### Auth / RBAC
 
-Off by default. `AUTH_ENABLED=true` turns on OIDC (Dex in dev, see `dex/` and `SSO-README.md`): tokens arrive as a `Bearer` header or an `auth_token` cookie, are verified against JWKS (`internal/auth/oidc.go`), and `AuthMiddleware` injects email/groups/id into the request context.
+Off by default. `AUTH_ENABLED=true` turns on OIDC against **any provider** — Dex in dev (`dex/`),
+Entra ID, Keycloak; see `SSO-README.md`. The backend owns the whole confidential authorization-code
+flow: `GET /api/v1/auth/login` (`internal/auth/login.go`) mints state, nonce and a PKCE verifier,
+redirects to the endpoint found by OIDC **discovery** (`internal/auth/oidc.go`), and the callback
+exchanges the code and sets the `auth_token` cookie. The frontend knows only `loginUrl` from
+`/api/v1/auth/config` — it never builds a provider URL itself. Tokens then arrive as a `Bearer`
+header or that cookie, are verified against JWKS, and `AuthMiddleware` injects email/groups/id into
+the request context.
+
+Identity rules live in `internal/auth/config.go`, all read from the environment at call time:
+`AUTH_GROUPS_CLAIM` says which claim carries the groups, `AUTH_ADMIN_GROUPS` (alias
+`AUTH_ADMIN_GROUP`) and `AUTH_ADMIN_EMAILS` grant admin, `AUTH_ALLOWED_GROUPS` gates access at all.
+An identity outside the allowed groups is deliberately treated as **unauthenticated** rather than
+rejected outright — it keeps read access and loses every write.
 
 `rbacMiddleware` in `backend/cmd/server/main.go` wraps the whole `/api/` mux and enforces, by URL path and HTTP method:
 
 - GET is always allowed, even unauthenticated
-- writes require auth; admins (`AUTH_ADMIN_EMAILS`, or group `AUTH_ADMIN_GROUP`) bypass everything
+- writes require auth; admins bypass everything
 - non-admins may only PUT/POST their own `/users/{id}` and only create/modify absences whose `userId` is theirs (POST bodies are read and re-wrapped to check this)
+- `/events` writes are open to **any authenticated caller** — the one exception, an explicit allow
+  placed before the default deny
 - `/teams`, `/departments`, `/holidays` writes are admin-only
+- anything else falls through to the default deny
 
-This authorization logic lives in the HTTP layer, not in the services — the gRPC services themselves are unauthenticated.
+This authorization logic lives in the HTTP layer, not in the services — the gRPC services themselves are unauthenticated. `cmd/server/rbac_test.go` stands up a fake OIDC provider (discovery + JWKS) and signs real tokens to pin the combination of group-based roles and those path rules; it is the only test that exercises `rbacMiddleware` end to end.
 
 `UpdateUserRequest` carries both `title` (field 5, the historical name) and `job_profile`
 (field 6); the service prefers `job_profile` and falls back to `title`. Before that field existed

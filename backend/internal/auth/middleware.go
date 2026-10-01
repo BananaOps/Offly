@@ -69,7 +69,7 @@ func AuthMiddleware(v *Verifier, store storage.Storage, required bool) func(http
 				return
 			}
 
-			email, _ := claims["email"].(string)
+			email := EmailFromClaims(claims)
 			if email == "" {
 				if required {
 					w.Header().Set("Content-Type", "application/json")
@@ -81,21 +81,26 @@ func AuthMiddleware(v *Verifier, store storage.Storage, required bool) func(http
 				return
 			}
 
-			// Extract groups from claims
-			var groups []string
-			if groupsRaw, ok := claims["groups"].([]interface{}); ok {
-				for _, g := range groupsRaw {
-					if s, ok := g.(string); ok {
-						groups = append(groups, s)
-					}
+			// Groups from the configured claim (AUTH_GROUPS_CLAIM).
+			groups := GroupsFromClaims(claims)
+
+			// Members of no allowed group are treated as unauthenticated.
+			if !IsAllowedIdentity(email, groups) {
+				if required {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusForbidden)
+					_ = json.NewEncoder(w).Encode(map[string]string{"error": "not a member of an allowed group"})
+					return
 				}
+				next.ServeHTTP(w, r)
+				return
 			}
 
 			// Find user ID by email
 			users, _ := store.GetUsers()
 			var userID string
 			for _, u := range users {
-				if u.Email == email {
+				if strings.EqualFold(u.Email, email) {
 					userID = u.ID
 					break
 				}
@@ -134,31 +139,14 @@ func GetUserID(r *http.Request) string {
 	return ""
 }
 
-// IsAdmin checks if the user email is in the admin list from environment variable.
+// IsAdmin checks whether the authenticated user is an admin: email listed in
+// AUTH_ADMIN_EMAILS, or member of one of AUTH_ADMIN_GROUPS.
 func IsAdmin(r *http.Request) bool {
-	adminEmails := os.Getenv("AUTH_ADMIN_EMAILS")
-	if adminEmails == "" {
-		adminEmails = os.Getenv("ADMIN_EMAILS") // Fallback
-	}
-
-	if adminEmails == "" {
-		return false
-	}
-
 	userEmail := GetUserEmail(r)
 	if userEmail == "" {
 		return false
 	}
-
-	// Split comma-separated list of admin emails
-	adminList := strings.Split(adminEmails, ",")
-	for _, admin := range adminList {
-		if strings.TrimSpace(admin) == userEmail {
-			return true
-		}
-	}
-
-	return false
+	return IsAdminIdentity(userEmail, GetUserGroups(r))
 }
 
 // RequireAdmin middleware returns 403 if user is not admin.

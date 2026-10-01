@@ -1,119 +1,128 @@
-# SSO Integration avec Dex
+# Intégration SSO (OIDC)
 
 ## Vue d'ensemble
 
-Offly intègre l'authentification SSO via Dex (OIDC provider) avec gestion automatique des utilisateurs et contrôle d'accès basé sur les rôles (RBAC).
+Offly s'authentifie auprès de n'importe quel fournisseur **OpenID Connect** :
+Dex (environnement de dev fourni), **Microsoft Entra ID**, Keycloak… Les
+utilisateurs sont créés automatiquement à la première connexion, et les droits
+(RBAC) sont attribués **par groupe** et/ou par email.
 
 ## Architecture
 
 ```
-┌─────────────┐      ┌──────────┐      ┌──────────────┐      ┌──────────┐
-│   Browser   │─────▶│   Dex    │─────▶│   Backend    │─────▶│  SQLite  │
-│  (Frontend) │◀─────│  (OIDC)  │◀─────│ (Go + gRPC)  │◀─────│    DB    │
-└─────────────┘      └──────────┘      └──────────────┘      └──────────┘
-     PKCE Flow        ID Token           JWT Verify          User Storage
+┌──────────┐  1. /api/v1/auth/login   ┌──────────────┐  2. authorize (state, nonce, PKCE)  ┌────────────┐
+│ Browser  │─────────────────────────▶│   Backend    │────────────────────────────────────▶│ Fournisseur│
+│(Frontend)│◀─────────────────────────│ (Go + gRPC)  │◀────────────────────────────────────│    OIDC    │
+└──────────┘  5. cookie HttpOnly      └──────────────┘  3-4. callback → échange du code    └────────────┘
+                 auth_token                                    (client secret + PKCE)
 ```
 
-## Flux d'authentification
+Flux *authorization code* **confidentiel**, entièrement piloté par le backend :
 
-1. **Login**: L'utilisateur clique sur "Login" → redirection vers Dex
-2. **Authentification Dex**: Saisie des credentials (vincent.team@bananaops.tech / test)
-3. **Callback PKCE**: Échange du code contre un ID token + access token
-4. **Auto-création**: Le frontend appelle `/api/v1/auth/ensure-user` avec le token
-5. **Vérification JWT**: Le backend vérifie le token via JWKS de Dex
-6. **Création utilisateur**: Si l'utilisateur n'existe pas, création automatique avec :
-   - Extraction du nom, email depuis les claims JWT
-   - Assignation au département `bananaops.tech`
-   - Assignation à la team `admin` ou `user` selon le groupe
+1. Le bouton « Login » envoie le navigateur sur `GET /api/v1/auth/login`.
+2. Le backend génère `state`, `nonce` et un vérificateur **PKCE (S256)**, les
+   garde dans des cookies HttpOnly éphémères, puis redirige vers l'endpoint
+   d'autorisation du fournisseur (obtenu par **discovery OIDC**).
+3. Le fournisseur rappelle `GET /api/v1/auth/callback?code=…&state=…`.
+4. Le backend vérifie le `state` (CSRF), échange le code (client secret +
+   `code_verifier`), puis vérifie l'ID token : signature (JWKS, algorithmes
+   asymétriques uniquement), `iss`, `aud`, `exp` et `nonce`.
+5. Il applique `AUTH_ALLOWED_GROUPS`, crée/met à jour l'utilisateur, pose le
+   cookie de session `auth_token` (HttpOnly, Secure) et redirige vers
+   `AUTH_POST_LOGIN_REDIRECT_URL`.
 
-## Groupes et rôles
+Le frontend ne connaît ni l'issuer ni le client : il appelle seulement
+`/api/v1/auth/login`, `/api/v1/auth/me` et `/api/v1/auth/logout`.
 
-| Groupe Dex | Team Offly | Permissions |
-|------------|------------|-------------|
-| `admin`    | admin      | Tout (organisation, holidays, users, absences) |
-| `user`     | user       | Son profil + ses absences uniquement |
-| (aucun)    | user       | Son profil + ses absences uniquement |
+## Rôles et RBAC
 
-## Permissions RBAC
+| Identité | Rôle Offly | Droits |
+|----------|-----------|--------|
+| Membre d'un groupe de `AUTH_ADMIN_GROUPS`, ou email dans `AUTH_ADMIN_EMAILS` | `admin` | Tout (organisation, jours fériés, utilisateurs, absences) |
+| Autre utilisateur autorisé | `user` | Lecture de tout ; écriture de son profil, de ses absences, et des **événements** |
+| Hors `AUTH_ALLOWED_GROUPS` (si défini) | — | Connexion refusée (403) |
+| Non connecté | — | Lecture seule (GET) |
 
-### Utilisateurs non connectés
-- ✅ Lecture seule (GET)
-- ❌ Modification/Création/Suppression
+Les groupes sont lus dans le claim `AUTH_GROUPS_CLAIM` (`groups` par défaut ;
+`roles` pour s'appuyer sur les *app roles* Entra ID).
 
-### Utilisateurs connectés (role: user)
-- ✅ GET : Toutes les données
-- ✅ PUT : Son profil uniquement (`/api/v1/users/{son_id}`)
-- ✅ POST/PUT/DELETE : Ses absences uniquement
-- ❌ Modification de l'organisation (departments, teams)
-- ❌ Modification des holidays
-
-### Administrateurs (role: admin)
-- ✅ Accès complet à toutes les routes
+`/api/v1/events` est la **seule écriture ouverte à tout compte autorisé** : un
+repas d'équipe ou un midi jeux se propose, il ne s'administre pas. La règle est
+une autorisation explicite placée avant le refus par défaut du `rbacMiddleware` —
+la retirer ne libère pas l'endpoint, elle le ferme. Une identité hors
+`AUTH_ALLOWED_GROUPS` est traitée comme anonyme : elle lit, elle n'écrit pas,
+pas même un événement (`backend/cmd/server/rbac_test.go` épingle ces deux règles).
 
 ## Configuration
 
-### Variables d'environnement (.env)
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `AUTH_ENABLED` | `false` | Active le SSO |
+| `AUTH_ISSUER_URL` | `http://localhost:5556/dex` | Issuer OIDC |
+| `AUTH_CLIENT_ID` | `offly` | Client ID |
+| `AUTH_CLIENT_SECRET` | — | Client secret (obligatoire) |
+| `AUTH_REDIRECT_URL` | `http://localhost:8080/api/v1/auth/callback` | Redirect URI déclarée chez le fournisseur |
+| `AUTH_POST_LOGIN_REDIRECT_URL` | `http://localhost:3000/` | Page d'arrivée après connexion |
+| `AUTH_SCOPES` | `openid profile email groups` | Scopes demandés (Entra ID : `openid profile email`) |
+| `AUTH_GROUPS_CLAIM` | `groups` | Claim portant les groupes |
+| `AUTH_ADMIN_GROUPS` | — | Groupes administrateurs, séparés par des virgules (`AUTH_ADMIN_GROUP` accepté) |
+| `AUTH_ALLOWED_GROUPS` | — | Groupes autorisés à se connecter ; vide = tout utilisateur authentifié |
+| `AUTH_ADMIN_EMAILS` | — | Emails administrateurs (`ADMIN_EMAILS` accepté) |
+| `AUTH_AUTHORIZATION_URL` / `AUTH_TOKEN_URL` / `AUTH_JWKS_URL` | discovery | Surcharges des endpoints (sinon `<issuer>/.well-known/openid-configuration`, puis convention Dex) |
+| `AUTH_JWKS_CACHE_TTL` | `3600` | Rafraîchissement du JWKS (secondes) |
+
+## Microsoft Entra ID
+
+### 1. App registration
+
+Dans **Entra ID → App registrations → New registration** :
+
+- **Supported account types** : *Single tenant*.
+- **Redirect URI** : plateforme **Web**, `https://<offly>/api/v1/auth/callback`.
+- **Certificates & secrets** : créer un *client secret* → `AUTH_CLIENT_SECRET`.
+- **Token configuration** :
+  - **Add groups claim** → *Groups assigned to the application*, format
+    **Group ID** pour l'ID token. Limiter aux groupes assignés évite le
+    dépassement (*overage*) au-delà de 200 groupes, où Entra ne liste plus les
+    groupes dans le token.
+  - **Add optional claim** → ID token → `email` (sinon Offly utilise
+    `preferred_username`, l'UPN).
+- **Enterprise applications → Offly → Users and groups** : assigner les groupes
+  (admins et utilisateurs). Avec *Assignment required = Yes*, Entra refuse
+  lui-même la connexion aux non-membres.
+
+### 2. Variables
 
 ```bash
-# Activer le SSO
 AUTH_ENABLED=true
-
-# Configuration Dex
-AUTH_ISSUER_URL=http://localhost:5556/dex
-AUTH_CLIENT_ID=offly
-AUTH_JWKS_CACHE_TTL=3600
-
-# Règles d'assignation des groupes
-AUTH_DOMAIN_DEPARTMENT=bananaops.tech
-AUTH_ADMIN_EMAILS=elie.copter@bananaops.tech
-AUTH_ADMIN_GROUP=admin
-AUTH_GROUP_ADMIN=admin
-AUTH_GROUP_USER=user
+AUTH_ISSUER_URL=https://login.microsoftonline.com/<tenant-id>/v2.0
+AUTH_CLIENT_ID=<application-client-id>
+AUTH_CLIENT_SECRET=<client-secret>
+AUTH_REDIRECT_URL=https://offly.example.com/api/v1/auth/callback
+AUTH_POST_LOGIN_REDIRECT_URL=https://offly.example.com/
+AUTH_SCOPES="openid profile email"
+AUTH_ADMIN_GROUPS=<object-id-groupe-admins>
+AUTH_ALLOWED_GROUPS=<object-id-groupe-utilisateurs>
 ```
 
-### Dex Configuration (dex/config.yaml)
+Les endpoints (`/oauth2/v2.0/authorize`, `/oauth2/v2.0/token`,
+`/discovery/v2.0/keys`) sont découverts automatiquement depuis l'issuer.
+
+### 3. Helm
 
 ```yaml
-staticClients:
-- id: offly
-  name: 'Offly Application'
-  public: true
-  redirectURIs:
-  - 'http://localhost:3000/'
-
-connectors:
-- type: mockCallback
-  id: mock-elie-admin
-  name: Elie (Admin)
-  config:
-    username: "elie.copter"
-    email: "elie.copter@bananaops.tech"
-    groups: ["admin"]
-
-- type: mockCallback
-  id: mock-vincent-user
-  name: Vincent (User)
-  config:
-    username: "vincent.team"
-    email: "vincent.team@bananaops.tech"
-    groups: ["user"]
+auth:
+  enabled: true
+  issuerUrl: https://login.microsoftonline.com/<tenant-id>/v2.0
+  clientId: <application-client-id>
+  existingSecret: offly-oidc        # clé "client-secret"
+  publicUrl: https://offly.example.com
+  scopes: "openid profile email"
+  adminGroups: [<object-id-groupe-admins>]
+  allowedGroups: [<object-id-groupe-utilisateurs>]
 ```
 
-## Utilisateurs de test
-
-| Email | Mot de passe | Rôle | Groupe |
-|-------|-------------|------|--------|
-| vincent.team@bananaops.tech | test | User | user |
-| elie.copter@bananaops.tech | test | Admin | admin |
-
-## Démarrage
-
-### Option 1: Script automatique
-```bash
-./start-sso.sh
-```
-
-### Option 2: Manuel
+## Dex (développement local)
 
 ```bash
 # Terminal 1 - Dex
@@ -124,104 +133,35 @@ cd backend
 export AUTH_ENABLED=true
 export AUTH_ISSUER_URL=http://localhost:5556/dex
 export AUTH_CLIENT_ID=offly
-export AUTH_JWKS_CACHE_TTL=3600
+export AUTH_CLIENT_SECRET=<secret du client Dex>
+export AUTH_ADMIN_GROUPS=admin
 export STORAGE_TYPE=sqlite
 export SQLITE_DB_PATH=./offly.db
 go run ./cmd/server
 
 # Terminal 3 - Frontend
-cd frontend
-npm run dev
+cd frontend && npm run dev
 ```
 
-## Test du flux complet
+Les valeurs par défaut (`AUTH_REDIRECT_URL`, `AUTH_POST_LOGIN_REDIRECT_URL`,
+`AUTH_SCOPES` avec `groups`) correspondent à cette configuration.
 
-1. Ouvrir http://localhost:3000
-2. Cliquer sur "Login" dans la navbar
-3. Sélectionner "Elie (Admin)" ou "Vincent (User)"
-4. Entrer le mot de passe: `test`
-5. Vérifier l'affichage du nom + badge "Admin" dans la navbar
-6. Vérifier que l'utilisateur apparaît dans l'onglet "Users"
-7. Tester les permissions selon le rôle
+## Endpoints
 
-### Test permissions Admin (Elie)
-- ✅ Créer/modifier departments et teams
-- ✅ Créer/modifier holidays
-- ✅ Créer/modifier users
-- ✅ Créer/modifier absences
-
-### Test permissions User (Vincent)
-- ✅ Voir toutes les données
-- ✅ Modifier son profil uniquement
-- ✅ Créer/modifier ses absences
-- ❌ Modifier l'organisation → 403 Forbidden
-- ❌ Modifier les holidays → 403 Forbidden
-
-## Endpoints API
-
-### Auth
-- `GET /api/v1/auth/config` - Configuration SSO (public)
-- `POST /api/v1/auth/ensure-user` - Création automatique utilisateur (Bearer token)
-
-### Protected (RBAC)
-- `GET /api/v1/*` - Lecture seule pour tous
-- `POST/PUT/DELETE /api/v1/users/{id}` - Propriétaire ou admin
-- `POST/PUT/DELETE /api/v1/absences` - Propriétaire ou admin
-- `POST/PUT/DELETE /api/v1/departments` - Admin uniquement
-- `POST/PUT/DELETE /api/v1/teams` - Admin uniquement
-- `POST/PUT/DELETE /api/v1/holidays` - Admin uniquement
-
-## Sécurité
-
-### PKCE (Proof Key for Code Exchange)
-- Protection contre les attaques d'interception de code
-- Code verifier stocké en sessionStorage
-- Code challenge envoyé à Dex
-
-### JWT Verification
-- Vérification de la signature via JWKS de Dex
-- Validation issuer, audience, expiration
-- Cache JWKS pour performance
-
-### Token Storage
-- ID Token: localStorage (utilisé pour auth backend)
-- Access Token: localStorage (optionnel)
-- Code Verifier: sessionStorage (temporaire pour PKCE)
+- `GET /api/v1/auth/config` — configuration SSO (public)
+- `GET /api/v1/auth/login` — démarre la connexion
+- `GET /api/v1/auth/callback` — retour du fournisseur
+- `GET /api/v1/auth/me` — utilisateur courant et rôle
+- `POST /api/v1/auth/logout` — supprime la session locale
+- `POST /api/v1/auth/ensure-user` — provisionne l'utilisateur d'un Bearer token
 
 ## Dépannage
 
-### "Unregistered redirect_uri"
-- Vérifier que `redirectURIs` dans dex/config.yaml contient `http://localhost:3000/`
-- Rebuild Dex: `cd dex && docker-compose build --no-cache && docker-compose up`
-
-### "Invalid client_id"
-- Vérifier que `AUTH_CLIENT_ID=offly` correspond au client dans dex/config.yaml
-- Rebuild Dex après modification de la config
-
-### "Failed to verify token"
-- Vérifier que `AUTH_ISSUER_URL=http://localhost:5556/dex` est correct
-- Vérifier que Dex est démarré et accessible
-- Vérifier les logs backend pour plus de détails
-
-### Utilisateur non créé automatiquement
-- Vérifier les logs backend après login
-- Vérifier que `/api/v1/auth/ensure-user` est appelé (DevTools Network)
-- Vérifier que le token contient `email` claim
-
-## Architecture technique
-
-### Frontend (React + TypeScript)
-- `src/auth.ts`: Gestion PKCE, tokens, décodage JWT
-- `src/components/Login.tsx`: UI login/logout avec affichage utilisateur/rôle
-- `src/api.ts`: Injection du Bearer token dans les requêtes
-
-### Backend (Go + gRPC)
-- `internal/auth/oidc.go`: Vérificateur OIDC avec JWKS
-- `internal/auth/handler.go`: Création automatique utilisateur + assignation groupes
-- `internal/auth/middleware.go`: RBAC middleware
-- `cmd/server/main.go`: Application du middleware selon AUTH_ENABLED
-
-### Dex (OIDC Provider)
-- Port 5556
-- Mock connectors pour émission de groupes
-- Configuration statique pour dev/test
+| Symptôme | Cause probable |
+|----------|----------------|
+| `AADSTS50011` (redirect URI mismatch) | `AUTH_REDIRECT_URL` différente de la redirect URI enregistrée (plateforme **Web**) |
+| `AADSTS70011` (invalid scope) | `groups` présent dans `AUTH_SCOPES` : le retirer pour Entra ID |
+| « Invalid login state » | Cookies bloqués, ou plus de 10 min entre `/login` et le retour |
+| « Email claim missing » | Ni `email` ni `preferred_username` au format email dans le token |
+| Utilisateur toujours `user` | Groupe absent du token (groups claim non configuré, overage) ou `AUTH_ADMIN_GROUPS` ne contient pas l'**object ID** |
+| 403 « not a member of an allowed group » | Utilisateur hors `AUTH_ALLOWED_GROUPS` |

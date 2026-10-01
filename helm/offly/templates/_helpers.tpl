@@ -60,3 +60,15 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Name of the Secret holding the OIDC client secret (auth.existingSecret, or the
+Secret created by the chart from auth.clientSecret).
+*/}}
+{{- define "offly.authSecretName" -}}
+{{- if .Values.auth.existingSecret }}
+{{- .Values.auth.existingSecret }}
+{{- else }}
+{{- printf "%s-auth" (include "offly.fullname" .) }}
+{{- end }}
+{{- end }}
