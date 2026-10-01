@@ -64,6 +64,39 @@ spec:
               value: {{ .Values.service.http.port | quote }}
             - name: MCP_ENABLED
               value: {{ .Values.env.mcpEnabled | default false | quote }}
+            {{- with .Values.auth }}
+            {{- if .enabled }}
+            # --- OIDC SSO (see SSO-README.md) ---
+            - name: AUTH_ENABLED
+              value: "true"
+            - name: AUTH_ISSUER_URL
+              value: {{ required "auth.issuerUrl is required when auth.enabled" .issuerUrl | quote }}
+            - name: AUTH_CLIENT_ID
+              value: {{ required "auth.clientId is required when auth.enabled" .clientId | quote }}
+            - name: AUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "offly.authSecretName" $ }}
+                  key: {{ .existingSecretKey | default "client-secret" }}
+            - name: AUTH_REDIRECT_URL
+              value: {{ printf "%s/api/v1/auth/callback" (trimSuffix "/" (required "auth.publicUrl is required when auth.enabled" .publicUrl)) | quote }}
+            - name: AUTH_POST_LOGIN_REDIRECT_URL
+              value: {{ printf "%s/" (trimSuffix "/" .publicUrl) | quote }}
+            - name: AUTH_SCOPES
+              value: {{ .scopes | quote }}
+            - name: AUTH_GROUPS_CLAIM
+              value: {{ .groupsClaim | quote }}
+            - name: AUTH_ADMIN_GROUPS
+              value: {{ join "," .adminGroups | quote }}
+            - name: AUTH_ALLOWED_GROUPS
+              value: {{ join "," .allowedGroups | quote }}
+            - name: AUTH_ADMIN_EMAILS
+              value: {{ join "," .adminEmails | quote }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
