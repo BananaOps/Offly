@@ -138,23 +138,24 @@ func (h *HybridStorage) getStorage() Storage {
 // Implémentation de l'interface Storage
 
 func (h *HybridStorage) CreateAbsence(absence *Absence) error {
-	// Toujours écrire en mémoire
-	if err := h.memory.CreateAbsence(absence); err != nil {
-		return err
-	}
-
-	// Essayer d'écrire dans MongoDB si disponible
 	h.mu.RLock()
 	mongo := h.mongo
 	h.mu.RUnlock()
 
+	// MongoDB écrit en premier, et c'est délibéré : il réassigne l'identifiant à
+	// l'insertion (un ObjectID, cf. mongodb.go). Les lectures venant de MongoDB
+	// dès qu'il est disponible, c'est cet identifiant-là que voit l'appelant.
+	// Écrire la mémoire avant la laisserait indexée sur l'UUID d'origine : la
+	// fiche deviendrait introuvable à la modification, qui porte l'identifiant
+	// renvoyé par la lecture.
 	if mongo != nil {
 		if err := mongo.CreateAbsence(absence); err != nil {
 			log.Printf("Failed to write to MongoDB: %v", err)
 		}
 	}
 
-	return nil
+	// La mémoire est écrite ensuite, indexée sur l'identifiant définitif.
+	return h.memory.CreateAbsence(absence)
 }
 
 func (h *HybridStorage) GetAbsences(userID string, startDate, endDate time.Time) ([]*Absence, error) {
@@ -202,21 +203,18 @@ func (h *HybridStorage) DeleteAbsence(id string) error {
 }
 
 func (h *HybridStorage) CreateUser(user *User) error {
-	if err := h.memory.CreateUser(user); err != nil {
-		return err
-	}
-
 	h.mu.RLock()
 	mongo := h.mongo
 	h.mu.RUnlock()
 
+	// MongoDB d'abord : il réassigne l'identifiant (cf. CreateAbsence).
 	if mongo != nil {
 		if err := mongo.CreateUser(user); err != nil {
 			log.Printf("Failed to write to MongoDB: %v", err)
 		}
 	}
 
-	return nil
+	return h.memory.CreateUser(user)
 }
 
 func (h *HybridStorage) GetUsers() ([]*User, error) {
@@ -260,21 +258,18 @@ func (h *HybridStorage) DeleteUser(id string) error {
 }
 
 func (h *HybridStorage) CreateDepartment(dept *Department) error {
-	if err := h.memory.CreateDepartment(dept); err != nil {
-		return err
-	}
-
 	h.mu.RLock()
 	mongo := h.mongo
 	h.mu.RUnlock()
 
+	// MongoDB d'abord : il réassigne l'identifiant (cf. CreateAbsence).
 	if mongo != nil {
 		if err := mongo.CreateDepartment(dept); err != nil {
 			log.Printf("Failed to write to MongoDB: %v", err)
 		}
 	}
 
-	return nil
+	return h.memory.CreateDepartment(dept)
 }
 
 func (h *HybridStorage) GetDepartments() ([]*Department, error) {
@@ -318,21 +313,18 @@ func (h *HybridStorage) DeleteDepartment(id string) error {
 }
 
 func (h *HybridStorage) CreateTeam(team *Team) error {
-	if err := h.memory.CreateTeam(team); err != nil {
-		return err
-	}
-
 	h.mu.RLock()
 	mongo := h.mongo
 	h.mu.RUnlock()
 
+	// MongoDB d'abord : il réassigne l'identifiant (cf. CreateAbsence).
 	if mongo != nil {
 		if err := mongo.CreateTeam(team); err != nil {
 			log.Printf("Failed to write to MongoDB: %v", err)
 		}
 	}
 
-	return nil
+	return h.memory.CreateTeam(team)
 }
 
 func (h *HybridStorage) GetTeams(departmentID string) ([]*Team, error) {
@@ -376,21 +368,18 @@ func (h *HybridStorage) DeleteTeam(id string) error {
 }
 
 func (h *HybridStorage) CreateEvent(event *Event) error {
-	if err := h.memory.CreateEvent(event); err != nil {
-		return err
-	}
-
 	h.mu.RLock()
 	mongo := h.mongo
 	h.mu.RUnlock()
 
+	// MongoDB d'abord : il réassigne l'identifiant (cf. CreateAbsence).
 	if mongo != nil {
 		if err := mongo.CreateEvent(event); err != nil {
 			log.Printf("Failed to write to MongoDB: %v", err)
 		}
 	}
 
-	return nil
+	return h.memory.CreateEvent(event)
 }
 
 func (h *HybridStorage) GetEvents(from, to string) ([]*Event, error) {
@@ -434,21 +423,18 @@ func (h *HybridStorage) DeleteEvent(id string) error {
 }
 
 func (h *HybridStorage) CreateHoliday(holiday *Holiday) error {
-	if err := h.memory.CreateHoliday(holiday); err != nil {
-		return err
-	}
-
 	h.mu.RLock()
 	mongo := h.mongo
 	h.mu.RUnlock()
 
+	// MongoDB d'abord : il réassigne l'identifiant (cf. CreateAbsence).
 	if mongo != nil {
 		if err := mongo.CreateHoliday(holiday); err != nil {
 			log.Printf("Failed to write to MongoDB: %v", err)
 		}
 	}
 
-	return nil
+	return h.memory.CreateHoliday(holiday)
 }
 
 func (h *HybridStorage) GetHolidays(country string, year int) ([]*Holiday, error) {

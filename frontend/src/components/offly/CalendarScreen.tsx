@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Event, Holiday, Team, User } from '../../types'
 import ExportMenu from './ExportMenu'
 import RangePicker from './RangePicker'
@@ -20,7 +20,13 @@ import {
   shortDow,
 } from '../../lib/halfday'
 import { countryFlag } from '../../lib/countries'
-import { categoryLabel, formatEventDates } from '../../lib/events'
+import {
+  categoryLabel,
+  categoryStyle,
+  formatEventDates,
+  layoutBand,
+  segmentAt,
+} from '../../lib/events'
 
 export interface Group {
   id: string
@@ -123,6 +129,25 @@ export default function CalendarScreen({
 }: Props) {
   const [menu, setMenu] = useState<{ userId: string; day: string } | null>(null)
   const gridRef = useRef<HTMLDivElement>(null)
+
+  // Répartition du bandeau en lignes superposables, recalculée quand la plage
+  // ou les événements changent.
+  const band = useMemo(() => {
+    // `buildEventIndex` range la même instance sous chacun de ses jours : un Set
+    // suffit à dédoublonner un événement qui s'étale sur plusieurs colonnes.
+    const visible = [...new Set(days.flatMap(day => events.get(day) ?? []))]
+    return layoutBand(visible, days)
+  }, [days, events])
+
+  // Infobulle d'un jour : tous ses événements, affichés ou non.
+  const titleFor = (day: string) =>
+    (events.get(day) ?? [])
+      .map(e =>
+        [formatEventDates(e), e.name, categoryLabel(e.category), e.location]
+          .filter(Boolean)
+          .join(' · ')
+      )
+      .join('\n')
 
   // Un clic hors menu le referme — le menu est un chemin secondaire, il ne doit
   // jamais rester ouvert derrière une autre action.
@@ -313,68 +338,69 @@ export default function CalendarScreen({
               ))}
             </div>
 
-            {/* Bandeau des événements. Il ne s'affiche que si la plage en porte
-                un : une rangée vide volerait de la hauteur à la grille, qui est
-                la surface de saisie (design.md §1.1). Teinte neutre — le violet
-                porte l'absence, le rose l'alerte, rien d'autre ne colore. */}
-            {days.some(day => (events.get(day)?.length ?? 0) > 0) && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
-                <div
-                  style={{
-                    ...stickyName,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-end',
-                    paddingRight: 8,
-                  }}
-                  className="o-label"
-                >
-                  Événements
-                </div>
-                {days.map(day => {
-                  const list = events.get(day) ?? []
-                  const first = list[0]
+            {/* Bandeau des événements. Une ligne par rang de superposition : deux
+                événements d'un même jour ne peuvent pas partager une ligne, sinon
+                l'un masquerait l'autre. La rangée disparaît si la plage ne porte
+                aucun événement — une rangée vide volerait de la hauteur à la
+                grille, qui est la surface de saisie (design.md §1.1). Teintes par
+                catégorie, dérivées en oklch (design.md §2). */}
+            {band.lanes.length > 0 && (
+              <div style={{ marginTop: 7, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {band.lanes.map((lane, laneIndex) => {
+                  const lastLane = laneIndex === band.lanes.length - 1
                   return (
-                    <div key={day} style={{ flex: 1, minWidth: 30, display: 'flex' }}>
-                      {first ? (
-                        <button
-                          type="button"
-                          onClick={() => onOpenEvent(first)}
-                          title={list
-                            .map(e =>
-                              [formatEventDates(e), e.name, categoryLabel(e.category), e.location]
-                                .filter(Boolean)
-                                .join(' · ')
-                            )
-                            .join('\n')}
-                          style={{
-                            flex: 1,
-                            minWidth: 0,
-                            height: 18,
-                            padding: '0 6px',
-                            border: 0,
-                            borderRadius: 4,
-                            background: 'var(--track)',
-                            color: 'var(--ink-2)',
-                            font: "500 10px 'IBM Plex Sans', sans-serif",
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {/* Le compte reste hors du nom : tronqué avec lui, il
-                              disparaîtrait justement quand il devient utile. */}
-                          <span className="o-truncate" style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-                            {first.name}
-                          </span>
-                          {list.length > 1 && (
-                            <span style={{ flex: 'none', color: 'var(--muted)' }}>
-                              +{list.length - 1}
-                            </span>
-                          )}
-                        </button>
-                      ) : null}
+                    <div key={laneIndex} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <div
+                        style={{
+                          ...stickyName,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'flex-end',
+                          paddingRight: 8,
+                        }}
+                        className="o-label"
+                      >
+                        {/* Le libellé ne se répète pas : il nomme le bandeau entier. */}
+                        {laneIndex === 0 ? 'Événements' : ''}
+                      </div>
+                      {days.map((day, index) => {
+                        const event = lane.find(e => day >= e.startDate && day <= e.endDate)
+                        const seg = event ? segmentAt(event, days, index) : null
+                        // L'excédent se dit sur la dernière ligne, seule place où
+                        // il ne masque pas un événement affiché.
+                        const extra = lastLane ? (band.overflow.get(day) ?? 0) : 0
+                        return (
+                          <div key={day} style={{ flex: 1, minWidth: 30, display: 'flex' }}>
+                            {event && seg ? (
+                              <button
+                                type="button"
+                                onClick={() => onOpenEvent(event)}
+                                className={`o-ev-bar${seg.start ? ' o-ev-bar--start' : ''}${seg.end ? ' o-ev-bar--end' : ''}`}
+                                style={categoryStyle(event.category) as React.CSSProperties}
+                                title={titleFor(day)}
+                              >
+                                <span
+                                  className="o-truncate"
+                                  style={{ flex: 1, minWidth: 0, textAlign: 'left' }}
+                                >
+                                  {seg.start ? event.name : ''}
+                                </span>
+                                {seg.start && extra > 0 && (
+                                  <span style={{ flex: 'none', opacity: 0.75 }}>+{extra}</span>
+                                )}
+                              </button>
+                            ) : extra > 0 ? (
+                              <span
+                                className="o-ev-more"
+                                title={titleFor(day)}
+                                aria-label={`${extra} autres événements le ${longDate(day)}`}
+                              >
+                                +{extra}
+                              </span>
+                            ) : null}
+                          </div>
+                        )
+                      })}
                     </div>
                   )
                 })}

@@ -23,6 +23,33 @@
   --alert-ink: #c2185b;
   --hatch: repeating-linear-gradient(45deg, #e4e4ea 0 3px, #f7f7fa 3px 6px);
 
+  /* Catégories d'événement. design.md §2 : toute nouvelle couleur est dérivée en
+     oklch à chroma et luminosité constantes. Trois rôles, trois couples L/C fixes,
+     seule la teinte varie — 230° / 155° / 80° / 35°, toutes éloignées du violet
+     (283°) et du rose (352°) pour qu'un événement ne se confonde jamais avec une
+     absence ni avec une alerte. Le chroma retenu (0.10) est volontairement plus
+     bas que celui des deux teintes porteuses de sens : un événement est un
+     contexte, il ne doit pas crier plus fort qu'une absence posée.
+     ink   oklch(0.520 0.100 H)  — texte, 4.6:1 minimum sur son fond
+     soft  oklch(0.958 0.018 H)  — fond de pastille et de barre
+     solid oklch(0.650 0.100 H)  — filet de gauche de la barre du calendrier */
+  --ev-conference: #449ac0;
+  --ev-conference-soft: #e6f4fb;
+  --ev-conference-ink: #0e7397;
+  --ev-team: #59a174;
+  --ev-team-soft: #e8f5ec;
+  --ev-team-ink: #307a4f;
+  --ev-social: #af8842;
+  --ev-social-soft: #f8f0e4;
+  --ev-social-ink: #876114;
+  --ev-training: #c47865;
+  --ev-training-soft: #fdede9;
+  --ev-training-ink: #9a5240;
+  /* Événement sans catégorie : le gris du système, pas une cinquième teinte. */
+  --ev-none: #b4b4c0;
+  --ev-none-soft: #f4f4f7;
+  --ev-none-ink: #5a5a6b;
+
   /* Forme */
   --r-half: 3px;
   --r-ctl: 7px;
@@ -714,4 +741,84 @@
 .o-ghost--danger:hover {
   background: var(--alert-soft);
   color: var(--alert-ink);
+}
+
+/* --- Événements --- */
+
+/* Pastille de catégorie. Le libellé reste toujours présent : la couleur double
+   l'information, elle ne la porte jamais seule. */
+.o-ev-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 11px;
+  font:
+    500 10.5px 'IBM Plex Sans',
+    sans-serif;
+  background: var(--ev-soft);
+  color: var(--ev-ink);
+  white-space: nowrap;
+}
+.o-ev-tag::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ev);
+  flex: none;
+}
+
+/* Segment du bandeau du calendrier : un segment par jour couvert, le filet de
+   gauche ne s'affichant qu'au premier, pour que les jours consécutifs se lisent
+   comme une seule barre. */
+.o-ev-bar {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: var(--ev-soft);
+  color: var(--ev-ink);
+  font:
+    500 10.5px 'IBM Plex Sans',
+    sans-serif;
+  cursor: pointer;
+  transition: filter 0.12s;
+}
+.o-ev-bar--start {
+  border-left-color: var(--ev);
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+.o-ev-bar--end {
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+.o-ev-bar:hover,
+.o-ev-bar:focus-visible {
+  outline: none;
+  filter: brightness(0.96);
+}
+
+/* Excédent d'un jour : les événements qui ne tiennent pas dans les lignes
+   affichées. Neutre — ce n'est pas un événement, c'est un décompte. */
+.o-ev-more {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  border-radius: 4px;
+  background: var(--track);
+  color: var(--faint);
+  font:
+    500 10px 'IBM Plex Mono',
+    monospace;
+  cursor: default;
 }

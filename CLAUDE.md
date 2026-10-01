@@ -57,6 +57,21 @@ The backend runs the gRPC server on `127.0.0.1:50051` (loopback only) in a gorou
 - `sqlite` (default) — `sqlite.go`, schema created in `initSchema()`, **requires CGO** (`mattn/go-sqlite3`; Dockerfile builds with `CGO_ENABLED=1` and alpine `gcc musl-dev sqlite-dev`)
 - `mongodb` / `hybrid` — both map to `NewHybridStorage`: `memory.go` is the live store, MongoDB is written through and reconnected to every 30s if unavailable. The app stays up with an in-memory store when Mongo is down.
 
+**In hybrid mode MongoDB owns the identifiers.** Every `MongoStorage.Create*` overwrites the
+caller's UUID with its own ObjectID, and `getStorage()` reads from Mongo whenever it is up — so the
+id the rest of the system sees is Mongo's. The `Create*` methods of `hybrid.go` therefore write to
+**Mongo first and memory second**, so the memory map is keyed by that final id. Writing memory first
+left it keyed by the dead UUID: an update carrying the id returned by a read missed it, which made
+renaming an event fail with « événement introuvable » (and silently inserted a *duplicate* for
+teams, users and holidays, whose `MemoryStorage.Update*` insert instead of erroring —
+`MemoryStorage.UpdateEvent` is the only one that fails loudly, which is why events were the symptom
+rather than the cause). `internal/storage/hybrid_test.go` pins this; it needs a real Mongo and skips
+unless `OFFLY_TEST_MONGO_URI` is set.
+
+Still open in that file: `syncToMongo` re-creates every in-memory record on each reconnection
+without checking whether Mongo already holds it, so a Mongo outage followed by a reconnection
+duplicates rows and re-opens the same id divergence.
+
 Storage structs are plain Go (no proto tags); the service layer maps between `storage.User` and `pb.User` field by field.
 
 ### Auth / RBAC
@@ -200,6 +215,16 @@ explicit allow placed before the default deny — removing it does not open the 
 it. `OfflyApp` loads events **unbounded** (`getEvents()` with no range) unlike absences: they number
 in the dozens, the screen wants the past ones too, and it keeps the displayed range from dictating
 what the band knows — a range straddling 31 December would otherwise show mute columns.
+
+Event categories carry a colour: `offly.css` defines `--ev-<cat>` / `-soft` / `-ink` for the four
+categories, derived in oklch at constant lightness and chroma per role (design.md §2), and
+`categoryStyle()` in `lib/events.ts` hands those back as CSS custom properties that the components
+set inline — so `.o-ev-tag` and `.o-ev-bar` are each a single rule rather than one per category, and
+an unknown category falls back to `--ev-none` instead of vanishing. `segmentAt()` tells the calendar
+band whether a day is the first or last *visible* day of an event, which is what makes a multi-day
+event render as one continuous bar across the working-day columns; `layoutBand()` assigns the
+visible events to non-overlapping lanes (three at most) and reports, per day, how many events did
+not fit — the band shows that as a neutral `+N`, and the day's tooltip still lists them all.
 
 Categories live in `lib/events.ts`, not in the proto: `EVENT_CATEGORIES` is the stored *keys* plus
 their French labels, and `categoryLabel()` falls back to the raw value, so an unknown category stays
