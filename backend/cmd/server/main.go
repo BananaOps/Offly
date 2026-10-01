@@ -102,6 +102,7 @@ func startGRPCServer(store storage.Storage, addr string) {
 	pb.RegisterUserServiceServer(grpcServer, service.NewUserServiceServer(store))
 	pb.RegisterOrganizationServiceServer(grpcServer, service.NewOrganizationServiceServer(store))
 	pb.RegisterHolidayServiceServer(grpcServer, service.NewHolidayServiceServer(store))
+	pb.RegisterEventServiceServer(grpcServer, service.NewEventServiceServer(store))
 
 	log.Printf("gRPC server listening on %s", addr)
 	if err := grpcServer.Serve(lis); err != nil {
@@ -127,6 +128,9 @@ func startRESTGateway(store storage.Storage, grpcAddr, httpAddr string) error {
 		return err
 	}
 	if err := pb.RegisterHolidayServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts); err != nil {
+		return err
+	}
+	if err := pb.RegisterEventServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts); err != nil {
 		return err
 	}
 
@@ -284,7 +288,7 @@ func corsMiddleware(h http.Handler) http.Handler {
 // rbacMiddleware applies role-based access control to API endpoints when AUTH_ENABLED=true
 // Rules:
 // - Unauthenticated: GET only
-// - Users (non-admin): GET all, PUT/POST/DELETE only their own profile and absences
+// - Users (non-admin): GET all, PUT/POST/DELETE only their own profile and absences, plus events
 // - Admins: Full access
 func rbacMiddleware(store storage.Storage, v *auth.Verifier, next http.Handler) http.Handler {
 	return auth.AuthMiddleware(v, store, false)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -410,6 +414,14 @@ func rbacMiddleware(store storage.Storage, v *auth.Verifier, next http.Handler) 
 				_, _ = w.Write([]byte(`{"error":"can only modify your own absences"}`))
 				return
 			}
+		}
+
+		// Les événements sont la seule écriture ouverte à tout compte authentifié :
+		// un midi jeux ou un repas d'équipe se propose, il ne s'administre pas.
+		// L'authentification a déjà été exigée plus haut.
+		if strings.HasPrefix(path, "/api/v1/events") {
+			next.ServeHTTP(w, r)
+			return
 		}
 
 		// Deny access to organization/holiday modifications for non-admins

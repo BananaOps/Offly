@@ -1,18 +1,29 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Holiday, Team, User } from '../../types'
+import { Event, Holiday, Team, User } from '../../types'
 import {
+  TeamDraft,
   UserDraft,
   assignUserToTeam,
   createAbsence,
+  createTeam,
   createUser,
   deleteAbsence,
+  deleteTeam,
   deleteUser,
   getAbsences,
   getTeams,
   getUsers,
   updateAbsence,
+  updateTeam,
   updateUser,
 } from '../../api'
+import {
+  EventDraft,
+  createEvent,
+  deleteEvent,
+  getEvents,
+  updateEvent,
+} from '../../api/events'
 import { getHolidaysForCountryAndYear } from '../../utils/holidayManager'
 import { getAuthConfig, getCachedUserEmail, getCurrentUser, isAdmin } from '../../auth'
 import {
@@ -29,11 +40,14 @@ import {
   workingDays,
   workingDaysBetween,
 } from '../../lib/halfday'
+import { buildEventIndex } from '../../lib/events'
 import { MAX_COLUMNS, Range, defaultRange } from '../../lib/ranges'
 import Rail, { ScreenId } from './Rail'
 import CalendarScreen, { Group } from './CalendarScreen'
 import TeamsScreen from './TeamsScreen'
 import PeopleScreen from './PeopleScreen'
+import EventsScreen from './EventsScreen'
+import EventForm from './EventForm'
 import HolidaysScreen from './HolidaysScreen'
 import '../../design/offly.css'
 
@@ -55,6 +69,9 @@ export default function OfflyApp() {
   const [users, setUsers] = useState<User[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [holidays, setHolidays] = useState<Holiday[]>([])
+  const [events, setEvents] = useState<Event[]>([])
+  // Événement ouvert depuis le bandeau du calendrier, hors de l'écran dédié.
+  const [openEvent, setOpenEvent] = useState<Event | null>(null)
   const [absenceIndex, setAbsenceIndex] = useState<Map<string, Placed>>(new Map())
   const [selectedTeam, setSelectedTeam] = useState('all')
   const [selectedProfile, setSelectedProfile] = useState('')
@@ -128,6 +145,21 @@ export default function OfflyApp() {
     }
   }, [])
 
+  /**
+   * Les événements sont chargés sans borne, contrairement aux absences : ils se
+   * comptent en dizaines, l'écran dédié les veut tous (« Passés » compris), et
+   * cela évite à la plage affichée de dicter ce que le bandeau connaît — une
+   * plage à cheval sur le 31 décembre afficherait sinon des colonnes muettes.
+   */
+  const reloadEvents = useCallback(
+    () => getEvents().then(setEvents).catch(() => setError('Impossible de charger les événements.')),
+    []
+  )
+
+  useEffect(() => {
+    void reloadEvents()
+  }, [reloadEvents])
+
   useEffect(() => {
     let cancelled = false
     fetchAbsences()
@@ -158,6 +190,7 @@ export default function OfflyApp() {
   }, [users, spannedYears, holidayEpoch])
 
   const holidayIndex = useMemo(() => buildHolidayIndex(holidays), [holidays])
+  const eventIndex = useMemo(() => buildEventIndex(events), [events])
 
   // L'écran « Jours fériés » est titré d'un millésime : on ne lui passe que celui-ci.
   const holidaysOfYear = useMemo(
@@ -168,6 +201,27 @@ export default function OfflyApp() {
   const currentUser = useMemo(
     () => (currentEmail ? users.find(u => u.email === currentEmail) : undefined),
     [users, currentEmail]
+  )
+
+  // Les événements s'écrivent sans être administrateur : il suffit d'être
+  // identifié, et sans SSO personne ne l'est — tout le monde écrit alors.
+  const canWriteEvents = !getAuthConfig().enabled || currentEmail !== null
+
+  const saveEvent = useCallback(
+    async (draft: EventDraft) => {
+      if (draft.id) await updateEvent(draft.id, draft)
+      else await createEvent(draft)
+      await reloadEvents()
+    },
+    [reloadEvents]
+  )
+
+  const removeEvent = useCallback(
+    async (event: Event) => {
+      await deleteEvent(event.id)
+      await reloadEvents()
+    },
+    [reloadEvents]
   )
 
   // En SSO, chacun ne modifie que ses propres absences — la règle RBAC du backend.
@@ -216,13 +270,50 @@ export default function OfflyApp() {
     [fetchAbsences]
   )
 
-  const groups: Group[] = useMemo(() => {
+  /**
+   * Crée ou renomme une équipe. Comme pour les personnes, le backend renvoie
+   * l'équipe existante quand le nom est déjà pris : sans ce contrôle d'id, un
+   * doublon passerait pour une création réussie.
+   */
+  const saveTeam = useCallback(
+    async (draft: TeamDraft) => {
+      if (draft.id) {
+        await updateTeam(draft.id, draft.name)
+      } else {
+        const created = await createTeam(draft.name)
+        if (teams.some(t => t.id === created.id)) {
+          throw new Error('Cette équipe existe déjà : même nom.')
+        }
+      }
+      setTeams(await getTeams())
+    },
+    [teams]
+  )
+
+  // Le serveur détache les membres avant de supprimer l'équipe : on relit
+  // l'annuaire pour les voir repasser en « Sans équipe ».
+  const removeTeam = useCallback(async (team: Team) => {
+    await deleteTeam(team.id)
+    const [nextTeams, nextUsers] = await Promise.all([getTeams(), getUsers()])
+    setTeams(nextTeams)
+    setUsers(nextUsers)
+    // Un filtre resté sur l'équipe supprimée ne renverrait plus personne.
+    setSelectedTeam(current => (current === team.id ? 'all' : current))
+  }, [])
+
+  /**
+   * Les cartes de l'écran Équipes, équipes vides comprises : une équipe qu'on
+   * vient de créer n'a aucun membre, et sans carte il n'y aurait plus aucun
+   * chemin pour la renommer ou la supprimer.
+   */
+  const teamGroups: Group[] = useMemo(() => {
     const visible = users.filter(
       u =>
         (selectedTeam === 'all' || u.teamId === selectedTeam) &&
         (!selectedProfile || u.jobProfile === selectedProfile)
     )
     const byName = (a: User, b: User) => a.name.localeCompare(b.name)
+    const known = new Set(teams.map(team => team.id))
     const result: Group[] = teams
       .filter(team => selectedTeam === 'all' || team.id === selectedTeam)
       .map(team => ({
@@ -230,12 +321,20 @@ export default function OfflyApp() {
         name: team.name,
         members: visible.filter(u => u.teamId === team.id).sort(byName),
       }))
-      .filter(group => group.members.length > 0)
 
-    const orphans = visible.filter(u => !u.teamId).sort(byName)
+    // `teamId` pointant sur une équipe disparue : la personne est rangée ici,
+    // sinon elle ne figurerait sur aucun écran.
+    const orphans = visible.filter(u => !u.teamId || !known.has(u.teamId)).sort(byName)
     if (orphans.length > 0) result.push({ id: '__none__', name: 'Sans équipe', members: orphans })
     return result
   }, [users, teams, selectedTeam, selectedProfile])
+
+  // La grille, elle, n'affiche que les équipes peuplées : une ligne de groupe
+  // sans personne n'y porterait aucune information de couverture.
+  const groups: Group[] = useMemo(
+    () => teamGroups.filter(group => group.members.length > 0),
+    [teamGroups]
+  )
 
   const visibleCount = useMemo(() => groups.reduce((n, g) => n + g.members.length, 0), [groups])
 
@@ -340,6 +439,8 @@ export default function OfflyApp() {
             onSelectProfile={setSelectedProfile}
             absences={absenceIndex}
             holidays={holidayIndex}
+            events={eventIndex}
+            onOpenEvent={setOpenEvent}
             threshold={threshold}
             showCoverage
             peopleCount={visibleCount}
@@ -358,12 +459,16 @@ export default function OfflyApp() {
 
         {screen === 'teams' && (
           <TeamsScreen
-            groups={groups}
+            groups={teamGroups}
+            teams={teams}
             today={today}
             scanDays={scanDays}
             absences={absenceIndex}
             holidays={holidayIndex}
             threshold={threshold}
+            isAdmin={admin}
+            onSaveTeam={saveTeam}
+            onDeleteTeam={removeTeam}
           />
         )}
 
@@ -386,6 +491,16 @@ export default function OfflyApp() {
           />
         )}
 
+        {screen === 'events' && (
+          <EventsScreen
+            events={events}
+            today={today}
+            canWrite={canWriteEvents}
+            onSaveEvent={saveEvent}
+            onDeleteEvent={removeEvent}
+          />
+        )}
+
         {screen === 'holidays' && (
           <HolidaysScreen
             holidays={holidaysOfYear}
@@ -395,6 +510,20 @@ export default function OfflyApp() {
           />
         )}
       </div>
+
+      {/* Fiche ouverte depuis le bandeau du calendrier : on reste sur la grille
+          plutôt que de dérouter vers l'écran Événements. En lecture seule, elle
+          s'ouvre quand même — elle porte le lieu et le lien. */}
+      {openEvent && (
+        <EventForm
+          event={openEvent}
+          defaultDay={today}
+          canWrite={canWriteEvents}
+          onSave={saveEvent}
+          onDelete={removeEvent}
+          onClose={() => setOpenEvent(null)}
+        />
+      )}
     </div>
   )
 }

@@ -170,6 +170,35 @@ service HolidayService {
   }
 }
 
+// Service des événements d'équipe : conférences, repas, midis jeux…
+service EventService {
+  rpc CreateEvent(CreateEventRequest) returns (CreateEventResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/events"
+      body: "*"
+    };
+  }
+
+  rpc GetEvents(GetEventsRequest) returns (GetEventsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/events"
+    };
+  }
+
+  rpc UpdateEvent(UpdateEventRequest) returns (UpdateEventResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/events/{id}"
+      body: "*"
+    };
+  }
+
+  rpc DeleteEvent(DeleteEventRequest) returns (DeleteEventResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/events/{id}"
+    };
+  }
+}
+
 // Core types
 message Absence {
   string id = 1;
@@ -209,6 +238,21 @@ message Holiday {
   string name = 3;
   string country = 4;
   int32 year = 5;
+}
+
+// Un événement occupe des jours entiers, comme un férié : l'application ne
+// manipule pas d'heures (design.md §4). Un événement d'un seul jour porte la
+// même date en début et en fin.
+message Event {
+  string id = 1;
+  string name = 2;
+  string start_date = 3;
+  string end_date = 4;
+  // Clé libre ; les libellés vivent côté interface pour qu'ajouter une
+  // catégorie ne demande pas de régénérer le proto.
+  string category = 5;
+  string location = 6;
+  string url = 7;
 }
 
 // Absence messages
@@ -431,4 +475,51 @@ message ImportHolidaysRequest {
 
 message ImportHolidaysResponse {
   int32 imported_count = 1;
+}
+
+// Event messages
+message CreateEventRequest {
+  string name = 1;
+  string start_date = 2;
+  string end_date = 3;
+  string category = 4;
+  string location = 5;
+  string url = 6;
+}
+
+message CreateEventResponse {
+  Event event = 1;
+}
+
+// Bornes incluses, au format AAAA-MM-JJ ; vides, tous les événements sont
+// renvoyés. Un événement est retenu dès qu'il chevauche la plage.
+message GetEventsRequest {
+  string from = 1;
+  string to = 2;
+}
+
+message GetEventsResponse {
+  repeated Event events = 1;
+}
+
+message UpdateEventRequest {
+  string id = 1;
+  string name = 2;
+  string start_date = 3;
+  string end_date = 4;
+  string category = 5;
+  string location = 6;
+  string url = 7;
+}
+
+message UpdateEventResponse {
+  Event event = 1;
+}
+
+message DeleteEventRequest {
+  string id = 1;
+}
+
+message DeleteEventResponse {
+  bool success = 1;
 }

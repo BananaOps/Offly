@@ -72,6 +72,13 @@ func NewServer(store storage.Storage, version string) *mcpsdk.Server {
 	}, t.listHolidays)
 
 	mcpsdk.AddTool(server, &mcpsdk.Tool{
+		Name: "list_events",
+		Description: "List team events — conferences, team meals, board game lunches — " +
+			"optionally restricted to a date range.",
+		Annotations: readOnly("List events"),
+	}, t.listEvents)
+
+	mcpsdk.AddTool(server, &mcpsdk.Tool{
 		Name: "team_presence",
 		Description: "Report who is present and who is away in a team on a single day, " +
 			"accounting for both absences and the public holidays of each member's country.",
@@ -275,6 +282,44 @@ func (t *tools) listHolidays(ctx context.Context, _ *mcpsdk.CallToolRequest, in 
 		})
 	}
 	sort.Slice(out.Holidays, func(i, j int) bool { return out.Holidays[i].Date < out.Holidays[j].Date })
+	return nil, out, nil
+}
+
+// --- list_events ---
+
+type ListEventsInput struct {
+	From string `json:"from,omitempty" jsonschema:"Start of the range, YYYY-MM-DD; omit for no lower bound"`
+	To   string `json:"to,omitempty" jsonschema:"End of the range, YYYY-MM-DD; omit for no upper bound"`
+}
+
+type EventOut struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	StartDate string `json:"startDate" jsonschema:"YYYY-MM-DD"`
+	EndDate   string `json:"endDate" jsonschema:"YYYY-MM-DD, equal to startDate for a one-day event"`
+	Category  string `json:"category,omitempty"`
+	Location  string `json:"location,omitempty"`
+	URL       string `json:"url,omitempty"`
+}
+
+type ListEventsOutput struct {
+	Events []EventOut `json:"events"`
+}
+
+func (t *tools) listEvents(ctx context.Context, _ *mcpsdk.CallToolRequest, in ListEventsInput) (*mcpsdk.CallToolResult, ListEventsOutput, error) {
+	events, err := t.store.GetEvents(in.From, in.To)
+	if err != nil {
+		return nil, ListEventsOutput{}, fmt.Errorf("failed to load events: %w", err)
+	}
+
+	out := ListEventsOutput{Events: make([]EventOut, 0, len(events))}
+	for _, e := range events {
+		out.Events = append(out.Events, EventOut{
+			ID: e.ID, Name: e.Name, StartDate: e.StartDate, EndDate: e.EndDate,
+			Category: e.Category, Location: e.Location, URL: e.URL,
+		})
+	}
+	sort.Slice(out.Events, func(i, j int) bool { return out.Events[i].StartDate < out.Events[j].StartDate })
 	return nil, out, nil
 }
 

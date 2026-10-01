@@ -99,8 +99,9 @@ changing any visual decision; it is the authority on tokens, tone, the logo and 
 core rule.
 
 `App.tsx` is only an auth bootstrap (resolves `/api/v1/auth/config`, absorbs the OIDC callback)
-and then renders `components/offly/OfflyApp.tsx`, which owns all data and the four screens:
-`Rail` + `CalendarScreen | TeamsScreen | PeopleScreen | HolidaysScreen`. No router, no state library.
+and then renders `components/offly/OfflyApp.tsx`, which owns all data and the five screens:
+`Rail` + `CalendarScreen | TeamsScreen | PeopleScreen | EventsScreen | HolidaysScreen`. No router,
+no state library.
 
 `lib/halfday.ts` is the load-bearing module. The design models an absence as one value per person
 per day (`am | pm | full`); the backend stores RFC3339 bounds plus a reason string. That module is
@@ -116,6 +117,16 @@ configured but the design screens do not use it — its palette is the older blu
 mangle accents) and drives both `ExportMenu` (absences) and `HolidayTransfer` (holidays). An export
 re-reads its range from the server rather than using the loaded index — the index only covers one
 year, so a straddling range would silently ship an incomplete file.
+
+`lib/countries.ts` is the single country directory: the complete ISO 3166-1 alpha-2 code list
+(249 + `XK`), with the *names* resolved at runtime by `Intl.DisplayNames` in French — so there is
+no translation table to maintain and nothing to add when a country is "missing" (the old
+hand-curated list in `utils/holidayManager.ts`, which lacked Turkey among others, is now a
+re-export kept for the unmounted legacy components). `countryFlag` / `countryName` live there too
+(they used to sit in `lib/halfday.ts`). `countryOptions(extra)` appends any stored code the ISO
+list does not know, so editing a person imported with an off-list code never silently clears it.
+The backend validates nothing (`strings.ToUpper` only) and the holiday CSV import accepts any
+two-letter code, so the list is a typing convenience, not a constraint.
 
 `lib/profiles.ts` owns the French, emoji-free job-profile labels. `JOB_PROFILES` in `types.ts` is
 the source of the stored *values* only; its labels are English with a leading emoji, which
@@ -136,10 +147,10 @@ The pre-redesign components (`AbsenceGrid`, `PresenceView`, `UserManagement`, `T
 `HolidayManagement`, `Sidebar`, `Banner`, `Footer`, `QuickSearch`, `Logo`) are still in the tree
 but no longer mounted — they are the source of the remaining eslint errors. Delete them once the
 redesign is accepted. Two capabilities went with them and have **no replacement yet**: dark mode
-(`hooks/useDarkMode.ts`) and the daily presence view. Team and holiday CRUD are still API-only;
-people CRUD came back with `PersonForm` (below).
+(`hooks/useDarkMode.ts`) and the daily presence view. Holiday CRUD is still API-only (import aside);
+people and team CRUD came back with `PersonForm` and `TeamForm` (below).
 
-`components/offly/PersonForm.tsx` is the annuaire's only write surface: a modal opened from the
+`components/offly/PersonForm.tsx` is the directory's write surface for people: a modal opened from the
 People screen (« Ajouter une personne », or « Modifier » on a row) carrying name, email, team,
 profile and country. `OfflyApp.savePerson` writes it — `PUT /users/{id}` for the fields, then
 `POST /users/{id}/team` **only when the team changed**. `UpdateUserRequest` deliberately carries no
@@ -151,11 +162,48 @@ the *existing* record, so `savePerson` compares the returned id against the load
 Deleting a person deletes their absences server-side (`UserServiceServer.DeleteUser`) — otherwise
 the rows stay in storage with no owner.
 
+`components/offly/TeamForm.tsx` is the Teams screen's write surface — a modal carrying the team
+name and nothing else, opened by « Créer une équipe » in the header or « Modifier » on a card.
+Create, rename and delete are admin-only, which is just `rbacMiddleware` (`/teams` writes are
+admin-only). `OfflyApp.saveTeam` compares the id the backend returns against the loaded teams:
+`CreateTeam` returns the *existing* team on a name collision (same rule as `CreateUser` on email),
+so without that check a duplicate would look like a creation. `UpdateTeam` keeps the stored
+`department_id` when the request omits it — the rename path sends only the name, and the service
+would otherwise detach the team, exactly the `jobProfile` failure. `DeleteTeam` detaches its
+members server-side (`OrganizationServiceServer.DeleteTeam`); a dangling `team_id` would make them
+vanish from every screen, belonging to no team and not to « Sans équipe » either. `teamGroups` in
+`OfflyApp` keeps empty teams — a team just created has no member, and without a card there would be
+no way back to it — while `groups`, which feeds the calendar, is `teamGroups` minus the empty ones.
+It also treats an unknown `team_id` as « Sans équipe », so a row deleted straight through the API
+cannot hide anyone.
+
 Write actions follow the backend RBAC: creating and deleting are admin-only (`isAdmin()` from
 `auth.ts`, refreshed from `/api/v1/auth/me`), while a non-admin can edit their own record, team
 included — `POST /users/{id}/team` on one's own id passes `rbacMiddleware`. With `AUTH_ENABLED`
 off, everyone is an admin. Per design.md, a button without a subject is not rendered rather than
 rendered disabled.
+
+Events (`EventService` in the proto, `backend/internal/service/event_service.go`,
+`lib/events.ts`, `EventsScreen`, `EventForm`, and the band in `CalendarScreen`) are the fifth
+entity: conferences, team meals, game lunches. They are dated by **whole days** like holidays —
+`start_date` / `end_date` as `YYYY-MM-DD`, never timestamps — and the service copies `start_date`
+into an omitted `end_date`, so every reader (grid, screen, sort) can assume both bounds exist.
+`GetEvents(from, to)` filters on **overlap**, not on the start date, so a range touching only an
+event's last day still finds it; ISO dates compare lexically, which is what every storage
+implementation relies on. The service is the only one that validates (`codes.InvalidArgument` on an
+empty name, a malformed date, or an inverted range) — the gateway turns that into a 400 whose
+`message` the forms display.
+
+Writes on `/events` are the **one exception** to "writes are admin-only": `rbacMiddleware` lets any
+authenticated caller through, because a game lunch is proposed, not administered. That rule is an
+explicit allow placed before the default deny — removing it does not open the endpoint, it closes
+it. `OfflyApp` loads events **unbounded** (`getEvents()` with no range) unlike absences: they number
+in the dozens, the screen wants the past ones too, and it keeps the displayed range from dictating
+what the band knows — a range straddling 31 December would otherwise show mute columns.
+
+Categories live in `lib/events.ts`, not in the proto: `EVENT_CATEGORIES` is the stored *keys* plus
+their French labels, and `categoryLabel()` falls back to the raw value, so an unknown category stays
+readable instead of vanishing (same contract as `lib/profiles.ts`).
 
 `api.ts` and `api/holidays.ts` are hand-written axios clients against `/api/v1` with
 `withCredentials: true`; `types.ts` is hand-maintained and **not** generated from the proto. The

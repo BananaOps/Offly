@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Holiday, Team, User } from '../../types'
+import { Event, Holiday, Team, User } from '../../types'
 import ExportMenu from './ExportMenu'
 import RangePicker from './RangePicker'
 import { Range } from '../../lib/ranges'
@@ -11,7 +11,6 @@ import {
   Part,
   Placed,
   cellKey,
-  countryFlag,
   coverageFor,
   holidayFor,
   initialsOf,
@@ -20,6 +19,8 @@ import {
   parseDay,
   shortDow,
 } from '../../lib/halfday'
+import { countryFlag } from '../../lib/countries'
+import { categoryLabel, formatEventDates } from '../../lib/events'
 
 export interface Group {
   id: string
@@ -39,6 +40,10 @@ interface Props {
   onSelectProfile: (value: string) => void
   absences: Map<string, Placed>
   holidays: Map<string, Holiday>
+  /** Jour → événements qui le couvrent ; alimente le bandeau en tête de grille. */
+  events: Map<string, Event[]>
+  /** Ouvre la fiche d'un événement depuis le bandeau. */
+  onOpenEvent: (event: Event) => void
   threshold: number
   showCoverage: boolean
   peopleCount: number
@@ -100,6 +105,8 @@ export default function CalendarScreen({
   onSelectProfile,
   absences,
   holidays,
+  events,
+  onOpenEvent,
   threshold,
   showCoverage,
   peopleCount,
@@ -276,36 +283,103 @@ export default function CalendarScreen({
               top: 0,
               zIndex: 5,
               background: 'var(--surface)',
-              display: 'flex',
-              alignItems: 'flex-end',
-              gap: 4,
               minWidth: 'max-content',
               paddingTop: 14,
               paddingBottom: 6,
             }}
           >
-            <div style={stickyName} />
-            {days.map(day => (
-              <div key={day} style={{ flex: 1, textAlign: 'center', minWidth: 30 }}>
-                <div className="o-label">{shortDow(day)}</div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4 }}>
+              <div style={stickyName} />
+              {days.map(day => (
+                <div key={day} style={{ flex: 1, textAlign: 'center', minWidth: 30 }}>
+                  <div className="o-label">{shortDow(day)}</div>
+                  <div
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: 24,
+                      height: 22,
+                      marginTop: 2,
+                      borderRadius: 11,
+                      font: "500 12px 'IBM Plex Sans', sans-serif",
+                      background: day === today ? 'var(--accent)' : 'transparent',
+                      color: day === today ? '#fff' : 'var(--ink-2)',
+                    }}
+                  >
+                    {parseDay(day).getDate()}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Bandeau des événements. Il ne s'affiche que si la plage en porte
+                un : une rangée vide volerait de la hauteur à la grille, qui est
+                la surface de saisie (design.md §1.1). Teinte neutre — le violet
+                porte l'absence, le rose l'alerte, rien d'autre ne colore. */}
+            {days.some(day => (events.get(day)?.length ?? 0) > 0) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 7 }}>
                 <div
                   style={{
-                    display: 'inline-flex',
+                    ...stickyName,
+                    display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    minWidth: 24,
-                    height: 22,
-                    marginTop: 2,
-                    borderRadius: 11,
-                    font: "500 12px 'IBM Plex Sans', sans-serif",
-                    background: day === today ? 'var(--accent)' : 'transparent',
-                    color: day === today ? '#fff' : 'var(--ink-2)',
+                    justifyContent: 'flex-end',
+                    paddingRight: 8,
                   }}
+                  className="o-label"
                 >
-                  {parseDay(day).getDate()}
+                  Événements
                 </div>
+                {days.map(day => {
+                  const list = events.get(day) ?? []
+                  const first = list[0]
+                  return (
+                    <div key={day} style={{ flex: 1, minWidth: 30, display: 'flex' }}>
+                      {first ? (
+                        <button
+                          type="button"
+                          onClick={() => onOpenEvent(first)}
+                          title={list
+                            .map(e =>
+                              [formatEventDates(e), e.name, categoryLabel(e.category), e.location]
+                                .filter(Boolean)
+                                .join(' · ')
+                            )
+                            .join('\n')}
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            height: 18,
+                            padding: '0 6px',
+                            border: 0,
+                            borderRadius: 4,
+                            background: 'var(--track)',
+                            color: 'var(--ink-2)',
+                            font: "500 10px 'IBM Plex Sans', sans-serif",
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {/* Le compte reste hors du nom : tronqué avec lui, il
+                              disparaîtrait justement quand il devient utile. */}
+                          <span className="o-truncate" style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                            {first.name}
+                          </span>
+                          {list.length > 1 && (
+                            <span style={{ flex: 'none', color: 'var(--muted)' }}>
+                              +{list.length - 1}
+                            </span>
+                          )}
+                        </button>
+                      ) : null}
+                    </div>
+                  )
+                })}
               </div>
-            ))}
+            )}
           </div>
 
           {groups.map(group => (

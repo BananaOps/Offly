@@ -30,6 +30,7 @@
 | 📉 **Coverage threshold** | Per half-day team coverage, always visible. Below 50% the interface flags it — it never blocks |
 | 🌍 **Per-country holidays** | A holiday follows the person's country, not the company calendar. Hatched, not clickable, and out of the coverage denominator |
 | 👥 **Teams & people** | Team coverage cards, people table with team, job profile, country and next absence |
+| 🎪 **Team events** | Conferences, team meals, game lunches — a dedicated screen plus a band above the planner. Any signed-in person can add one |
 | 🏷️ **Job profiles** | Filter the planner and the people table by profile; the filter only offers profiles actually in use |
 | 📤 **CSV export** | Absences over any date range, scoped to everyone, a team or one person |
 | 📥 **CSV import** | Public holidays, with a row-by-row preview before anything is written (JSON also accepted) |
@@ -202,7 +203,7 @@ Browser ──PKCE──▶ Dex ──ID Token──▶ Backend ──JWT verify
 | Role | Permissions |
 |------|------------|
 | `admin` | Full access — users, teams, holidays, absences |
-| `user` | Read all · Edit own profile & absences only |
+| `user` | Read all · Edit own profile & absences only · Add and edit events |
 
 See [SSO-README.md](SSO-README.md) for the full configuration guide.
 
@@ -218,6 +219,7 @@ same port as the REST API — no extra binary, no extra port.
 | `list_teams` | Teams, optionally filtered by department, with member counts |
 | `list_absences` | Absences overlapping a `YYYY-MM-DD` date range |
 | `list_holidays` | Public holidays, optionally filtered by country and year |
+| `list_events` | Team events (conferences, meals, game lunches), optionally within a date range |
 | `team_presence` | Who is present/away in a team on a day, accounting for absences **and** each member's public holidays |
 
 Register it with Claude Code:
@@ -249,12 +251,14 @@ Interactive documentation available at **http://localhost:8080/docs**
 | `GET/POST` | `/api/v1/absences` | List / create absences |
 | `PUT/DELETE` | `/api/v1/absences/{id}` | Update / delete absence |
 | `GET/POST` | `/api/v1/holidays` | List / create public holidays |
+| `GET/POST` | `/api/v1/events` | List / create team events |
+| `PUT/DELETE` | `/api/v1/events/{id}` | Update / delete event |
 | `GET` | `/api/v1/auth/config` | SSO configuration |
 | `POST` | `/api/v1/auth/ensure-user` | Auto-provision SSO user |
 
 ### gRPC (port 50051)
 
-Services: `AbsenceService` · `UserService` · `OrganizationService` · `HolidayService`
+Services: `AbsenceService` · `UserService` · `OrganizationService` · `HolidayService` · `EventService`
 
 ## 🧰 Task Commands
 

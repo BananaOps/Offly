@@ -404,6 +404,103 @@ func (x *Holiday) GetYear() int32 {
 	return 0
 }
 
+// Un événement occupe des jours entiers, comme un férié : l'application ne
+// manipule pas d'heures (design.md §4). Un événement d'un seul jour porte la
+// même date en début et en fin.
+type Event struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Id        string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name      string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	StartDate string                 `protobuf:"bytes,3,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate   string                 `protobuf:"bytes,4,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	// Clé libre ; les libellés vivent côté interface pour qu'ajouter une
+	// catégorie ne demande pas de régénérer le proto.
+	Category      string `protobuf:"bytes,5,opt,name=category,proto3" json:"category,omitempty"`
+	Location      string `protobuf:"bytes,6,opt,name=location,proto3" json:"location,omitempty"`
+	Url           string `protobuf:"bytes,7,opt,name=url,proto3" json:"url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Event) Reset() {
+	*x = Event{}
+	mi := &file_absence_v1_absence_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Event) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Event) ProtoMessage() {}
+
+func (x *Event) ProtoReflect() protoreflect.Message {
+	mi := &file_absence_v1_absence_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Event.ProtoReflect.Descriptor instead.
+func (*Event) Descriptor() ([]byte, []int) {
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *Event) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Event) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Event) GetStartDate() string {
+	if x != nil {
+		return x.StartDate
+	}
+	return ""
+}
+
+func (x *Event) GetEndDate() string {
+	if x != nil {
+		return x.EndDate
+	}
+	return ""
+}
+
+func (x *Event) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *Event) GetLocation() string {
+	if x != nil {
+		return x.Location
+	}
+	return ""
+}
+
+func (x *Event) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
 // Absence messages
 type CreateAbsenceRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -418,7 +515,7 @@ type CreateAbsenceRequest struct {
 
 func (x *CreateAbsenceRequest) Reset() {
 	*x = CreateAbsenceRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[5]
+	mi := &file_absence_v1_absence_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -430,7 +527,7 @@ func (x *CreateAbsenceRequest) String() string {
 func (*CreateAbsenceRequest) ProtoMessage() {}
 
 func (x *CreateAbsenceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[5]
+	mi := &file_absence_v1_absence_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -443,7 +540,7 @@ func (x *CreateAbsenceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAbsenceRequest.ProtoReflect.Descriptor instead.
 func (*CreateAbsenceRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{5}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *CreateAbsenceRequest) GetUserId() string {
@@ -490,7 +587,7 @@ type CreateAbsenceResponse struct {
 
 func (x *CreateAbsenceResponse) Reset() {
 	*x = CreateAbsenceResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[6]
+	mi := &file_absence_v1_absence_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -502,7 +599,7 @@ func (x *CreateAbsenceResponse) String() string {
 func (*CreateAbsenceResponse) ProtoMessage() {}
 
 func (x *CreateAbsenceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[6]
+	mi := &file_absence_v1_absence_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -515,7 +612,7 @@ func (x *CreateAbsenceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateAbsenceResponse.ProtoReflect.Descriptor instead.
 func (*CreateAbsenceResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{6}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CreateAbsenceResponse) GetAbsence() *Absence {
@@ -536,7 +633,7 @@ type GetAbsencesRequest struct {
 
 func (x *GetAbsencesRequest) Reset() {
 	*x = GetAbsencesRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[7]
+	mi := &file_absence_v1_absence_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -548,7 +645,7 @@ func (x *GetAbsencesRequest) String() string {
 func (*GetAbsencesRequest) ProtoMessage() {}
 
 func (x *GetAbsencesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[7]
+	mi := &file_absence_v1_absence_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -561,7 +658,7 @@ func (x *GetAbsencesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAbsencesRequest.ProtoReflect.Descriptor instead.
 func (*GetAbsencesRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{7}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetAbsencesRequest) GetUserId() string {
@@ -594,7 +691,7 @@ type GetAbsencesResponse struct {
 
 func (x *GetAbsencesResponse) Reset() {
 	*x = GetAbsencesResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[8]
+	mi := &file_absence_v1_absence_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -606,7 +703,7 @@ func (x *GetAbsencesResponse) String() string {
 func (*GetAbsencesResponse) ProtoMessage() {}
 
 func (x *GetAbsencesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[8]
+	mi := &file_absence_v1_absence_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -619,7 +716,7 @@ func (x *GetAbsencesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAbsencesResponse.ProtoReflect.Descriptor instead.
 func (*GetAbsencesResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{8}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetAbsencesResponse) GetAbsences() []*Absence {
@@ -642,7 +739,7 @@ type UpdateAbsenceRequest struct {
 
 func (x *UpdateAbsenceRequest) Reset() {
 	*x = UpdateAbsenceRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[9]
+	mi := &file_absence_v1_absence_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -654,7 +751,7 @@ func (x *UpdateAbsenceRequest) String() string {
 func (*UpdateAbsenceRequest) ProtoMessage() {}
 
 func (x *UpdateAbsenceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[9]
+	mi := &file_absence_v1_absence_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -667,7 +764,7 @@ func (x *UpdateAbsenceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateAbsenceRequest.ProtoReflect.Descriptor instead.
 func (*UpdateAbsenceRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{9}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *UpdateAbsenceRequest) GetId() string {
@@ -714,7 +811,7 @@ type UpdateAbsenceResponse struct {
 
 func (x *UpdateAbsenceResponse) Reset() {
 	*x = UpdateAbsenceResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[10]
+	mi := &file_absence_v1_absence_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -726,7 +823,7 @@ func (x *UpdateAbsenceResponse) String() string {
 func (*UpdateAbsenceResponse) ProtoMessage() {}
 
 func (x *UpdateAbsenceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[10]
+	mi := &file_absence_v1_absence_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -739,7 +836,7 @@ func (x *UpdateAbsenceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateAbsenceResponse.ProtoReflect.Descriptor instead.
 func (*UpdateAbsenceResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{10}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UpdateAbsenceResponse) GetAbsence() *Absence {
@@ -758,7 +855,7 @@ type DeleteAbsenceRequest struct {
 
 func (x *DeleteAbsenceRequest) Reset() {
 	*x = DeleteAbsenceRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[11]
+	mi := &file_absence_v1_absence_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -770,7 +867,7 @@ func (x *DeleteAbsenceRequest) String() string {
 func (*DeleteAbsenceRequest) ProtoMessage() {}
 
 func (x *DeleteAbsenceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[11]
+	mi := &file_absence_v1_absence_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -783,7 +880,7 @@ func (x *DeleteAbsenceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAbsenceRequest.ProtoReflect.Descriptor instead.
 func (*DeleteAbsenceRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{11}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *DeleteAbsenceRequest) GetId() string {
@@ -802,7 +899,7 @@ type DeleteAbsenceResponse struct {
 
 func (x *DeleteAbsenceResponse) Reset() {
 	*x = DeleteAbsenceResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[12]
+	mi := &file_absence_v1_absence_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -814,7 +911,7 @@ func (x *DeleteAbsenceResponse) String() string {
 func (*DeleteAbsenceResponse) ProtoMessage() {}
 
 func (x *DeleteAbsenceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[12]
+	mi := &file_absence_v1_absence_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -827,7 +924,7 @@ func (x *DeleteAbsenceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAbsenceResponse.ProtoReflect.Descriptor instead.
 func (*DeleteAbsenceResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{12}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *DeleteAbsenceResponse) GetSuccess() bool {
@@ -853,7 +950,7 @@ type CreateUserRequest struct {
 
 func (x *CreateUserRequest) Reset() {
 	*x = CreateUserRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[13]
+	mi := &file_absence_v1_absence_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -865,7 +962,7 @@ func (x *CreateUserRequest) String() string {
 func (*CreateUserRequest) ProtoMessage() {}
 
 func (x *CreateUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[13]
+	mi := &file_absence_v1_absence_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -878,7 +975,7 @@ func (x *CreateUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateUserRequest.ProtoReflect.Descriptor instead.
 func (*CreateUserRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{13}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *CreateUserRequest) GetName() string {
@@ -925,7 +1022,7 @@ type CreateUserResponse struct {
 
 func (x *CreateUserResponse) Reset() {
 	*x = CreateUserResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[14]
+	mi := &file_absence_v1_absence_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -937,7 +1034,7 @@ func (x *CreateUserResponse) String() string {
 func (*CreateUserResponse) ProtoMessage() {}
 
 func (x *CreateUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[14]
+	mi := &file_absence_v1_absence_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -950,7 +1047,7 @@ func (x *CreateUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateUserResponse.ProtoReflect.Descriptor instead.
 func (*CreateUserResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{14}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *CreateUserResponse) GetUser() *User {
@@ -968,7 +1065,7 @@ type GetUsersRequest struct {
 
 func (x *GetUsersRequest) Reset() {
 	*x = GetUsersRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[15]
+	mi := &file_absence_v1_absence_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -980,7 +1077,7 @@ func (x *GetUsersRequest) String() string {
 func (*GetUsersRequest) ProtoMessage() {}
 
 func (x *GetUsersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[15]
+	mi := &file_absence_v1_absence_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -993,7 +1090,7 @@ func (x *GetUsersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUsersRequest.ProtoReflect.Descriptor instead.
 func (*GetUsersRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{15}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{16}
 }
 
 type GetUsersResponse struct {
@@ -1005,7 +1102,7 @@ type GetUsersResponse struct {
 
 func (x *GetUsersResponse) Reset() {
 	*x = GetUsersResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[16]
+	mi := &file_absence_v1_absence_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1017,7 +1114,7 @@ func (x *GetUsersResponse) String() string {
 func (*GetUsersResponse) ProtoMessage() {}
 
 func (x *GetUsersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[16]
+	mi := &file_absence_v1_absence_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1030,7 +1127,7 @@ func (x *GetUsersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUsersResponse.ProtoReflect.Descriptor instead.
 func (*GetUsersResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{16}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetUsersResponse) GetUsers() []*User {
@@ -1050,7 +1147,7 @@ type AssignUserToDepartmentRequest struct {
 
 func (x *AssignUserToDepartmentRequest) Reset() {
 	*x = AssignUserToDepartmentRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[17]
+	mi := &file_absence_v1_absence_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1062,7 +1159,7 @@ func (x *AssignUserToDepartmentRequest) String() string {
 func (*AssignUserToDepartmentRequest) ProtoMessage() {}
 
 func (x *AssignUserToDepartmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[17]
+	mi := &file_absence_v1_absence_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1075,7 +1172,7 @@ func (x *AssignUserToDepartmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AssignUserToDepartmentRequest.ProtoReflect.Descriptor instead.
 func (*AssignUserToDepartmentRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{17}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *AssignUserToDepartmentRequest) GetUserId() string {
@@ -1101,7 +1198,7 @@ type AssignUserToDepartmentResponse struct {
 
 func (x *AssignUserToDepartmentResponse) Reset() {
 	*x = AssignUserToDepartmentResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[18]
+	mi := &file_absence_v1_absence_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1113,7 +1210,7 @@ func (x *AssignUserToDepartmentResponse) String() string {
 func (*AssignUserToDepartmentResponse) ProtoMessage() {}
 
 func (x *AssignUserToDepartmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[18]
+	mi := &file_absence_v1_absence_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1126,7 +1223,7 @@ func (x *AssignUserToDepartmentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AssignUserToDepartmentResponse.ProtoReflect.Descriptor instead.
 func (*AssignUserToDepartmentResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{18}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *AssignUserToDepartmentResponse) GetUser() *User {
@@ -1146,7 +1243,7 @@ type AssignUserToTeamRequest struct {
 
 func (x *AssignUserToTeamRequest) Reset() {
 	*x = AssignUserToTeamRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[19]
+	mi := &file_absence_v1_absence_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1158,7 +1255,7 @@ func (x *AssignUserToTeamRequest) String() string {
 func (*AssignUserToTeamRequest) ProtoMessage() {}
 
 func (x *AssignUserToTeamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[19]
+	mi := &file_absence_v1_absence_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1171,7 +1268,7 @@ func (x *AssignUserToTeamRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AssignUserToTeamRequest.ProtoReflect.Descriptor instead.
 func (*AssignUserToTeamRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{19}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *AssignUserToTeamRequest) GetUserId() string {
@@ -1197,7 +1294,7 @@ type AssignUserToTeamResponse struct {
 
 func (x *AssignUserToTeamResponse) Reset() {
 	*x = AssignUserToTeamResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[20]
+	mi := &file_absence_v1_absence_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1209,7 +1306,7 @@ func (x *AssignUserToTeamResponse) String() string {
 func (*AssignUserToTeamResponse) ProtoMessage() {}
 
 func (x *AssignUserToTeamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[20]
+	mi := &file_absence_v1_absence_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1222,7 +1319,7 @@ func (x *AssignUserToTeamResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AssignUserToTeamResponse.ProtoReflect.Descriptor instead.
 func (*AssignUserToTeamResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{20}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *AssignUserToTeamResponse) GetUser() *User {
@@ -1248,7 +1345,7 @@ type UpdateUserRequest struct {
 
 func (x *UpdateUserRequest) Reset() {
 	*x = UpdateUserRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[21]
+	mi := &file_absence_v1_absence_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1260,7 +1357,7 @@ func (x *UpdateUserRequest) String() string {
 func (*UpdateUserRequest) ProtoMessage() {}
 
 func (x *UpdateUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[21]
+	mi := &file_absence_v1_absence_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1273,7 +1370,7 @@ func (x *UpdateUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateUserRequest.ProtoReflect.Descriptor instead.
 func (*UpdateUserRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{21}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *UpdateUserRequest) GetId() string {
@@ -1327,7 +1424,7 @@ type UpdateUserResponse struct {
 
 func (x *UpdateUserResponse) Reset() {
 	*x = UpdateUserResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[22]
+	mi := &file_absence_v1_absence_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1339,7 +1436,7 @@ func (x *UpdateUserResponse) String() string {
 func (*UpdateUserResponse) ProtoMessage() {}
 
 func (x *UpdateUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[22]
+	mi := &file_absence_v1_absence_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1352,7 +1449,7 @@ func (x *UpdateUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateUserResponse.ProtoReflect.Descriptor instead.
 func (*UpdateUserResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{22}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *UpdateUserResponse) GetUser() *User {
@@ -1371,7 +1468,7 @@ type DeleteUserRequest struct {
 
 func (x *DeleteUserRequest) Reset() {
 	*x = DeleteUserRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[23]
+	mi := &file_absence_v1_absence_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1383,7 +1480,7 @@ func (x *DeleteUserRequest) String() string {
 func (*DeleteUserRequest) ProtoMessage() {}
 
 func (x *DeleteUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[23]
+	mi := &file_absence_v1_absence_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1396,7 +1493,7 @@ func (x *DeleteUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserRequest.ProtoReflect.Descriptor instead.
 func (*DeleteUserRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{23}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *DeleteUserRequest) GetId() string {
@@ -1415,7 +1512,7 @@ type DeleteUserResponse struct {
 
 func (x *DeleteUserResponse) Reset() {
 	*x = DeleteUserResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[24]
+	mi := &file_absence_v1_absence_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1427,7 +1524,7 @@ func (x *DeleteUserResponse) String() string {
 func (*DeleteUserResponse) ProtoMessage() {}
 
 func (x *DeleteUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[24]
+	mi := &file_absence_v1_absence_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1440,7 +1537,7 @@ func (x *DeleteUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserResponse.ProtoReflect.Descriptor instead.
 func (*DeleteUserResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{24}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *DeleteUserResponse) GetSuccess() bool {
@@ -1460,7 +1557,7 @@ type CreateDepartmentRequest struct {
 
 func (x *CreateDepartmentRequest) Reset() {
 	*x = CreateDepartmentRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[25]
+	mi := &file_absence_v1_absence_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1472,7 +1569,7 @@ func (x *CreateDepartmentRequest) String() string {
 func (*CreateDepartmentRequest) ProtoMessage() {}
 
 func (x *CreateDepartmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[25]
+	mi := &file_absence_v1_absence_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1485,7 +1582,7 @@ func (x *CreateDepartmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDepartmentRequest.ProtoReflect.Descriptor instead.
 func (*CreateDepartmentRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{25}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *CreateDepartmentRequest) GetName() string {
@@ -1504,7 +1601,7 @@ type CreateDepartmentResponse struct {
 
 func (x *CreateDepartmentResponse) Reset() {
 	*x = CreateDepartmentResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[26]
+	mi := &file_absence_v1_absence_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1516,7 +1613,7 @@ func (x *CreateDepartmentResponse) String() string {
 func (*CreateDepartmentResponse) ProtoMessage() {}
 
 func (x *CreateDepartmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[26]
+	mi := &file_absence_v1_absence_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1529,7 +1626,7 @@ func (x *CreateDepartmentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDepartmentResponse.ProtoReflect.Descriptor instead.
 func (*CreateDepartmentResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{26}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *CreateDepartmentResponse) GetDepartment() *Department {
@@ -1547,7 +1644,7 @@ type GetDepartmentsRequest struct {
 
 func (x *GetDepartmentsRequest) Reset() {
 	*x = GetDepartmentsRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[27]
+	mi := &file_absence_v1_absence_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1559,7 +1656,7 @@ func (x *GetDepartmentsRequest) String() string {
 func (*GetDepartmentsRequest) ProtoMessage() {}
 
 func (x *GetDepartmentsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[27]
+	mi := &file_absence_v1_absence_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1572,7 +1669,7 @@ func (x *GetDepartmentsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDepartmentsRequest.ProtoReflect.Descriptor instead.
 func (*GetDepartmentsRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{27}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{28}
 }
 
 type GetDepartmentsResponse struct {
@@ -1584,7 +1681,7 @@ type GetDepartmentsResponse struct {
 
 func (x *GetDepartmentsResponse) Reset() {
 	*x = GetDepartmentsResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[28]
+	mi := &file_absence_v1_absence_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1596,7 +1693,7 @@ func (x *GetDepartmentsResponse) String() string {
 func (*GetDepartmentsResponse) ProtoMessage() {}
 
 func (x *GetDepartmentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[28]
+	mi := &file_absence_v1_absence_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1609,7 +1706,7 @@ func (x *GetDepartmentsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDepartmentsResponse.ProtoReflect.Descriptor instead.
 func (*GetDepartmentsResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{28}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetDepartmentsResponse) GetDepartments() []*Department {
@@ -1629,7 +1726,7 @@ type UpdateDepartmentRequest struct {
 
 func (x *UpdateDepartmentRequest) Reset() {
 	*x = UpdateDepartmentRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[29]
+	mi := &file_absence_v1_absence_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1641,7 +1738,7 @@ func (x *UpdateDepartmentRequest) String() string {
 func (*UpdateDepartmentRequest) ProtoMessage() {}
 
 func (x *UpdateDepartmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[29]
+	mi := &file_absence_v1_absence_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1654,7 +1751,7 @@ func (x *UpdateDepartmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDepartmentRequest.ProtoReflect.Descriptor instead.
 func (*UpdateDepartmentRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{29}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *UpdateDepartmentRequest) GetId() string {
@@ -1680,7 +1777,7 @@ type UpdateDepartmentResponse struct {
 
 func (x *UpdateDepartmentResponse) Reset() {
 	*x = UpdateDepartmentResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[30]
+	mi := &file_absence_v1_absence_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1692,7 +1789,7 @@ func (x *UpdateDepartmentResponse) String() string {
 func (*UpdateDepartmentResponse) ProtoMessage() {}
 
 func (x *UpdateDepartmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[30]
+	mi := &file_absence_v1_absence_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1705,7 +1802,7 @@ func (x *UpdateDepartmentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateDepartmentResponse.ProtoReflect.Descriptor instead.
 func (*UpdateDepartmentResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{30}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *UpdateDepartmentResponse) GetDepartment() *Department {
@@ -1724,7 +1821,7 @@ type DeleteDepartmentRequest struct {
 
 func (x *DeleteDepartmentRequest) Reset() {
 	*x = DeleteDepartmentRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[31]
+	mi := &file_absence_v1_absence_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1736,7 +1833,7 @@ func (x *DeleteDepartmentRequest) String() string {
 func (*DeleteDepartmentRequest) ProtoMessage() {}
 
 func (x *DeleteDepartmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[31]
+	mi := &file_absence_v1_absence_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1749,7 +1846,7 @@ func (x *DeleteDepartmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDepartmentRequest.ProtoReflect.Descriptor instead.
 func (*DeleteDepartmentRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{31}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *DeleteDepartmentRequest) GetId() string {
@@ -1768,7 +1865,7 @@ type DeleteDepartmentResponse struct {
 
 func (x *DeleteDepartmentResponse) Reset() {
 	*x = DeleteDepartmentResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[32]
+	mi := &file_absence_v1_absence_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1780,7 +1877,7 @@ func (x *DeleteDepartmentResponse) String() string {
 func (*DeleteDepartmentResponse) ProtoMessage() {}
 
 func (x *DeleteDepartmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[32]
+	mi := &file_absence_v1_absence_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1793,7 +1890,7 @@ func (x *DeleteDepartmentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteDepartmentResponse.ProtoReflect.Descriptor instead.
 func (*DeleteDepartmentResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{32}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *DeleteDepartmentResponse) GetSuccess() bool {
@@ -1814,7 +1911,7 @@ type CreateTeamRequest struct {
 
 func (x *CreateTeamRequest) Reset() {
 	*x = CreateTeamRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[33]
+	mi := &file_absence_v1_absence_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1826,7 +1923,7 @@ func (x *CreateTeamRequest) String() string {
 func (*CreateTeamRequest) ProtoMessage() {}
 
 func (x *CreateTeamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[33]
+	mi := &file_absence_v1_absence_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1839,7 +1936,7 @@ func (x *CreateTeamRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateTeamRequest.ProtoReflect.Descriptor instead.
 func (*CreateTeamRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{33}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *CreateTeamRequest) GetName() string {
@@ -1865,7 +1962,7 @@ type CreateTeamResponse struct {
 
 func (x *CreateTeamResponse) Reset() {
 	*x = CreateTeamResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[34]
+	mi := &file_absence_v1_absence_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1877,7 +1974,7 @@ func (x *CreateTeamResponse) String() string {
 func (*CreateTeamResponse) ProtoMessage() {}
 
 func (x *CreateTeamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[34]
+	mi := &file_absence_v1_absence_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1890,7 +1987,7 @@ func (x *CreateTeamResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateTeamResponse.ProtoReflect.Descriptor instead.
 func (*CreateTeamResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{34}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *CreateTeamResponse) GetTeam() *Team {
@@ -1909,7 +2006,7 @@ type GetTeamsRequest struct {
 
 func (x *GetTeamsRequest) Reset() {
 	*x = GetTeamsRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[35]
+	mi := &file_absence_v1_absence_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1921,7 +2018,7 @@ func (x *GetTeamsRequest) String() string {
 func (*GetTeamsRequest) ProtoMessage() {}
 
 func (x *GetTeamsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[35]
+	mi := &file_absence_v1_absence_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1934,7 +2031,7 @@ func (x *GetTeamsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTeamsRequest.ProtoReflect.Descriptor instead.
 func (*GetTeamsRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{35}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *GetTeamsRequest) GetDepartmentId() string {
@@ -1953,7 +2050,7 @@ type GetTeamsResponse struct {
 
 func (x *GetTeamsResponse) Reset() {
 	*x = GetTeamsResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[36]
+	mi := &file_absence_v1_absence_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1965,7 +2062,7 @@ func (x *GetTeamsResponse) String() string {
 func (*GetTeamsResponse) ProtoMessage() {}
 
 func (x *GetTeamsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[36]
+	mi := &file_absence_v1_absence_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1978,7 +2075,7 @@ func (x *GetTeamsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTeamsResponse.ProtoReflect.Descriptor instead.
 func (*GetTeamsResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{36}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *GetTeamsResponse) GetTeams() []*Team {
@@ -1999,7 +2096,7 @@ type UpdateTeamRequest struct {
 
 func (x *UpdateTeamRequest) Reset() {
 	*x = UpdateTeamRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[37]
+	mi := &file_absence_v1_absence_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2011,7 +2108,7 @@ func (x *UpdateTeamRequest) String() string {
 func (*UpdateTeamRequest) ProtoMessage() {}
 
 func (x *UpdateTeamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[37]
+	mi := &file_absence_v1_absence_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2024,7 +2121,7 @@ func (x *UpdateTeamRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateTeamRequest.ProtoReflect.Descriptor instead.
 func (*UpdateTeamRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{37}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *UpdateTeamRequest) GetId() string {
@@ -2057,7 +2154,7 @@ type UpdateTeamResponse struct {
 
 func (x *UpdateTeamResponse) Reset() {
 	*x = UpdateTeamResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[38]
+	mi := &file_absence_v1_absence_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2069,7 +2166,7 @@ func (x *UpdateTeamResponse) String() string {
 func (*UpdateTeamResponse) ProtoMessage() {}
 
 func (x *UpdateTeamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[38]
+	mi := &file_absence_v1_absence_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2082,7 +2179,7 @@ func (x *UpdateTeamResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateTeamResponse.ProtoReflect.Descriptor instead.
 func (*UpdateTeamResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{38}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *UpdateTeamResponse) GetTeam() *Team {
@@ -2101,7 +2198,7 @@ type DeleteTeamRequest struct {
 
 func (x *DeleteTeamRequest) Reset() {
 	*x = DeleteTeamRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[39]
+	mi := &file_absence_v1_absence_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2113,7 +2210,7 @@ func (x *DeleteTeamRequest) String() string {
 func (*DeleteTeamRequest) ProtoMessage() {}
 
 func (x *DeleteTeamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[39]
+	mi := &file_absence_v1_absence_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2126,7 +2223,7 @@ func (x *DeleteTeamRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteTeamRequest.ProtoReflect.Descriptor instead.
 func (*DeleteTeamRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{39}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *DeleteTeamRequest) GetId() string {
@@ -2145,7 +2242,7 @@ type DeleteTeamResponse struct {
 
 func (x *DeleteTeamResponse) Reset() {
 	*x = DeleteTeamResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[40]
+	mi := &file_absence_v1_absence_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2157,7 +2254,7 @@ func (x *DeleteTeamResponse) String() string {
 func (*DeleteTeamResponse) ProtoMessage() {}
 
 func (x *DeleteTeamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[40]
+	mi := &file_absence_v1_absence_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2170,7 +2267,7 @@ func (x *DeleteTeamResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteTeamResponse.ProtoReflect.Descriptor instead.
 func (*DeleteTeamResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{40}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *DeleteTeamResponse) GetSuccess() bool {
@@ -2193,7 +2290,7 @@ type CreateHolidayRequest struct {
 
 func (x *CreateHolidayRequest) Reset() {
 	*x = CreateHolidayRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[41]
+	mi := &file_absence_v1_absence_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2205,7 +2302,7 @@ func (x *CreateHolidayRequest) String() string {
 func (*CreateHolidayRequest) ProtoMessage() {}
 
 func (x *CreateHolidayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[41]
+	mi := &file_absence_v1_absence_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2218,7 +2315,7 @@ func (x *CreateHolidayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateHolidayRequest.ProtoReflect.Descriptor instead.
 func (*CreateHolidayRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{41}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *CreateHolidayRequest) GetDate() string {
@@ -2258,7 +2355,7 @@ type CreateHolidayResponse struct {
 
 func (x *CreateHolidayResponse) Reset() {
 	*x = CreateHolidayResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[42]
+	mi := &file_absence_v1_absence_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2270,7 +2367,7 @@ func (x *CreateHolidayResponse) String() string {
 func (*CreateHolidayResponse) ProtoMessage() {}
 
 func (x *CreateHolidayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[42]
+	mi := &file_absence_v1_absence_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2283,7 +2380,7 @@ func (x *CreateHolidayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateHolidayResponse.ProtoReflect.Descriptor instead.
 func (*CreateHolidayResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{42}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *CreateHolidayResponse) GetHoliday() *Holiday {
@@ -2303,7 +2400,7 @@ type GetHolidaysRequest struct {
 
 func (x *GetHolidaysRequest) Reset() {
 	*x = GetHolidaysRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[43]
+	mi := &file_absence_v1_absence_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2315,7 +2412,7 @@ func (x *GetHolidaysRequest) String() string {
 func (*GetHolidaysRequest) ProtoMessage() {}
 
 func (x *GetHolidaysRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[43]
+	mi := &file_absence_v1_absence_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2328,7 +2425,7 @@ func (x *GetHolidaysRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetHolidaysRequest.ProtoReflect.Descriptor instead.
 func (*GetHolidaysRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{43}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *GetHolidaysRequest) GetCountry() string {
@@ -2354,7 +2451,7 @@ type GetHolidaysResponse struct {
 
 func (x *GetHolidaysResponse) Reset() {
 	*x = GetHolidaysResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[44]
+	mi := &file_absence_v1_absence_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2366,7 +2463,7 @@ func (x *GetHolidaysResponse) String() string {
 func (*GetHolidaysResponse) ProtoMessage() {}
 
 func (x *GetHolidaysResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[44]
+	mi := &file_absence_v1_absence_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2379,7 +2476,7 @@ func (x *GetHolidaysResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetHolidaysResponse.ProtoReflect.Descriptor instead.
 func (*GetHolidaysResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{44}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *GetHolidaysResponse) GetHolidays() []*Holiday {
@@ -2402,7 +2499,7 @@ type UpdateHolidayRequest struct {
 
 func (x *UpdateHolidayRequest) Reset() {
 	*x = UpdateHolidayRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[45]
+	mi := &file_absence_v1_absence_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2414,7 +2511,7 @@ func (x *UpdateHolidayRequest) String() string {
 func (*UpdateHolidayRequest) ProtoMessage() {}
 
 func (x *UpdateHolidayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[45]
+	mi := &file_absence_v1_absence_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2427,7 +2524,7 @@ func (x *UpdateHolidayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateHolidayRequest.ProtoReflect.Descriptor instead.
 func (*UpdateHolidayRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{45}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *UpdateHolidayRequest) GetId() string {
@@ -2474,7 +2571,7 @@ type UpdateHolidayResponse struct {
 
 func (x *UpdateHolidayResponse) Reset() {
 	*x = UpdateHolidayResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[46]
+	mi := &file_absence_v1_absence_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2486,7 +2583,7 @@ func (x *UpdateHolidayResponse) String() string {
 func (*UpdateHolidayResponse) ProtoMessage() {}
 
 func (x *UpdateHolidayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[46]
+	mi := &file_absence_v1_absence_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2499,7 +2596,7 @@ func (x *UpdateHolidayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateHolidayResponse.ProtoReflect.Descriptor instead.
 func (*UpdateHolidayResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{46}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *UpdateHolidayResponse) GetHoliday() *Holiday {
@@ -2518,7 +2615,7 @@ type DeleteHolidayRequest struct {
 
 func (x *DeleteHolidayRequest) Reset() {
 	*x = DeleteHolidayRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[47]
+	mi := &file_absence_v1_absence_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2530,7 +2627,7 @@ func (x *DeleteHolidayRequest) String() string {
 func (*DeleteHolidayRequest) ProtoMessage() {}
 
 func (x *DeleteHolidayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[47]
+	mi := &file_absence_v1_absence_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2543,7 +2640,7 @@ func (x *DeleteHolidayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteHolidayRequest.ProtoReflect.Descriptor instead.
 func (*DeleteHolidayRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{47}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *DeleteHolidayRequest) GetId() string {
@@ -2562,7 +2659,7 @@ type DeleteHolidayResponse struct {
 
 func (x *DeleteHolidayResponse) Reset() {
 	*x = DeleteHolidayResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[48]
+	mi := &file_absence_v1_absence_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2574,7 +2671,7 @@ func (x *DeleteHolidayResponse) String() string {
 func (*DeleteHolidayResponse) ProtoMessage() {}
 
 func (x *DeleteHolidayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[48]
+	mi := &file_absence_v1_absence_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2587,7 +2684,7 @@ func (x *DeleteHolidayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteHolidayResponse.ProtoReflect.Descriptor instead.
 func (*DeleteHolidayResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{48}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *DeleteHolidayResponse) GetSuccess() bool {
@@ -2606,7 +2703,7 @@ type ImportHolidaysRequest struct {
 
 func (x *ImportHolidaysRequest) Reset() {
 	*x = ImportHolidaysRequest{}
-	mi := &file_absence_v1_absence_proto_msgTypes[49]
+	mi := &file_absence_v1_absence_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2618,7 +2715,7 @@ func (x *ImportHolidaysRequest) String() string {
 func (*ImportHolidaysRequest) ProtoMessage() {}
 
 func (x *ImportHolidaysRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[49]
+	mi := &file_absence_v1_absence_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2631,7 +2728,7 @@ func (x *ImportHolidaysRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportHolidaysRequest.ProtoReflect.Descriptor instead.
 func (*ImportHolidaysRequest) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{49}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *ImportHolidaysRequest) GetHolidays() []*CreateHolidayRequest {
@@ -2650,7 +2747,7 @@ type ImportHolidaysResponse struct {
 
 func (x *ImportHolidaysResponse) Reset() {
 	*x = ImportHolidaysResponse{}
-	mi := &file_absence_v1_absence_proto_msgTypes[50]
+	mi := &file_absence_v1_absence_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2662,7 +2759,7 @@ func (x *ImportHolidaysResponse) String() string {
 func (*ImportHolidaysResponse) ProtoMessage() {}
 
 func (x *ImportHolidaysResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_absence_v1_absence_proto_msgTypes[50]
+	mi := &file_absence_v1_absence_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2675,7 +2772,7 @@ func (x *ImportHolidaysResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImportHolidaysResponse.ProtoReflect.Descriptor instead.
 func (*ImportHolidaysResponse) Descriptor() ([]byte, []int) {
-	return file_absence_v1_absence_proto_rawDescGZIP(), []int{50}
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *ImportHolidaysResponse) GetImportedCount() int32 {
@@ -2683,6 +2780,457 @@ func (x *ImportHolidaysResponse) GetImportedCount() int32 {
 		return x.ImportedCount
 	}
 	return 0
+}
+
+// Event messages
+type CreateEventRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	StartDate     string                 `protobuf:"bytes,2,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate       string                 `protobuf:"bytes,3,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	Category      string                 `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"`
+	Location      string                 `protobuf:"bytes,5,opt,name=location,proto3" json:"location,omitempty"`
+	Url           string                 `protobuf:"bytes,6,opt,name=url,proto3" json:"url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateEventRequest) Reset() {
+	*x = CreateEventRequest{}
+	mi := &file_absence_v1_absence_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateEventRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateEventRequest) ProtoMessage() {}
+
+func (x *CreateEventRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_absence_v1_absence_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateEventRequest.ProtoReflect.Descriptor instead.
+func (*CreateEventRequest) Descriptor() ([]byte, []int) {
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{52}
+}
+
+func (x *CreateEventRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateEventRequest) GetStartDate() string {
+	if x != nil {
+		return x.StartDate
+	}
+	return ""
+}
+
+func (x *CreateEventRequest) GetEndDate() string {
+	if x != nil {
+		return x.EndDate
+	}
+	return ""
+}
+
+func (x *CreateEventRequest) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *CreateEventRequest) GetLocation() string {
+	if x != nil {
+		return x.Location
+	}
+	return ""
+}
+
+func (x *CreateEventRequest) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+type CreateEventResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Event         *Event                 `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateEventResponse) Reset() {
+	*x = CreateEventResponse{}
+	mi := &file_absence_v1_absence_proto_msgTypes[53]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateEventResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateEventResponse) ProtoMessage() {}
+
+func (x *CreateEventResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_absence_v1_absence_proto_msgTypes[53]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateEventResponse.ProtoReflect.Descriptor instead.
+func (*CreateEventResponse) Descriptor() ([]byte, []int) {
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{53}
+}
+
+func (x *CreateEventResponse) GetEvent() *Event {
+	if x != nil {
+		return x.Event
+	}
+	return nil
+}
+
+// Bornes incluses, au format AAAA-MM-JJ ; vides, tous les événements sont
+// renvoyés. Un événement est retenu dès qu'il chevauche la plage.
+type GetEventsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	From          string                 `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`
+	To            string                 `protobuf:"bytes,2,opt,name=to,proto3" json:"to,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetEventsRequest) Reset() {
+	*x = GetEventsRequest{}
+	mi := &file_absence_v1_absence_proto_msgTypes[54]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetEventsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetEventsRequest) ProtoMessage() {}
+
+func (x *GetEventsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_absence_v1_absence_proto_msgTypes[54]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetEventsRequest.ProtoReflect.Descriptor instead.
+func (*GetEventsRequest) Descriptor() ([]byte, []int) {
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{54}
+}
+
+func (x *GetEventsRequest) GetFrom() string {
+	if x != nil {
+		return x.From
+	}
+	return ""
+}
+
+func (x *GetEventsRequest) GetTo() string {
+	if x != nil {
+		return x.To
+	}
+	return ""
+}
+
+type GetEventsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Events        []*Event               `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetEventsResponse) Reset() {
+	*x = GetEventsResponse{}
+	mi := &file_absence_v1_absence_proto_msgTypes[55]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetEventsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetEventsResponse) ProtoMessage() {}
+
+func (x *GetEventsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_absence_v1_absence_proto_msgTypes[55]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetEventsResponse.ProtoReflect.Descriptor instead.
+func (*GetEventsResponse) Descriptor() ([]byte, []int) {
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{55}
+}
+
+func (x *GetEventsResponse) GetEvents() []*Event {
+	if x != nil {
+		return x.Events
+	}
+	return nil
+}
+
+type UpdateEventRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	StartDate     string                 `protobuf:"bytes,3,opt,name=start_date,json=startDate,proto3" json:"start_date,omitempty"`
+	EndDate       string                 `protobuf:"bytes,4,opt,name=end_date,json=endDate,proto3" json:"end_date,omitempty"`
+	Category      string                 `protobuf:"bytes,5,opt,name=category,proto3" json:"category,omitempty"`
+	Location      string                 `protobuf:"bytes,6,opt,name=location,proto3" json:"location,omitempty"`
+	Url           string                 `protobuf:"bytes,7,opt,name=url,proto3" json:"url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateEventRequest) Reset() {
+	*x = UpdateEventRequest{}
+	mi := &file_absence_v1_absence_proto_msgTypes[56]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateEventRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateEventRequest) ProtoMessage() {}
+
+func (x *UpdateEventRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_absence_v1_absence_proto_msgTypes[56]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateEventRequest.ProtoReflect.Descriptor instead.
+func (*UpdateEventRequest) Descriptor() ([]byte, []int) {
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{56}
+}
+
+func (x *UpdateEventRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateEventRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *UpdateEventRequest) GetStartDate() string {
+	if x != nil {
+		return x.StartDate
+	}
+	return ""
+}
+
+func (x *UpdateEventRequest) GetEndDate() string {
+	if x != nil {
+		return x.EndDate
+	}
+	return ""
+}
+
+func (x *UpdateEventRequest) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *UpdateEventRequest) GetLocation() string {
+	if x != nil {
+		return x.Location
+	}
+	return ""
+}
+
+func (x *UpdateEventRequest) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+type UpdateEventResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Event         *Event                 `protobuf:"bytes,1,opt,name=event,proto3" json:"event,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateEventResponse) Reset() {
+	*x = UpdateEventResponse{}
+	mi := &file_absence_v1_absence_proto_msgTypes[57]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateEventResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateEventResponse) ProtoMessage() {}
+
+func (x *UpdateEventResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_absence_v1_absence_proto_msgTypes[57]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateEventResponse.ProtoReflect.Descriptor instead.
+func (*UpdateEventResponse) Descriptor() ([]byte, []int) {
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{57}
+}
+
+func (x *UpdateEventResponse) GetEvent() *Event {
+	if x != nil {
+		return x.Event
+	}
+	return nil
+}
+
+type DeleteEventRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteEventRequest) Reset() {
+	*x = DeleteEventRequest{}
+	mi := &file_absence_v1_absence_proto_msgTypes[58]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteEventRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteEventRequest) ProtoMessage() {}
+
+func (x *DeleteEventRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_absence_v1_absence_proto_msgTypes[58]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteEventRequest.ProtoReflect.Descriptor instead.
+func (*DeleteEventRequest) Descriptor() ([]byte, []int) {
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{58}
+}
+
+func (x *DeleteEventRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DeleteEventResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteEventResponse) Reset() {
+	*x = DeleteEventResponse{}
+	mi := &file_absence_v1_absence_proto_msgTypes[59]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteEventResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteEventResponse) ProtoMessage() {}
+
+func (x *DeleteEventResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_absence_v1_absence_proto_msgTypes[59]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteEventResponse.ProtoReflect.Descriptor instead.
+func (*DeleteEventResponse) Descriptor() ([]byte, []int) {
+	return file_absence_v1_absence_proto_rawDescGZIP(), []int{59}
+}
+
+func (x *DeleteEventResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
 }
 
 var File_absence_v1_absence_proto protoreflect.FileDescriptor
@@ -2723,7 +3271,16 @@ const file_absence_v1_absence_proto_rawDesc = "" +
 	"\x04date\x18\x02 \x01(\tR\x04date\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x18\n" +
 	"\acountry\x18\x04 \x01(\tR\acountry\x12\x12\n" +
-	"\x04year\x18\x05 \x01(\x05R\x04year\"\xd6\x01\n" +
+	"\x04year\x18\x05 \x01(\x05R\x04year\"\xaf\x01\n" +
+	"\x05Event\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
+	"\n" +
+	"start_date\x18\x03 \x01(\tR\tstartDate\x12\x19\n" +
+	"\bend_date\x18\x04 \x01(\tR\aendDate\x12\x1a\n" +
+	"\bcategory\x18\x05 \x01(\tR\bcategory\x12\x1a\n" +
+	"\blocation\x18\x06 \x01(\tR\blocation\x12\x10\n" +
+	"\x03url\x18\a \x01(\tR\x03url\"\xd6\x01\n" +
 	"\x14CreateAbsenceRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x129\n" +
 	"\n" +
@@ -2855,7 +3412,37 @@ const file_absence_v1_absence_proto_rawDesc = "" +
 	"\x15ImportHolidaysRequest\x12<\n" +
 	"\bholidays\x18\x01 \x03(\v2 .absence.v1.CreateHolidayRequestR\bholidays\"?\n" +
 	"\x16ImportHolidaysResponse\x12%\n" +
-	"\x0eimported_count\x18\x01 \x01(\x05R\rimportedCount2\xda\x03\n" +
+	"\x0eimported_count\x18\x01 \x01(\x05R\rimportedCount\"\xac\x01\n" +
+	"\x12CreateEventRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
+	"\n" +
+	"start_date\x18\x02 \x01(\tR\tstartDate\x12\x19\n" +
+	"\bend_date\x18\x03 \x01(\tR\aendDate\x12\x1a\n" +
+	"\bcategory\x18\x04 \x01(\tR\bcategory\x12\x1a\n" +
+	"\blocation\x18\x05 \x01(\tR\blocation\x12\x10\n" +
+	"\x03url\x18\x06 \x01(\tR\x03url\">\n" +
+	"\x13CreateEventResponse\x12'\n" +
+	"\x05event\x18\x01 \x01(\v2\x11.absence.v1.EventR\x05event\"6\n" +
+	"\x10GetEventsRequest\x12\x12\n" +
+	"\x04from\x18\x01 \x01(\tR\x04from\x12\x0e\n" +
+	"\x02to\x18\x02 \x01(\tR\x02to\">\n" +
+	"\x11GetEventsResponse\x12)\n" +
+	"\x06events\x18\x01 \x03(\v2\x11.absence.v1.EventR\x06events\"\xbc\x01\n" +
+	"\x12UpdateEventRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
+	"\n" +
+	"start_date\x18\x03 \x01(\tR\tstartDate\x12\x19\n" +
+	"\bend_date\x18\x04 \x01(\tR\aendDate\x12\x1a\n" +
+	"\bcategory\x18\x05 \x01(\tR\bcategory\x12\x1a\n" +
+	"\blocation\x18\x06 \x01(\tR\blocation\x12\x10\n" +
+	"\x03url\x18\a \x01(\tR\x03url\">\n" +
+	"\x13UpdateEventResponse\x12'\n" +
+	"\x05event\x18\x01 \x01(\v2\x11.absence.v1.EventR\x05event\"$\n" +
+	"\x12DeleteEventRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"/\n" +
+	"\x13DeleteEventResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess2\xda\x03\n" +
 	"\x0eAbsenceService\x12q\n" +
 	"\rCreateAbsence\x12 .absence.v1.CreateAbsenceRequest\x1a!.absence.v1.CreateAbsenceResponse\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/api/v1/absences\x12h\n" +
 	"\vGetAbsences\x12\x1e.absence.v1.GetAbsencesRequest\x1a\x1f.absence.v1.GetAbsencesResponse\"\x18\x82\xd3\xe4\x93\x02\x12\x12\x10/api/v1/absences\x12v\n" +
@@ -2888,7 +3475,12 @@ const file_absence_v1_absence_proto_rawDesc = "" +
 	"\vGetHolidays\x12\x1e.absence.v1.GetHolidaysRequest\x1a\x1f.absence.v1.GetHolidaysResponse\"\x18\x82\xd3\xe4\x93\x02\x12\x12\x10/api/v1/holidays\x12v\n" +
 	"\rUpdateHoliday\x12 .absence.v1.UpdateHolidayRequest\x1a!.absence.v1.UpdateHolidayResponse\" \x82\xd3\xe4\x93\x02\x1a:\x01*\x1a\x15/api/v1/holidays/{id}\x12s\n" +
 	"\rDeleteHoliday\x12 .absence.v1.DeleteHolidayRequest\x1a!.absence.v1.DeleteHolidayResponse\"\x1d\x82\xd3\xe4\x93\x02\x17*\x15/api/v1/holidays/{id}\x12{\n" +
-	"\x0eImportHolidays\x12!.absence.v1.ImportHolidaysRequest\x1a\".absence.v1.ImportHolidaysResponse\"\"\x82\xd3\xe4\x93\x02\x1c:\x01*\"\x17/api/v1/holidays/importB%Z#absence-management/proto/absence/v1b\x06proto3"
+	"\x0eImportHolidays\x12!.absence.v1.ImportHolidaysRequest\x1a\".absence.v1.ImportHolidaysResponse\"\"\x82\xd3\xe4\x93\x02\x1c:\x01*\"\x17/api/v1/holidays/import2\xb8\x03\n" +
+	"\fEventService\x12i\n" +
+	"\vCreateEvent\x12\x1e.absence.v1.CreateEventRequest\x1a\x1f.absence.v1.CreateEventResponse\"\x19\x82\xd3\xe4\x93\x02\x13:\x01*\"\x0e/api/v1/events\x12`\n" +
+	"\tGetEvents\x12\x1c.absence.v1.GetEventsRequest\x1a\x1d.absence.v1.GetEventsResponse\"\x16\x82\xd3\xe4\x93\x02\x10\x12\x0e/api/v1/events\x12n\n" +
+	"\vUpdateEvent\x12\x1e.absence.v1.UpdateEventRequest\x1a\x1f.absence.v1.UpdateEventResponse\"\x1e\x82\xd3\xe4\x93\x02\x18:\x01*\x1a\x13/api/v1/events/{id}\x12k\n" +
+	"\vDeleteEvent\x12\x1e.absence.v1.DeleteEventRequest\x1a\x1f.absence.v1.DeleteEventResponse\"\x1b\x82\xd3\xe4\x93\x02\x15*\x13/api/v1/events/{id}B%Z#absence-management/proto/absence/v1b\x06proto3"
 
 var (
 	file_absence_v1_absence_proto_rawDescOnce sync.Once
@@ -2902,72 +3494,81 @@ func file_absence_v1_absence_proto_rawDescGZIP() []byte {
 	return file_absence_v1_absence_proto_rawDescData
 }
 
-var file_absence_v1_absence_proto_msgTypes = make([]protoimpl.MessageInfo, 51)
+var file_absence_v1_absence_proto_msgTypes = make([]protoimpl.MessageInfo, 60)
 var file_absence_v1_absence_proto_goTypes = []any{
 	(*Absence)(nil),                        // 0: absence.v1.Absence
 	(*User)(nil),                           // 1: absence.v1.User
 	(*Department)(nil),                     // 2: absence.v1.Department
 	(*Team)(nil),                           // 3: absence.v1.Team
 	(*Holiday)(nil),                        // 4: absence.v1.Holiday
-	(*CreateAbsenceRequest)(nil),           // 5: absence.v1.CreateAbsenceRequest
-	(*CreateAbsenceResponse)(nil),          // 6: absence.v1.CreateAbsenceResponse
-	(*GetAbsencesRequest)(nil),             // 7: absence.v1.GetAbsencesRequest
-	(*GetAbsencesResponse)(nil),            // 8: absence.v1.GetAbsencesResponse
-	(*UpdateAbsenceRequest)(nil),           // 9: absence.v1.UpdateAbsenceRequest
-	(*UpdateAbsenceResponse)(nil),          // 10: absence.v1.UpdateAbsenceResponse
-	(*DeleteAbsenceRequest)(nil),           // 11: absence.v1.DeleteAbsenceRequest
-	(*DeleteAbsenceResponse)(nil),          // 12: absence.v1.DeleteAbsenceResponse
-	(*CreateUserRequest)(nil),              // 13: absence.v1.CreateUserRequest
-	(*CreateUserResponse)(nil),             // 14: absence.v1.CreateUserResponse
-	(*GetUsersRequest)(nil),                // 15: absence.v1.GetUsersRequest
-	(*GetUsersResponse)(nil),               // 16: absence.v1.GetUsersResponse
-	(*AssignUserToDepartmentRequest)(nil),  // 17: absence.v1.AssignUserToDepartmentRequest
-	(*AssignUserToDepartmentResponse)(nil), // 18: absence.v1.AssignUserToDepartmentResponse
-	(*AssignUserToTeamRequest)(nil),        // 19: absence.v1.AssignUserToTeamRequest
-	(*AssignUserToTeamResponse)(nil),       // 20: absence.v1.AssignUserToTeamResponse
-	(*UpdateUserRequest)(nil),              // 21: absence.v1.UpdateUserRequest
-	(*UpdateUserResponse)(nil),             // 22: absence.v1.UpdateUserResponse
-	(*DeleteUserRequest)(nil),              // 23: absence.v1.DeleteUserRequest
-	(*DeleteUserResponse)(nil),             // 24: absence.v1.DeleteUserResponse
-	(*CreateDepartmentRequest)(nil),        // 25: absence.v1.CreateDepartmentRequest
-	(*CreateDepartmentResponse)(nil),       // 26: absence.v1.CreateDepartmentResponse
-	(*GetDepartmentsRequest)(nil),          // 27: absence.v1.GetDepartmentsRequest
-	(*GetDepartmentsResponse)(nil),         // 28: absence.v1.GetDepartmentsResponse
-	(*UpdateDepartmentRequest)(nil),        // 29: absence.v1.UpdateDepartmentRequest
-	(*UpdateDepartmentResponse)(nil),       // 30: absence.v1.UpdateDepartmentResponse
-	(*DeleteDepartmentRequest)(nil),        // 31: absence.v1.DeleteDepartmentRequest
-	(*DeleteDepartmentResponse)(nil),       // 32: absence.v1.DeleteDepartmentResponse
-	(*CreateTeamRequest)(nil),              // 33: absence.v1.CreateTeamRequest
-	(*CreateTeamResponse)(nil),             // 34: absence.v1.CreateTeamResponse
-	(*GetTeamsRequest)(nil),                // 35: absence.v1.GetTeamsRequest
-	(*GetTeamsResponse)(nil),               // 36: absence.v1.GetTeamsResponse
-	(*UpdateTeamRequest)(nil),              // 37: absence.v1.UpdateTeamRequest
-	(*UpdateTeamResponse)(nil),             // 38: absence.v1.UpdateTeamResponse
-	(*DeleteTeamRequest)(nil),              // 39: absence.v1.DeleteTeamRequest
-	(*DeleteTeamResponse)(nil),             // 40: absence.v1.DeleteTeamResponse
-	(*CreateHolidayRequest)(nil),           // 41: absence.v1.CreateHolidayRequest
-	(*CreateHolidayResponse)(nil),          // 42: absence.v1.CreateHolidayResponse
-	(*GetHolidaysRequest)(nil),             // 43: absence.v1.GetHolidaysRequest
-	(*GetHolidaysResponse)(nil),            // 44: absence.v1.GetHolidaysResponse
-	(*UpdateHolidayRequest)(nil),           // 45: absence.v1.UpdateHolidayRequest
-	(*UpdateHolidayResponse)(nil),          // 46: absence.v1.UpdateHolidayResponse
-	(*DeleteHolidayRequest)(nil),           // 47: absence.v1.DeleteHolidayRequest
-	(*DeleteHolidayResponse)(nil),          // 48: absence.v1.DeleteHolidayResponse
-	(*ImportHolidaysRequest)(nil),          // 49: absence.v1.ImportHolidaysRequest
-	(*ImportHolidaysResponse)(nil),         // 50: absence.v1.ImportHolidaysResponse
-	(*timestamppb.Timestamp)(nil),          // 51: google.protobuf.Timestamp
+	(*Event)(nil),                          // 5: absence.v1.Event
+	(*CreateAbsenceRequest)(nil),           // 6: absence.v1.CreateAbsenceRequest
+	(*CreateAbsenceResponse)(nil),          // 7: absence.v1.CreateAbsenceResponse
+	(*GetAbsencesRequest)(nil),             // 8: absence.v1.GetAbsencesRequest
+	(*GetAbsencesResponse)(nil),            // 9: absence.v1.GetAbsencesResponse
+	(*UpdateAbsenceRequest)(nil),           // 10: absence.v1.UpdateAbsenceRequest
+	(*UpdateAbsenceResponse)(nil),          // 11: absence.v1.UpdateAbsenceResponse
+	(*DeleteAbsenceRequest)(nil),           // 12: absence.v1.DeleteAbsenceRequest
+	(*DeleteAbsenceResponse)(nil),          // 13: absence.v1.DeleteAbsenceResponse
+	(*CreateUserRequest)(nil),              // 14: absence.v1.CreateUserRequest
+	(*CreateUserResponse)(nil),             // 15: absence.v1.CreateUserResponse
+	(*GetUsersRequest)(nil),                // 16: absence.v1.GetUsersRequest
+	(*GetUsersResponse)(nil),               // 17: absence.v1.GetUsersResponse
+	(*AssignUserToDepartmentRequest)(nil),  // 18: absence.v1.AssignUserToDepartmentRequest
+	(*AssignUserToDepartmentResponse)(nil), // 19: absence.v1.AssignUserToDepartmentResponse
+	(*AssignUserToTeamRequest)(nil),        // 20: absence.v1.AssignUserToTeamRequest
+	(*AssignUserToTeamResponse)(nil),       // 21: absence.v1.AssignUserToTeamResponse
+	(*UpdateUserRequest)(nil),              // 22: absence.v1.UpdateUserRequest
+	(*UpdateUserResponse)(nil),             // 23: absence.v1.UpdateUserResponse
+	(*DeleteUserRequest)(nil),              // 24: absence.v1.DeleteUserRequest
+	(*DeleteUserResponse)(nil),             // 25: absence.v1.DeleteUserResponse
+	(*CreateDepartmentRequest)(nil),        // 26: absence.v1.CreateDepartmentRequest
+	(*CreateDepartmentResponse)(nil),       // 27: absence.v1.CreateDepartmentResponse
+	(*GetDepartmentsRequest)(nil),          // 28: absence.v1.GetDepartmentsRequest
+	(*GetDepartmentsResponse)(nil),         // 29: absence.v1.GetDepartmentsResponse
+	(*UpdateDepartmentRequest)(nil),        // 30: absence.v1.UpdateDepartmentRequest
+	(*UpdateDepartmentResponse)(nil),       // 31: absence.v1.UpdateDepartmentResponse
+	(*DeleteDepartmentRequest)(nil),        // 32: absence.v1.DeleteDepartmentRequest
+	(*DeleteDepartmentResponse)(nil),       // 33: absence.v1.DeleteDepartmentResponse
+	(*CreateTeamRequest)(nil),              // 34: absence.v1.CreateTeamRequest
+	(*CreateTeamResponse)(nil),             // 35: absence.v1.CreateTeamResponse
+	(*GetTeamsRequest)(nil),                // 36: absence.v1.GetTeamsRequest
+	(*GetTeamsResponse)(nil),               // 37: absence.v1.GetTeamsResponse
+	(*UpdateTeamRequest)(nil),              // 38: absence.v1.UpdateTeamRequest
+	(*UpdateTeamResponse)(nil),             // 39: absence.v1.UpdateTeamResponse
+	(*DeleteTeamRequest)(nil),              // 40: absence.v1.DeleteTeamRequest
+	(*DeleteTeamResponse)(nil),             // 41: absence.v1.DeleteTeamResponse
+	(*CreateHolidayRequest)(nil),           // 42: absence.v1.CreateHolidayRequest
+	(*CreateHolidayResponse)(nil),          // 43: absence.v1.CreateHolidayResponse
+	(*GetHolidaysRequest)(nil),             // 44: absence.v1.GetHolidaysRequest
+	(*GetHolidaysResponse)(nil),            // 45: absence.v1.GetHolidaysResponse
+	(*UpdateHolidayRequest)(nil),           // 46: absence.v1.UpdateHolidayRequest
+	(*UpdateHolidayResponse)(nil),          // 47: absence.v1.UpdateHolidayResponse
+	(*DeleteHolidayRequest)(nil),           // 48: absence.v1.DeleteHolidayRequest
+	(*DeleteHolidayResponse)(nil),          // 49: absence.v1.DeleteHolidayResponse
+	(*ImportHolidaysRequest)(nil),          // 50: absence.v1.ImportHolidaysRequest
+	(*ImportHolidaysResponse)(nil),         // 51: absence.v1.ImportHolidaysResponse
+	(*CreateEventRequest)(nil),             // 52: absence.v1.CreateEventRequest
+	(*CreateEventResponse)(nil),            // 53: absence.v1.CreateEventResponse
+	(*GetEventsRequest)(nil),               // 54: absence.v1.GetEventsRequest
+	(*GetEventsResponse)(nil),              // 55: absence.v1.GetEventsResponse
+	(*UpdateEventRequest)(nil),             // 56: absence.v1.UpdateEventRequest
+	(*UpdateEventResponse)(nil),            // 57: absence.v1.UpdateEventResponse
+	(*DeleteEventRequest)(nil),             // 58: absence.v1.DeleteEventRequest
+	(*DeleteEventResponse)(nil),            // 59: absence.v1.DeleteEventResponse
+	(*timestamppb.Timestamp)(nil),          // 60: google.protobuf.Timestamp
 }
 var file_absence_v1_absence_proto_depIdxs = []int32{
-	51, // 0: absence.v1.Absence.start_date:type_name -> google.protobuf.Timestamp
-	51, // 1: absence.v1.Absence.end_date:type_name -> google.protobuf.Timestamp
-	51, // 2: absence.v1.CreateAbsenceRequest.start_date:type_name -> google.protobuf.Timestamp
-	51, // 3: absence.v1.CreateAbsenceRequest.end_date:type_name -> google.protobuf.Timestamp
+	60, // 0: absence.v1.Absence.start_date:type_name -> google.protobuf.Timestamp
+	60, // 1: absence.v1.Absence.end_date:type_name -> google.protobuf.Timestamp
+	60, // 2: absence.v1.CreateAbsenceRequest.start_date:type_name -> google.protobuf.Timestamp
+	60, // 3: absence.v1.CreateAbsenceRequest.end_date:type_name -> google.protobuf.Timestamp
 	0,  // 4: absence.v1.CreateAbsenceResponse.absence:type_name -> absence.v1.Absence
-	51, // 5: absence.v1.GetAbsencesRequest.start_date:type_name -> google.protobuf.Timestamp
-	51, // 6: absence.v1.GetAbsencesRequest.end_date:type_name -> google.protobuf.Timestamp
+	60, // 5: absence.v1.GetAbsencesRequest.start_date:type_name -> google.protobuf.Timestamp
+	60, // 6: absence.v1.GetAbsencesRequest.end_date:type_name -> google.protobuf.Timestamp
 	0,  // 7: absence.v1.GetAbsencesResponse.absences:type_name -> absence.v1.Absence
-	51, // 8: absence.v1.UpdateAbsenceRequest.start_date:type_name -> google.protobuf.Timestamp
-	51, // 9: absence.v1.UpdateAbsenceRequest.end_date:type_name -> google.protobuf.Timestamp
+	60, // 8: absence.v1.UpdateAbsenceRequest.start_date:type_name -> google.protobuf.Timestamp
+	60, // 9: absence.v1.UpdateAbsenceRequest.end_date:type_name -> google.protobuf.Timestamp
 	0,  // 10: absence.v1.UpdateAbsenceResponse.absence:type_name -> absence.v1.Absence
 	1,  // 11: absence.v1.CreateUserResponse.user:type_name -> absence.v1.User
 	1,  // 12: absence.v1.GetUsersResponse.users:type_name -> absence.v1.User
@@ -2983,58 +3584,69 @@ var file_absence_v1_absence_proto_depIdxs = []int32{
 	4,  // 22: absence.v1.CreateHolidayResponse.holiday:type_name -> absence.v1.Holiday
 	4,  // 23: absence.v1.GetHolidaysResponse.holidays:type_name -> absence.v1.Holiday
 	4,  // 24: absence.v1.UpdateHolidayResponse.holiday:type_name -> absence.v1.Holiday
-	41, // 25: absence.v1.ImportHolidaysRequest.holidays:type_name -> absence.v1.CreateHolidayRequest
-	5,  // 26: absence.v1.AbsenceService.CreateAbsence:input_type -> absence.v1.CreateAbsenceRequest
-	7,  // 27: absence.v1.AbsenceService.GetAbsences:input_type -> absence.v1.GetAbsencesRequest
-	9,  // 28: absence.v1.AbsenceService.UpdateAbsence:input_type -> absence.v1.UpdateAbsenceRequest
-	11, // 29: absence.v1.AbsenceService.DeleteAbsence:input_type -> absence.v1.DeleteAbsenceRequest
-	13, // 30: absence.v1.UserService.CreateUser:input_type -> absence.v1.CreateUserRequest
-	15, // 31: absence.v1.UserService.GetUsers:input_type -> absence.v1.GetUsersRequest
-	17, // 32: absence.v1.UserService.AssignUserToDepartment:input_type -> absence.v1.AssignUserToDepartmentRequest
-	19, // 33: absence.v1.UserService.AssignUserToTeam:input_type -> absence.v1.AssignUserToTeamRequest
-	21, // 34: absence.v1.UserService.UpdateUser:input_type -> absence.v1.UpdateUserRequest
-	23, // 35: absence.v1.UserService.DeleteUser:input_type -> absence.v1.DeleteUserRequest
-	25, // 36: absence.v1.OrganizationService.CreateDepartment:input_type -> absence.v1.CreateDepartmentRequest
-	27, // 37: absence.v1.OrganizationService.GetDepartments:input_type -> absence.v1.GetDepartmentsRequest
-	33, // 38: absence.v1.OrganizationService.CreateTeam:input_type -> absence.v1.CreateTeamRequest
-	35, // 39: absence.v1.OrganizationService.GetTeams:input_type -> absence.v1.GetTeamsRequest
-	29, // 40: absence.v1.OrganizationService.UpdateDepartment:input_type -> absence.v1.UpdateDepartmentRequest
-	31, // 41: absence.v1.OrganizationService.DeleteDepartment:input_type -> absence.v1.DeleteDepartmentRequest
-	37, // 42: absence.v1.OrganizationService.UpdateTeam:input_type -> absence.v1.UpdateTeamRequest
-	39, // 43: absence.v1.OrganizationService.DeleteTeam:input_type -> absence.v1.DeleteTeamRequest
-	41, // 44: absence.v1.HolidayService.CreateHoliday:input_type -> absence.v1.CreateHolidayRequest
-	43, // 45: absence.v1.HolidayService.GetHolidays:input_type -> absence.v1.GetHolidaysRequest
-	45, // 46: absence.v1.HolidayService.UpdateHoliday:input_type -> absence.v1.UpdateHolidayRequest
-	47, // 47: absence.v1.HolidayService.DeleteHoliday:input_type -> absence.v1.DeleteHolidayRequest
-	49, // 48: absence.v1.HolidayService.ImportHolidays:input_type -> absence.v1.ImportHolidaysRequest
-	6,  // 49: absence.v1.AbsenceService.CreateAbsence:output_type -> absence.v1.CreateAbsenceResponse
-	8,  // 50: absence.v1.AbsenceService.GetAbsences:output_type -> absence.v1.GetAbsencesResponse
-	10, // 51: absence.v1.AbsenceService.UpdateAbsence:output_type -> absence.v1.UpdateAbsenceResponse
-	12, // 52: absence.v1.AbsenceService.DeleteAbsence:output_type -> absence.v1.DeleteAbsenceResponse
-	14, // 53: absence.v1.UserService.CreateUser:output_type -> absence.v1.CreateUserResponse
-	16, // 54: absence.v1.UserService.GetUsers:output_type -> absence.v1.GetUsersResponse
-	18, // 55: absence.v1.UserService.AssignUserToDepartment:output_type -> absence.v1.AssignUserToDepartmentResponse
-	20, // 56: absence.v1.UserService.AssignUserToTeam:output_type -> absence.v1.AssignUserToTeamResponse
-	22, // 57: absence.v1.UserService.UpdateUser:output_type -> absence.v1.UpdateUserResponse
-	24, // 58: absence.v1.UserService.DeleteUser:output_type -> absence.v1.DeleteUserResponse
-	26, // 59: absence.v1.OrganizationService.CreateDepartment:output_type -> absence.v1.CreateDepartmentResponse
-	28, // 60: absence.v1.OrganizationService.GetDepartments:output_type -> absence.v1.GetDepartmentsResponse
-	34, // 61: absence.v1.OrganizationService.CreateTeam:output_type -> absence.v1.CreateTeamResponse
-	36, // 62: absence.v1.OrganizationService.GetTeams:output_type -> absence.v1.GetTeamsResponse
-	30, // 63: absence.v1.OrganizationService.UpdateDepartment:output_type -> absence.v1.UpdateDepartmentResponse
-	32, // 64: absence.v1.OrganizationService.DeleteDepartment:output_type -> absence.v1.DeleteDepartmentResponse
-	38, // 65: absence.v1.OrganizationService.UpdateTeam:output_type -> absence.v1.UpdateTeamResponse
-	40, // 66: absence.v1.OrganizationService.DeleteTeam:output_type -> absence.v1.DeleteTeamResponse
-	42, // 67: absence.v1.HolidayService.CreateHoliday:output_type -> absence.v1.CreateHolidayResponse
-	44, // 68: absence.v1.HolidayService.GetHolidays:output_type -> absence.v1.GetHolidaysResponse
-	46, // 69: absence.v1.HolidayService.UpdateHoliday:output_type -> absence.v1.UpdateHolidayResponse
-	48, // 70: absence.v1.HolidayService.DeleteHoliday:output_type -> absence.v1.DeleteHolidayResponse
-	50, // 71: absence.v1.HolidayService.ImportHolidays:output_type -> absence.v1.ImportHolidaysResponse
-	49, // [49:72] is the sub-list for method output_type
-	26, // [26:49] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	42, // 25: absence.v1.ImportHolidaysRequest.holidays:type_name -> absence.v1.CreateHolidayRequest
+	5,  // 26: absence.v1.CreateEventResponse.event:type_name -> absence.v1.Event
+	5,  // 27: absence.v1.GetEventsResponse.events:type_name -> absence.v1.Event
+	5,  // 28: absence.v1.UpdateEventResponse.event:type_name -> absence.v1.Event
+	6,  // 29: absence.v1.AbsenceService.CreateAbsence:input_type -> absence.v1.CreateAbsenceRequest
+	8,  // 30: absence.v1.AbsenceService.GetAbsences:input_type -> absence.v1.GetAbsencesRequest
+	10, // 31: absence.v1.AbsenceService.UpdateAbsence:input_type -> absence.v1.UpdateAbsenceRequest
+	12, // 32: absence.v1.AbsenceService.DeleteAbsence:input_type -> absence.v1.DeleteAbsenceRequest
+	14, // 33: absence.v1.UserService.CreateUser:input_type -> absence.v1.CreateUserRequest
+	16, // 34: absence.v1.UserService.GetUsers:input_type -> absence.v1.GetUsersRequest
+	18, // 35: absence.v1.UserService.AssignUserToDepartment:input_type -> absence.v1.AssignUserToDepartmentRequest
+	20, // 36: absence.v1.UserService.AssignUserToTeam:input_type -> absence.v1.AssignUserToTeamRequest
+	22, // 37: absence.v1.UserService.UpdateUser:input_type -> absence.v1.UpdateUserRequest
+	24, // 38: absence.v1.UserService.DeleteUser:input_type -> absence.v1.DeleteUserRequest
+	26, // 39: absence.v1.OrganizationService.CreateDepartment:input_type -> absence.v1.CreateDepartmentRequest
+	28, // 40: absence.v1.OrganizationService.GetDepartments:input_type -> absence.v1.GetDepartmentsRequest
+	34, // 41: absence.v1.OrganizationService.CreateTeam:input_type -> absence.v1.CreateTeamRequest
+	36, // 42: absence.v1.OrganizationService.GetTeams:input_type -> absence.v1.GetTeamsRequest
+	30, // 43: absence.v1.OrganizationService.UpdateDepartment:input_type -> absence.v1.UpdateDepartmentRequest
+	32, // 44: absence.v1.OrganizationService.DeleteDepartment:input_type -> absence.v1.DeleteDepartmentRequest
+	38, // 45: absence.v1.OrganizationService.UpdateTeam:input_type -> absence.v1.UpdateTeamRequest
+	40, // 46: absence.v1.OrganizationService.DeleteTeam:input_type -> absence.v1.DeleteTeamRequest
+	42, // 47: absence.v1.HolidayService.CreateHoliday:input_type -> absence.v1.CreateHolidayRequest
+	44, // 48: absence.v1.HolidayService.GetHolidays:input_type -> absence.v1.GetHolidaysRequest
+	46, // 49: absence.v1.HolidayService.UpdateHoliday:input_type -> absence.v1.UpdateHolidayRequest
+	48, // 50: absence.v1.HolidayService.DeleteHoliday:input_type -> absence.v1.DeleteHolidayRequest
+	50, // 51: absence.v1.HolidayService.ImportHolidays:input_type -> absence.v1.ImportHolidaysRequest
+	52, // 52: absence.v1.EventService.CreateEvent:input_type -> absence.v1.CreateEventRequest
+	54, // 53: absence.v1.EventService.GetEvents:input_type -> absence.v1.GetEventsRequest
+	56, // 54: absence.v1.EventService.UpdateEvent:input_type -> absence.v1.UpdateEventRequest
+	58, // 55: absence.v1.EventService.DeleteEvent:input_type -> absence.v1.DeleteEventRequest
+	7,  // 56: absence.v1.AbsenceService.CreateAbsence:output_type -> absence.v1.CreateAbsenceResponse
+	9,  // 57: absence.v1.AbsenceService.GetAbsences:output_type -> absence.v1.GetAbsencesResponse
+	11, // 58: absence.v1.AbsenceService.UpdateAbsence:output_type -> absence.v1.UpdateAbsenceResponse
+	13, // 59: absence.v1.AbsenceService.DeleteAbsence:output_type -> absence.v1.DeleteAbsenceResponse
+	15, // 60: absence.v1.UserService.CreateUser:output_type -> absence.v1.CreateUserResponse
+	17, // 61: absence.v1.UserService.GetUsers:output_type -> absence.v1.GetUsersResponse
+	19, // 62: absence.v1.UserService.AssignUserToDepartment:output_type -> absence.v1.AssignUserToDepartmentResponse
+	21, // 63: absence.v1.UserService.AssignUserToTeam:output_type -> absence.v1.AssignUserToTeamResponse
+	23, // 64: absence.v1.UserService.UpdateUser:output_type -> absence.v1.UpdateUserResponse
+	25, // 65: absence.v1.UserService.DeleteUser:output_type -> absence.v1.DeleteUserResponse
+	27, // 66: absence.v1.OrganizationService.CreateDepartment:output_type -> absence.v1.CreateDepartmentResponse
+	29, // 67: absence.v1.OrganizationService.GetDepartments:output_type -> absence.v1.GetDepartmentsResponse
+	35, // 68: absence.v1.OrganizationService.CreateTeam:output_type -> absence.v1.CreateTeamResponse
+	37, // 69: absence.v1.OrganizationService.GetTeams:output_type -> absence.v1.GetTeamsResponse
+	31, // 70: absence.v1.OrganizationService.UpdateDepartment:output_type -> absence.v1.UpdateDepartmentResponse
+	33, // 71: absence.v1.OrganizationService.DeleteDepartment:output_type -> absence.v1.DeleteDepartmentResponse
+	39, // 72: absence.v1.OrganizationService.UpdateTeam:output_type -> absence.v1.UpdateTeamResponse
+	41, // 73: absence.v1.OrganizationService.DeleteTeam:output_type -> absence.v1.DeleteTeamResponse
+	43, // 74: absence.v1.HolidayService.CreateHoliday:output_type -> absence.v1.CreateHolidayResponse
+	45, // 75: absence.v1.HolidayService.GetHolidays:output_type -> absence.v1.GetHolidaysResponse
+	47, // 76: absence.v1.HolidayService.UpdateHoliday:output_type -> absence.v1.UpdateHolidayResponse
+	49, // 77: absence.v1.HolidayService.DeleteHoliday:output_type -> absence.v1.DeleteHolidayResponse
+	51, // 78: absence.v1.HolidayService.ImportHolidays:output_type -> absence.v1.ImportHolidaysResponse
+	53, // 79: absence.v1.EventService.CreateEvent:output_type -> absence.v1.CreateEventResponse
+	55, // 80: absence.v1.EventService.GetEvents:output_type -> absence.v1.GetEventsResponse
+	57, // 81: absence.v1.EventService.UpdateEvent:output_type -> absence.v1.UpdateEventResponse
+	59, // 82: absence.v1.EventService.DeleteEvent:output_type -> absence.v1.DeleteEventResponse
+	56, // [56:83] is the sub-list for method output_type
+	29, // [29:56] is the sub-list for method input_type
+	29, // [29:29] is the sub-list for extension type_name
+	29, // [29:29] is the sub-list for extension extendee
+	0,  // [0:29] is the sub-list for field type_name
 }
 
 func init() { file_absence_v1_absence_proto_init() }
@@ -3048,9 +3660,9 @@ func file_absence_v1_absence_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_absence_v1_absence_proto_rawDesc), len(file_absence_v1_absence_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   51,
+			NumMessages:   60,
 			NumExtensions: 0,
-			NumServices:   4,
+			NumServices:   5,
 		},
 		GoTypes:           file_absence_v1_absence_proto_goTypes,
 		DependencyIndexes: file_absence_v1_absence_proto_depIdxs,

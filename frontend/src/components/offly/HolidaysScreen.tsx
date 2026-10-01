@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Holiday, User } from '../../types'
-import { countryFlag, countryName, isWeekend, parseDay } from '../../lib/halfday'
-import { countries } from '../../utils/holidayManager'
+import { isWeekend, parseDay } from '../../lib/halfday'
+import { countryFlag, countryName } from '../../lib/countries'
 import HolidayTransfer from './HolidayTransfer'
 
 interface Props {
@@ -10,8 +10,6 @@ interface Props {
   year: number
   onImported: () => void
 }
-
-const COUNTRY_NAMES = new Map(countries.map(c => [c.code, c.name]))
 
 export default function HolidaysScreen({ holidays, users, year, onImported }: Props) {
   const [filter, setFilter] = useState('all')
@@ -35,7 +33,7 @@ export default function HolidaysScreen({ holidays, users, year, onImported }: Pr
     return [...byCountry.entries()]
       .map(([code, items]) => ({
         code,
-        name: countryName(code, COUNTRY_NAMES.get(code)),
+        name: countryName(code),
         heads: headcount.get(code) ?? 0,
         items: items.slice().sort((a, b) => a.date.localeCompare(b.date)),
       }))

@@ -11,6 +11,7 @@ type MemoryStorage struct {
 	users       map[string]*User
 	departments map[string]*Department
 	teams       map[string]*Team
+	events      map[string]*Event
 	holidays    map[string]*Holiday
 	mu          sync.RWMutex
 }
@@ -21,6 +22,7 @@ func NewMemoryStorage() Storage {
 		users:       make(map[string]*User),
 		departments: make(map[string]*Department),
 		teams:       make(map[string]*Team),
+		events:      make(map[string]*Event),
 		holidays:    make(map[string]*Holiday),
 	}
 }
@@ -185,6 +187,48 @@ func (s *MemoryStorage) DeleteTeam(id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	delete(s.teams, id)
+	return nil
+}
+
+func (s *MemoryStorage) CreateEvent(event *Event) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.events[event.ID] = event
+	return nil
+}
+
+func (s *MemoryStorage) GetEvents(from, to string) ([]*Event, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	var result []*Event
+	for _, e := range s.events {
+		// Chevauchement : les dates ISO se comparent comme des chaînes.
+		if to != "" && e.StartDate > to {
+			continue
+		}
+		if from != "" && e.EndDate < from {
+			continue
+		}
+		result = append(result, e)
+	}
+	return result, nil
+}
+
+func (s *MemoryStorage) UpdateEvent(event *Event) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.events[event.ID]; !ok {
+		return errors.New("event not found")
+	}
+	s.events[event.ID] = event
+	return nil
+}
+
+func (s *MemoryStorage) DeleteEvent(id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.events, id)
 	return nil
 }
 

@@ -4,6 +4,7 @@ import (
 	"absence-management/internal/storage"
 	pb "absence-management/proto/absence/v1"
 	"context"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -51,9 +52,25 @@ func (s *OrganizationServiceServer) GetDepartments(ctx context.Context, req *pb.
 }
 
 func (s *OrganizationServiceServer) CreateTeam(ctx context.Context, req *pb.CreateTeamRequest) (*pb.CreateTeamResponse, error) {
+	name := strings.TrimSpace(req.Name)
+
+	// Même règle que CreateUser : on renvoie l'équipe de ce nom plutôt que d'en
+	// créer une seconde. L'appelant compare l'id renvoyé pour distinguer les deux.
+	if existing, err := s.storage.GetTeams(""); err == nil && name != "" {
+		for _, t := range existing {
+			if strings.EqualFold(strings.TrimSpace(t.Name), name) {
+				return &pb.CreateTeamResponse{Team: &pb.Team{
+					Id:           t.ID,
+					Name:         t.Name,
+					DepartmentId: t.DepartmentID,
+				}}, nil
+			}
+		}
+	}
+
 	team := &storage.Team{
 		ID:           uuid.New().String(),
-		Name:         req.Name,
+		Name:         name,
 		DepartmentID: req.DepartmentId,
 	}
 
@@ -112,8 +129,21 @@ func (s *OrganizationServiceServer) DeleteDepartment(ctx context.Context, req *p
 func (s *OrganizationServiceServer) UpdateTeam(ctx context.Context, req *pb.UpdateTeamRequest) (*pb.UpdateTeamResponse, error) {
 	team := &storage.Team{
 		ID:           req.Id,
-		Name:         req.Name,
+		Name:         strings.TrimSpace(req.Name),
 		DepartmentID: req.DepartmentId,
+	}
+
+	// Un renommage n'envoie pas de département : sans ce repli, il détacherait
+	// l'équipe du sien — la panne qu'a connue job_profile.
+	if team.DepartmentID == "" {
+		if existing, err := s.storage.GetTeams(""); err == nil {
+			for _, t := range existing {
+				if t.ID == req.Id {
+					team.DepartmentID = t.DepartmentID
+					break
+				}
+			}
+		}
 	}
 
 	if err := s.storage.UpdateTeam(team); err != nil {
@@ -128,6 +158,18 @@ func (s *OrganizationServiceServer) UpdateTeam(ctx context.Context, req *pb.Upda
 }
 
 func (s *OrganizationServiceServer) DeleteTeam(ctx context.Context, req *pb.DeleteTeamRequest) (*pb.DeleteTeamResponse, error) {
+	// Les membres sont détachés d'abord : sans cela ils garderaient un team_id
+	// fantôme, et disparaîtraient de l'interface, qui ne les rangerait ni dans
+	// une équipe ni dans « Sans équipe ».
+	if users, err := s.storage.GetUsers(); err == nil {
+		for _, u := range users {
+			if u.TeamID == req.Id {
+				u.TeamID = ""
+				_ = s.storage.UpdateUser(u)
+			}
+		}
+	}
+
 	if err := s.storage.DeleteTeam(req.Id); err != nil {
 		return &pb.DeleteTeamResponse{Success: false}, err
 	}
