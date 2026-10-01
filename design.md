@@ -94,6 +94,7 @@ Un seul niveau de titre par écran. Pas de gras dans le corps de texte : la hié
 - **PersonRow** — avatar initiales 22 px (violet plein si c'est moi), nom tronqué, drapeau du pays.
 - **TeamGroupHeader** — nom d'équipe, effectif mono, filet.
 - **CoverageRow** — une pastille par jour : minimum des présences matin / après-midi. Rose sous le seuil, `title` avec les deux valeurs. Les personnes en férié sortent du dénominateur ; si toute l'équipe est fériée, la pastille affiche « — ».
+- **EventBand** — rangée sous les en-têtes de jour, dans le bloc collant : une barre neutre (`--track`) par jour porteur d'un événement, nom tronqué, compte `+N` hors de la troncature quand le jour en porte plusieurs, `title` détaillant chacun. Teinte neutre assumée : le violet porte l'absence, le rose l'alerte, un événement ne dispute pas la lecture de la couverture. Un clic ouvre la fiche sans quitter la grille. La rangée disparaît si la plage ne porte aucun événement — une rangée vide volerait de la hauteur à la surface de saisie.
 - **Legend** — journée / matin / après-midi / férié / sous seuil + rappel des gestes. Pied fixe, hors de la zone défilante.
 
 ### Saisie
@@ -109,7 +110,7 @@ Un seul niveau de titre par écran. Pas de gras dans le corps de texte : la hié
 - **Dropzone** — bordure pointillée `--border`, fond `--surface-2` ; au survol ou au glisser, bordure `--accent` et fond `--accent-soft`.
 
 ### Chrome & communs
-- **Rail** — logo, 4 entrées (Calendrier, Équipes, Personnes, Jours fériés), bloc « Prochains fériés » en pied.
+- **Rail** — logo, 5 entrées (Calendrier, Équipes, Personnes, Événements, Jours fériés), bloc « Prochains fériés » en pied.
 - **RangeNav** — ‹ / Aujourd'hui / › dans un même conteneur bordé. Les flèches décalent la plage de sa propre durée.
 - **RangePicker** (Calendrier) — déclencheur bordé portant la plage courante (mono, avec l'année), ouvrant un popover à deux colonnes : saisie absolue Du / Au + « Appliquer » à gauche, liste de plages rapides cherchable à droite (semaine, quinzaine, 30 jours, mois courant, trimestre suivant, puis les douze mois à venir un par un). Le raccourci est le chemin normal, la saisie absolue le recours. La plage appliquée ne bouge qu'au clic : une plage a deux bornes, l'appliquer à chaque frappe ferait recharger sur un état intermédiaire.
 - **FilterChips** — sélection unique, chip active en `--ink`.
@@ -126,6 +127,8 @@ Un seul niveau de titre par écran. Pas de gras dans le corps de texte : la hié
 - **PersonForm** (Personnes) — fiche d'une personne en modale : nom, e-mail, équipe et profil côte à côte, pays. Ouverte par « Ajouter une personne » (bouton primaire en tête d'écran) ou par le « Modifier » d'une ligne. La suppression vit dans la fiche, à gauche du pied, et demande une confirmation nommant la personne et le sort de ses absences — pas de `confirm()` du navigateur. Le rose de l'alerte est la seule teinte qu'emprunte la suppression ; le système n'introduit pas de couleur de danger.
 - **Modal** — voile `rgba(20,20,30,.28)`, carte de 420 px centrée, même élévation qu'un menu flottant. Fermeture par Échap, par le voile ou par « Annuler ». Réservée à l'administration de l'annuaire : la saisie d'absence, elle, reste dans la grille.
 - **ProfileFilter** (Calendrier, Personnes) — sélecteur à choix unique aligné à droite de la rangée de chips. Il ne propose que les profils réellement portés par au moins une personne, et disparaît si aucun n'est renseigné : un filtre qui ne peut rien renvoyer n'a pas sa place. La colonne, elle, reste affichée avec « — » — le manque doit rester visible.
+- **EventTable** (Événements) — deux sections, « À venir » puis « Passés », séparées par un label mono. Lignes : dates (mono, « 6 → 7 oct. 2026 » quand l'événement s'étend), nom, pastille de catégorie, lieu, lien externe, « Modifier » en bouton fantôme. Les événements passés restent affichés, à 55 % d'opacité : la mémoire d'équipe vaut mieux qu'une liste qui se vide. Chips de catégorie au-dessus, limitées aux catégories réellement portées.
+- **EventForm** (Événements) — fiche en modale : nom, date et fin facultative côte à côte, catégorie et lieu côte à côte, lien. La date de fin reste vide tant que l'événement tient sur un jour — le backend la recopie alors de la date de début. Une plage inversée affiche son motif et bloque l'enregistrement. Ouverte par « Ajouter un événement », par le « Modifier » d'une ligne, ou par le bandeau du calendrier ; dans ce dernier cas sans droit d'écriture, elle devient une consultation — champs en lecture seule, pied réduit à « Fermer ».
 - **HolidayCountryCard** (Jours fériés) — en-tête drapeau 20 px + pays + code ISO, liste des dates en mono avec le nom du jour ; les dates tombant un week-end sont marquées par le tag « week-end », pas par un gris affaibli.
 - **CountryFilterChips** — chips avec drapeau, sélection unique.
 

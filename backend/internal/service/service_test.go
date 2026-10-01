@@ -273,6 +273,90 @@ func TestOrganizationService_DeleteTeamDetachesMembers(t *testing.T) {
 	}
 }
 
+// --- EventService ---
+
+func TestEventService_CRUD(t *testing.T) {
+	svc := NewEventServiceServer(newMemStore())
+	ctx := context.Background()
+
+	created, err := svc.CreateEvent(ctx, &pb.CreateEventRequest{
+		Name:      "DevOps REX",
+		StartDate: "2026-11-17",
+		Category:  "conference",
+		Location:  "Paris",
+		Url:       "https://devopsrex.fr",
+	})
+	if err != nil {
+		t.Fatalf("CreateEvent: %v", err)
+	}
+	// Date de fin omise : un événement d'un jour porte la même date aux deux bornes.
+	if created.Event.EndDate != "2026-11-17" {
+		t.Fatalf("expected end_date to default to start_date, got %q", created.Event.EndDate)
+	}
+	if created.Event.Id == "" {
+		t.Fatal("expected a non-empty id")
+	}
+
+	list, err := svc.GetEvents(ctx, &pb.GetEventsRequest{})
+	if err != nil || len(list.Events) != 1 {
+		t.Fatalf("GetEvents: %d events (%v)", len(list.Events), err)
+	}
+
+	updated, err := svc.UpdateEvent(ctx, &pb.UpdateEventRequest{
+		Id: created.Event.Id, Name: "DevOps REX 2026", StartDate: "2026-11-17", EndDate: "2026-11-18",
+	})
+	if err != nil || updated.Event.Name != "DevOps REX 2026" || updated.Event.EndDate != "2026-11-18" {
+		t.Fatalf("UpdateEvent: %v (%v)", updated, err)
+	}
+
+	del, err := svc.DeleteEvent(ctx, &pb.DeleteEventRequest{Id: created.Event.Id})
+	if err != nil || !del.Success {
+		t.Fatalf("DeleteEvent: %v (%v)", del, err)
+	}
+}
+
+func TestEventService_Validation(t *testing.T) {
+	svc := NewEventServiceServer(newMemStore())
+	ctx := context.Background()
+
+	cases := []struct {
+		label string
+		req   *pb.CreateEventRequest
+	}{
+		{"nom vide", &pb.CreateEventRequest{Name: "  ", StartDate: "2026-01-05"}},
+		{"date absente", &pb.CreateEventRequest{Name: "MixIT"}},
+		{"date mal formée", &pb.CreateEventRequest{Name: "MixIT", StartDate: "05/01/2026"}},
+		{"fin avant début", &pb.CreateEventRequest{Name: "MixIT", StartDate: "2026-01-05", EndDate: "2026-01-04"}},
+	}
+	for _, c := range cases {
+		if _, err := svc.CreateEvent(ctx, c.req); err == nil {
+			t.Fatalf("%s : création acceptée alors qu'elle devait être refusée", c.label)
+		}
+	}
+}
+
+func TestEventService_RangeFiltersOnOverlap(t *testing.T) {
+	svc := NewEventServiceServer(newMemStore())
+	ctx := context.Background()
+
+	for _, e := range []*pb.CreateEventRequest{
+		{Name: "Repas d'équipe", StartDate: "2026-01-15"},
+		{Name: "MixIT", StartDate: "2026-04-02", EndDate: "2026-04-03"},
+		{Name: "Midi jeux", StartDate: "2026-09-10"},
+	} {
+		if _, err := svc.CreateEvent(ctx, e); err != nil {
+			t.Fatalf("CreateEvent %s: %v", e.Name, err)
+		}
+	}
+
+	// Une plage qui ne touche MixIT que par son dernier jour doit le retenir :
+	// le filtre porte sur le chevauchement, pas sur la seule date de début.
+	list, err := svc.GetEvents(ctx, &pb.GetEventsRequest{From: "2026-04-03", To: "2026-06-30"})
+	if err != nil || len(list.Events) != 1 || list.Events[0].Name != "MixIT" {
+		t.Fatalf("expected MixIT alone, got %v (%v)", list.Events, err)
+	}
+}
+
 // --- HolidayService ---
 
 func TestHolidayService_CRUD(t *testing.T) {

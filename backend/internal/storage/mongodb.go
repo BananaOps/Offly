@@ -18,6 +18,7 @@ type MongoStorage struct {
 	users       *mongo.Collection
 	departments *mongo.Collection
 	teams       *mongo.Collection
+	events      *mongo.Collection
 	holidays    *mongo.Collection
 }
 
@@ -50,6 +51,16 @@ type TeamDoc struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty"`
 	Name         string             `bson:"name"`
 	DepartmentID string             `bson:"department_id"`
+}
+
+type EventDoc struct {
+	ID        primitive.ObjectID `bson:"_id,omitempty"`
+	Name      string             `bson:"name"`
+	StartDate string             `bson:"start_date"`
+	EndDate   string             `bson:"end_date"`
+	Category  string             `bson:"category,omitempty"`
+	Location  string             `bson:"location,omitempty"`
+	URL       string             `bson:"url,omitempty"`
 }
 
 type HolidayDoc struct {
@@ -103,6 +114,7 @@ func NewMongoStorageWithRetry(uri, dbName string, maxRetries int, initialDelay t
 		users:       db.Collection("users"),
 		departments: db.Collection("departments"),
 		teams:       db.Collection("teams"),
+		events:      db.Collection("events"),
 		holidays:    db.Collection("holidays"),
 	}, nil
 }
@@ -484,6 +496,103 @@ func (s *MongoStorage) DeleteTeam(id string) error {
 	}
 
 	_, err = s.teams.DeleteOne(ctx, bson.M{"_id": objID})
+	return err
+}
+
+func (s *MongoStorage) CreateEvent(event *Event) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	doc := EventDoc{
+		Name:      event.Name,
+		StartDate: event.StartDate,
+		EndDate:   event.EndDate,
+		Category:  event.Category,
+		Location:  event.Location,
+		URL:       event.URL,
+	}
+
+	result, err := s.events.InsertOne(ctx, doc)
+	if err != nil {
+		return err
+	}
+
+	event.ID = result.InsertedID.(primitive.ObjectID).Hex()
+	return nil
+}
+
+func (s *MongoStorage) GetEvents(from, to string) ([]*Event, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Chevauchement de la plage ; les dates ISO se comparent comme des chaînes.
+	filter := bson.M{}
+	if from != "" {
+		filter["end_date"] = bson.M{"$gte": from}
+	}
+	if to != "" {
+		filter["start_date"] = bson.M{"$lte": to}
+	}
+
+	cursor, err := s.events.Find(ctx, filter, options.Find().SetSort(bson.M{"start_date": 1}))
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = cursor.Close(ctx) }()
+
+	var events []*Event
+	for cursor.Next(ctx) {
+		var doc EventDoc
+		if err := cursor.Decode(&doc); err != nil {
+			continue
+		}
+		events = append(events, &Event{
+			ID:        doc.ID.Hex(),
+			Name:      doc.Name,
+			StartDate: doc.StartDate,
+			EndDate:   doc.EndDate,
+			Category:  doc.Category,
+			Location:  doc.Location,
+			URL:       doc.URL,
+		})
+	}
+	return events, cursor.Err()
+}
+
+func (s *MongoStorage) UpdateEvent(event *Event) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	objID, err := primitive.ObjectIDFromHex(event.ID)
+	if err != nil {
+		return err
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			"name":       event.Name,
+			"start_date": event.StartDate,
+			"end_date":   event.EndDate,
+			"category":   event.Category,
+			"location":   event.Location,
+			"url":        event.URL,
+		},
+	}
+
+	_, err = s.events.UpdateOne(ctx, bson.M{"_id": objID}, update)
+	return err
+}
+
+func (s *MongoStorage) DeleteEvent(id string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.events.DeleteOne(ctx, bson.M{"_id": objID})
 	return err
 }
 

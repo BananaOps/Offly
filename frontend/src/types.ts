@@ -50,3 +50,18 @@ export interface Holiday {
   country: string
   year: number
 }
+
+/**
+ * Événement d'équipe : conférence, repas, midi jeux. Daté au jour comme un
+ * férié — l'application ne manipule pas d'heures (design.md §4) — et `endDate`
+ * vaut `startDate` pour un événement d'une seule journée, le backend s'en assure.
+ */
+export interface Event {
+  id: string
+  name: string
+  startDate: string
+  endDate: string
+  category?: string
+  location?: string
+  url?: string
+}

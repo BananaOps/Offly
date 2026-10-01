@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -83,6 +84,16 @@ func (s *SQLiteStorage) initSchema() error {
 		FOREIGN KEY(user_id) REFERENCES users(id)
 	);
 
+	CREATE TABLE IF NOT EXISTS events (
+		id TEXT PRIMARY KEY,
+		name TEXT NOT NULL,
+		start_date TEXT NOT NULL,
+		end_date TEXT NOT NULL,
+		category TEXT,
+		location TEXT,
+		url TEXT
+	);
+
 	CREATE TABLE IF NOT EXISTS holidays (
 		id TEXT PRIMARY KEY,
 		date TEXT NOT NULL,
@@ -94,6 +105,7 @@ func (s *SQLiteStorage) initSchema() error {
 	CREATE INDEX IF NOT EXISTS idx_absences_user_id ON absences(user_id);
 	CREATE INDEX IF NOT EXISTS idx_absences_dates ON absences(start_date, end_date);
 	CREATE INDEX IF NOT EXISTS idx_holidays_country_year ON holidays(country, year);
+	CREATE INDEX IF NOT EXISTS idx_events_dates ON events(start_date, end_date);
 	CREATE INDEX IF NOT EXISTS idx_teams_department ON teams(department_id);
 	`
 
@@ -294,6 +306,59 @@ func (s *SQLiteStorage) UpdateTeam(team *Team) error {
 
 func (s *SQLiteStorage) DeleteTeam(id string) error {
 	_, err := s.db.Exec("DELETE FROM teams WHERE id = ?", id)
+	return err
+}
+
+// Event operations
+func (s *SQLiteStorage) CreateEvent(event *Event) error {
+	query := `INSERT INTO events (id, name, start_date, end_date, category, location, url) VALUES (?, ?, ?, ?, ?, ?, ?)`
+	_, err := s.db.Exec(query, event.ID, event.Name, event.StartDate, event.EndDate, event.Category, event.Location, event.URL)
+	return err
+}
+
+func (s *SQLiteStorage) GetEvents(from, to string) ([]*Event, error) {
+	// Chevauchement de la plage : les dates ISO se comparent lexicalement.
+	query := `SELECT id, name, start_date, end_date, category, location, url FROM events`
+	var args []interface{}
+	var conditions []string
+	if from != "" {
+		conditions = append(conditions, "end_date >= ?")
+		args = append(args, from)
+	}
+	if to != "" {
+		conditions = append(conditions, "start_date <= ?")
+		args = append(args, to)
+	}
+	if len(conditions) > 0 {
+		query += " WHERE " + strings.Join(conditions, " AND ")
+	}
+	query += " ORDER BY start_date"
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var events []*Event
+	for rows.Next() {
+		e := &Event{}
+		if err := rows.Scan(&e.ID, &e.Name, &e.StartDate, &e.EndDate, &e.Category, &e.Location, &e.URL); err != nil {
+			return nil, err
+		}
+		events = append(events, e)
+	}
+	return events, rows.Err()
+}
+
+func (s *SQLiteStorage) UpdateEvent(event *Event) error {
+	query := `UPDATE events SET name = ?, start_date = ?, end_date = ?, category = ?, location = ?, url = ? WHERE id = ?`
+	_, err := s.db.Exec(query, event.Name, event.StartDate, event.EndDate, event.Category, event.Location, event.URL, event.ID)
+	return err
+}
+
+func (s *SQLiteStorage) DeleteEvent(id string) error {
+	_, err := s.db.Exec("DELETE FROM events WHERE id = ?", id)
 	return err
 }
 

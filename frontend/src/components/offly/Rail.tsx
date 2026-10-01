@@ -1,12 +1,13 @@
 import { Holiday } from '../../types'
 import { parseDay } from '../../lib/halfday'
 
-export type ScreenId = 'calendar' | 'teams' | 'people' | 'holidays'
+export type ScreenId = 'calendar' | 'teams' | 'people' | 'events' | 'holidays'
 
 const ENTRIES: { id: ScreenId; label: string }[] = [
   { id: 'calendar', label: 'Calendrier' },
   { id: 'teams', label: 'Équipes' },
   { id: 'people', label: 'Personnes' },
+  { id: 'events', label: 'Événements' },
   { id: 'holidays', label: 'Jours fériés' },
 ]
 
@@ -16,7 +17,7 @@ interface Props {
   upcomingHolidays: Holiday[]
 }
 
-/** Rail de navigation : logo, 4 entrées, bloc « Prochains fériés » en pied (design.md §3). */
+/** Rail de navigation : logo, 5 entrées, bloc « Prochains fériés » en pied (design.md §3). */
 export default function Rail({ screen, onScreenChange, upcomingHolidays }: Props) {
   return (
     <div className="o-rail">

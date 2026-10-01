@@ -192,3 +192,40 @@ func TestSQLiteStorage_Holiday(t *testing.T) {
 		t.Fatalf("after delete: expected 1 FR holiday remaining")
 	}
 }
+
+func TestSQLiteStorage_Event(t *testing.T) {
+	s := newTestSQLite(t)
+
+	_ = s.CreateEvent(&Event{ID: "e-1", Name: "Repas d'équipe", StartDate: "2026-01-15", EndDate: "2026-01-15", Category: "convivial"})
+	_ = s.CreateEvent(&Event{ID: "e-2", Name: "MixIT", StartDate: "2026-04-02", EndDate: "2026-04-03", Category: "conference", Location: "Lyon"})
+	_ = s.CreateEvent(&Event{ID: "e-3", Name: "Midi jeux", StartDate: "2026-09-10", EndDate: "2026-09-10"})
+
+	all, _ := s.GetEvents("", "")
+	if len(all) != 3 {
+		t.Fatalf("GetEvents all: expected 3, got %d", len(all))
+	}
+
+	// Chevauchement : la plage ne touche MixIT que par son dernier jour.
+	overlap, _ := s.GetEvents("2026-04-03", "2026-06-30")
+	if len(overlap) != 1 || overlap[0].ID != "e-2" {
+		t.Fatalf("GetEvents overlap: expected e-2 alone, got %v", overlap)
+	}
+
+	// Borne haute seule : tout ce qui commence avant la fin janvier.
+	until, _ := s.GetEvents("", "2026-01-31")
+	if len(until) != 1 || until[0].ID != "e-1" {
+		t.Fatalf("GetEvents until: expected e-1 alone, got %v", until)
+	}
+
+	_ = s.UpdateEvent(&Event{ID: "e-1", Name: "Repas d'équipe de fin d'année", StartDate: "2026-01-15", EndDate: "2026-01-15"})
+	updated, _ := s.GetEvents("2026-01-15", "2026-01-15")
+	if len(updated) != 1 || updated[0].Name != "Repas d'équipe de fin d'année" {
+		t.Fatalf("UpdateEvent: got %v", updated)
+	}
+
+	_ = s.DeleteEvent("e-1")
+	remaining, _ := s.GetEvents("", "")
+	if len(remaining) != 2 {
+		t.Fatalf("DeleteEvent: expected 2 remaining, got %d", len(remaining))
+	}
+}

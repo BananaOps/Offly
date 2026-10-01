@@ -33,6 +33,19 @@ type Team struct {
 	DepartmentID string
 }
 
+// Event — un événement d'équipe (conférence, repas, midi jeux). Les dates sont
+// des jours pleins au format AAAA-MM-JJ, comme Holiday : l'application ne
+// manipule pas d'heures. Un événement d'un jour porte la même date aux deux bornes.
+type Event struct {
+	ID        string
+	Name      string
+	StartDate string
+	EndDate   string
+	Category  string
+	Location  string
+	URL       string
+}
+
 type Holiday struct {
 	ID      string
 	Date    string
@@ -62,6 +75,13 @@ type Storage interface {
 	GetTeams(departmentID string) ([]*Team, error)
 	UpdateTeam(team *Team) error
 	DeleteTeam(id string) error
+
+	// GetEvents retient tout événement chevauchant [from, to] ; bornes vides =
+	// tous les événements.
+	CreateEvent(event *Event) error
+	GetEvents(from, to string) ([]*Event, error)
+	UpdateEvent(event *Event) error
+	DeleteEvent(id string) error
 
 	CreateHoliday(holiday *Holiday) error
 	GetHolidays(country string, year int) ([]*Holiday, error)

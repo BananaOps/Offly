@@ -20,6 +20,10 @@
     {
       "name": "HolidayService",
       "description": "Service de gestion des jours fériés"
+    },
+    {
+      "name": "EventService",
+      "description": "Service des événements d'équipe : conférences, repas, midis jeux…"
     }
   ],
   "consumes": [
@@ -284,6 +288,138 @@
         ],
         "tags": [
           "OrganizationService"
+        ]
+      }
+    },
+    "/api/v1/events": {
+      "get": {
+        "operationId": "EventService_GetEvents",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/GetEventsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "EventService"
+        ]
+      },
+      "post": {
+        "operationId": "EventService_CreateEvent",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/CreateEventResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateEventRequest"
+            }
+          }
+        ],
+        "tags": [
+          "EventService"
+        ]
+      }
+    },
+    "/api/v1/events/{id}": {
+      "delete": {
+        "operationId": "EventService_DeleteEvent",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/DeleteEventResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "EventService"
+        ]
+      },
+      "put": {
+        "operationId": "EventService_UpdateEvent",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/UpdateEventResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateEventBody"
+            }
+          }
+        ],
+        "tags": [
+          "EventService"
         ]
       }
     },
@@ -892,6 +1028,38 @@
         }
       }
     },
+    "CreateEventRequest": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "startDate": {
+          "type": "string"
+        },
+        "endDate": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "title": "Event messages"
+    },
+    "CreateEventResponse": {
+      "type": "object",
+      "properties": {
+        "event": {
+          "$ref": "#/definitions/Event"
+        }
+      }
+    },
     "CreateHolidayRequest": {
       "type": "object",
       "properties": {
@@ -985,6 +1153,14 @@
         }
       }
     },
+    "DeleteEventResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        }
+      }
+    },
     "DeleteHolidayResponse": {
       "type": "object",
       "properties": {
@@ -1020,6 +1196,34 @@
         }
       }
     },
+    "Event": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "startDate": {
+          "type": "string"
+        },
+        "endDate": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string",
+          "description": "Clé libre ; les libellés vivent côté interface pour qu'ajouter une\ncatégorie ne demande pas de régénérer le proto."
+        },
+        "location": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "description": "Un événement occupe des jours entiers, comme un férié : l'application ne\nmanipule pas d'heures (design.md §4). Un événement d'un seul jour porte la\nmême date en début et en fin."
+    },
     "GetAbsencesResponse": {
       "type": "object",
       "properties": {
@@ -1040,6 +1244,18 @@
           "items": {
             "type": "object",
             "$ref": "#/definitions/Department"
+          }
+        }
+      }
+    },
+    "GetEventsResponse": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/Event"
           }
         }
       }
@@ -1195,6 +1411,37 @@
       "properties": {
         "department": {
           "$ref": "#/definitions/Department"
+        }
+      }
+    },
+    "UpdateEventBody": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "startDate": {
+          "type": "string"
+        },
+        "endDate": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      }
+    },
+    "UpdateEventResponse": {
+      "type": "object",
+      "properties": {
+        "event": {
+          "$ref": "#/definitions/Event"
         }
       }
     },

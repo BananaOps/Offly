@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Holiday, Team, User } from '../../types'
+import { Event, Holiday, Team, User } from '../../types'
 import {
   TeamDraft,
   UserDraft,
@@ -17,6 +17,13 @@ import {
   updateTeam,
   updateUser,
 } from '../../api'
+import {
+  EventDraft,
+  createEvent,
+  deleteEvent,
+  getEvents,
+  updateEvent,
+} from '../../api/events'
 import { getHolidaysForCountryAndYear } from '../../utils/holidayManager'
 import { getAuthConfig, getCachedUserEmail, getCurrentUser, isAdmin } from '../../auth'
 import {
@@ -33,11 +40,14 @@ import {
   workingDays,
   workingDaysBetween,
 } from '../../lib/halfday'
+import { buildEventIndex } from '../../lib/events'
 import { MAX_COLUMNS, Range, defaultRange } from '../../lib/ranges'
 import Rail, { ScreenId } from './Rail'
 import CalendarScreen, { Group } from './CalendarScreen'
 import TeamsScreen from './TeamsScreen'
 import PeopleScreen from './PeopleScreen'
+import EventsScreen from './EventsScreen'
+import EventForm from './EventForm'
 import HolidaysScreen from './HolidaysScreen'
 import '../../design/offly.css'
 
@@ -59,6 +69,9 @@ export default function OfflyApp() {
   const [users, setUsers] = useState<User[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [holidays, setHolidays] = useState<Holiday[]>([])
+  const [events, setEvents] = useState<Event[]>([])
+  // Événement ouvert depuis le bandeau du calendrier, hors de l'écran dédié.
+  const [openEvent, setOpenEvent] = useState<Event | null>(null)
   const [absenceIndex, setAbsenceIndex] = useState<Map<string, Placed>>(new Map())
   const [selectedTeam, setSelectedTeam] = useState('all')
   const [selectedProfile, setSelectedProfile] = useState('')
@@ -132,6 +145,21 @@ export default function OfflyApp() {
     }
   }, [])
 
+  /**
+   * Les événements sont chargés sans borne, contrairement aux absences : ils se
+   * comptent en dizaines, l'écran dédié les veut tous (« Passés » compris), et
+   * cela évite à la plage affichée de dicter ce que le bandeau connaît — une
+   * plage à cheval sur le 31 décembre afficherait sinon des colonnes muettes.
+   */
+  const reloadEvents = useCallback(
+    () => getEvents().then(setEvents).catch(() => setError('Impossible de charger les événements.')),
+    []
+  )
+
+  useEffect(() => {
+    void reloadEvents()
+  }, [reloadEvents])
+
   useEffect(() => {
     let cancelled = false
     fetchAbsences()
@@ -162,6 +190,7 @@ export default function OfflyApp() {
   }, [users, spannedYears, holidayEpoch])
 
   const holidayIndex = useMemo(() => buildHolidayIndex(holidays), [holidays])
+  const eventIndex = useMemo(() => buildEventIndex(events), [events])
 
   // L'écran « Jours fériés » est titré d'un millésime : on ne lui passe que celui-ci.
   const holidaysOfYear = useMemo(
@@ -172,6 +201,27 @@ export default function OfflyApp() {
   const currentUser = useMemo(
     () => (currentEmail ? users.find(u => u.email === currentEmail) : undefined),
     [users, currentEmail]
+  )
+
+  // Les événements s'écrivent sans être administrateur : il suffit d'être
+  // identifié, et sans SSO personne ne l'est — tout le monde écrit alors.
+  const canWriteEvents = !getAuthConfig().enabled || currentEmail !== null
+
+  const saveEvent = useCallback(
+    async (draft: EventDraft) => {
+      if (draft.id) await updateEvent(draft.id, draft)
+      else await createEvent(draft)
+      await reloadEvents()
+    },
+    [reloadEvents]
+  )
+
+  const removeEvent = useCallback(
+    async (event: Event) => {
+      await deleteEvent(event.id)
+      await reloadEvents()
+    },
+    [reloadEvents]
   )
 
   // En SSO, chacun ne modifie que ses propres absences — la règle RBAC du backend.
@@ -389,6 +439,8 @@ export default function OfflyApp() {
             onSelectProfile={setSelectedProfile}
             absences={absenceIndex}
             holidays={holidayIndex}
+            events={eventIndex}
+            onOpenEvent={setOpenEvent}
             threshold={threshold}
             showCoverage
             peopleCount={visibleCount}
@@ -439,6 +491,16 @@ export default function OfflyApp() {
           />
         )}
 
+        {screen === 'events' && (
+          <EventsScreen
+            events={events}
+            today={today}
+            canWrite={canWriteEvents}
+            onSaveEvent={saveEvent}
+            onDeleteEvent={removeEvent}
+          />
+        )}
+
         {screen === 'holidays' && (
           <HolidaysScreen
             holidays={holidaysOfYear}
@@ -448,6 +510,20 @@ export default function OfflyApp() {
           />
         )}
       </div>
+
+      {/* Fiche ouverte depuis le bandeau du calendrier : on reste sur la grille
+          plutôt que de dérouter vers l'écran Événements. En lecture seule, elle
+          s'ouvre quand même — elle porte le lieu et le lien. */}
+      {openEvent && (
+        <EventForm
+          event={openEvent}
+          defaultDay={today}
+          canWrite={canWriteEvents}
+          onSave={saveEvent}
+          onDelete={removeEvent}
+          onClose={() => setOpenEvent(null)}
+        />
+      )}
     </div>
   )
 }

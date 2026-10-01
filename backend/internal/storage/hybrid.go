@@ -106,6 +106,14 @@ func (h *HybridStorage) syncToMongo() {
 		}
 	}
 
+	// Synchroniser les événements
+	events, _ := h.memory.GetEvents("", "")
+	for _, event := range events {
+		if err := h.mongo.CreateEvent(event); err != nil {
+			log.Printf("Failed to sync event %s: %v", event.ID, err)
+		}
+	}
+
 	// Synchroniser les jours fériés
 	holidays, _ := h.memory.GetHolidays("", 0)
 	for _, holiday := range holidays {
@@ -361,6 +369,64 @@ func (h *HybridStorage) DeleteTeam(id string) error {
 	if mongo != nil {
 		if err := mongo.DeleteTeam(id); err != nil {
 			log.Printf("Failed to delete from MongoDB: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func (h *HybridStorage) CreateEvent(event *Event) error {
+	if err := h.memory.CreateEvent(event); err != nil {
+		return err
+	}
+
+	h.mu.RLock()
+	mongo := h.mongo
+	h.mu.RUnlock()
+
+	if mongo != nil {
+		if err := mongo.CreateEvent(event); err != nil {
+			log.Printf("Failed to write to MongoDB: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func (h *HybridStorage) GetEvents(from, to string) ([]*Event, error) {
+	return h.getStorage().GetEvents(from, to)
+}
+
+func (h *HybridStorage) UpdateEvent(event *Event) error {
+	if err := h.memory.UpdateEvent(event); err != nil {
+		return err
+	}
+
+	h.mu.RLock()
+	mongo := h.mongo
+	h.mu.RUnlock()
+
+	if mongo != nil {
+		if err := mongo.UpdateEvent(event); err != nil {
+			log.Printf("Failed to write to MongoDB: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func (h *HybridStorage) DeleteEvent(id string) error {
+	if err := h.memory.DeleteEvent(id); err != nil {
+		return err
+	}
+
+	h.mu.RLock()
+	mongo := h.mongo
+	h.mu.RUnlock()
+
+	if mongo != nil {
+		if err := mongo.DeleteEvent(id); err != nil {
+			log.Printf("Failed to write to MongoDB: %v", err)
 		}
 	}
 

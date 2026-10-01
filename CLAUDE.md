@@ -99,8 +99,9 @@ changing any visual decision; it is the authority on tokens, tone, the logo and 
 core rule.
 
 `App.tsx` is only an auth bootstrap (resolves `/api/v1/auth/config`, absorbs the OIDC callback)
-and then renders `components/offly/OfflyApp.tsx`, which owns all data and the four screens:
-`Rail` + `CalendarScreen | TeamsScreen | PeopleScreen | HolidaysScreen`. No router, no state library.
+and then renders `components/offly/OfflyApp.tsx`, which owns all data and the five screens:
+`Rail` + `CalendarScreen | TeamsScreen | PeopleScreen | EventsScreen | HolidaysScreen`. No router,
+no state library.
 
 `lib/halfday.ts` is the load-bearing module. The design models an absence as one value per person
 per day (`am | pm | full`); the backend stores RFC3339 bounds plus a reason string. That module is
@@ -181,6 +182,28 @@ Write actions follow the backend RBAC: creating and deleting are admin-only (`is
 included — `POST /users/{id}/team` on one's own id passes `rbacMiddleware`. With `AUTH_ENABLED`
 off, everyone is an admin. Per design.md, a button without a subject is not rendered rather than
 rendered disabled.
+
+Events (`EventService` in the proto, `backend/internal/service/event_service.go`,
+`lib/events.ts`, `EventsScreen`, `EventForm`, and the band in `CalendarScreen`) are the fifth
+entity: conferences, team meals, game lunches. They are dated by **whole days** like holidays —
+`start_date` / `end_date` as `YYYY-MM-DD`, never timestamps — and the service copies `start_date`
+into an omitted `end_date`, so every reader (grid, screen, sort) can assume both bounds exist.
+`GetEvents(from, to)` filters on **overlap**, not on the start date, so a range touching only an
+event's last day still finds it; ISO dates compare lexically, which is what every storage
+implementation relies on. The service is the only one that validates (`codes.InvalidArgument` on an
+empty name, a malformed date, or an inverted range) — the gateway turns that into a 400 whose
+`message` the forms display.
+
+Writes on `/events` are the **one exception** to "writes are admin-only": `rbacMiddleware` lets any
+authenticated caller through, because a game lunch is proposed, not administered. That rule is an
+explicit allow placed before the default deny — removing it does not open the endpoint, it closes
+it. `OfflyApp` loads events **unbounded** (`getEvents()` with no range) unlike absences: they number
+in the dozens, the screen wants the past ones too, and it keeps the displayed range from dictating
+what the band knows — a range straddling 31 December would otherwise show mute columns.
+
+Categories live in `lib/events.ts`, not in the proto: `EVENT_CATEGORIES` is the stored *keys* plus
+their French labels, and `categoryLabel()` falls back to the raw value, so an unknown category stays
+readable instead of vanishing (same contract as `lib/profiles.ts`).
 
 `api.ts` and `api/holidays.ts` are hand-written axios clients against `/api/v1` with
 `withCredentials: true`; `types.ts` is hand-maintained and **not** generated from the proto. The
