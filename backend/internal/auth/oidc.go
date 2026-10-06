@@ -2,8 +2,10 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -13,40 +15,55 @@ import (
 	jwt "github.com/golang-jwt/jwt/v5"
 )
 
-// Verifier validates OIDC JWTs against a JWKS and basic claims.
+// Verifier validates OIDC JWTs against the provider's JWKS and holds the
+// provider endpoints used by the login flow.
 type Verifier struct {
-	jwks     keyfunc.Keyfunc
+	keyFunc  jwt.Keyfunc
 	issuer   string
 	clientID string
+
+	authorizationURL string
+	tokenURL         string
+}
+
+// Signing algorithms accepted for ID tokens ("none" and HMAC are rejected).
+var allowedSigningMethods = []string{
+	"RS256", "RS384", "RS512",
+	"PS256", "PS384", "PS512",
+	"ES256", "ES384", "ES512",
 }
 
 // NewVerifierFromEnv initializes a Verifier using environment variables.
-// AUTH_ISSUER_URL: e.g. http://localhost:5556/dex
-// AUTH_CLIENT_ID: OIDC client id (e.g. wirety)
-// AUTH_JWKS_URL: optional, defaults to issuer + "/keys"
+//
+//	AUTH_ISSUER_URL          issuer, e.g. http://localhost:5556/dex or
+//	                         https://login.microsoftonline.com/<tenant-id>/v2.0
+//	AUTH_CLIENT_ID           OIDC client id (Entra ID: the application/client id)
+//	AUTH_AUTHORIZATION_URL   optional override of the discovered authorization endpoint
+//	AUTH_TOKEN_URL           optional override of the discovered token endpoint
+//	AUTH_JWKS_URL            optional override of the discovered JWKS URI
+//	AUTH_JWKS_CACHE_TTL      JWKS refresh interval in seconds (default 3600)
+//
+// Endpoints come from the issuer's OpenID discovery document
+// (<issuer>/.well-known/openid-configuration). If discovery is unavailable they
+// fall back to the Dex layout (<issuer>/auth, /token, /keys).
 func NewVerifierFromEnv() (*Verifier, error) {
-	issuer := os.Getenv("AUTH_ISSUER_URL")
-	if issuer == "" {
-		issuer = "http://localhost:5556/dex"
-	}
-	clientID := os.Getenv("AUTH_CLIENT_ID")
-	if clientID == "" {
-		clientID = "wirety"
+	issuer := strings.TrimRight(envOr("AUTH_ISSUER_URL", "http://localhost:5556/dex"), "/")
+	clientID := envOr("AUTH_CLIENT_ID", "offly")
+
+	disc, err := discover(issuer)
+	if err != nil {
+		log.Printf("auth: OIDC discovery failed (%v) — falling back to Dex-style endpoints", err)
+		disc = &discoveryDocument{}
 	}
 
-	jwksURL := os.Getenv("AUTH_JWKS_URL")
-	if jwksURL == "" {
-		// Dex publishes JWKS at <issuer>/keys
-		jwksURL = strings.TrimRight(issuer, "/") + "/keys"
-	}
+	authorizationURL := firstNonEmpty(os.Getenv("AUTH_AUTHORIZATION_URL"), disc.AuthorizationEndpoint, issuer+"/auth")
+	tokenURL := firstNonEmpty(os.Getenv("AUTH_TOKEN_URL"), disc.TokenEndpoint, issuer+"/token")
+	jwksURL := firstNonEmpty(os.Getenv("AUTH_JWKS_URL"), disc.JWKSURI, issuer+"/keys")
 
-	// Create a keyfunc that auto-refreshes JWKS using defaults or TTL override.
-	ttlStr := os.Getenv("AUTH_JWKS_CACHE_TTL")
-	if ttlStr == "" {
-		ttlStr = "3600" // default 60 minutes
+	ttl, err := time.ParseDuration(envOr("AUTH_JWKS_CACHE_TTL", "3600") + "s")
+	if err != nil || ttl <= 0 {
+		ttl = time.Hour
 	}
-	ttl, _ := time.ParseDuration(ttlStr + "s")
-
 	kf, err := keyfunc.NewDefaultOverrideCtx(context.Background(), []string{jwksURL}, keyfunc.Override{
 		RefreshInterval: ttl,
 	})
@@ -54,7 +71,48 @@ func NewVerifierFromEnv() (*Verifier, error) {
 		return nil, fmt.Errorf("failed to create JWKS keyfunc: %w", err)
 	}
 
-	return &Verifier{jwks: kf, issuer: issuer, clientID: clientID}, nil
+	v := newVerifier(kf.Keyfunc, issuer, clientID)
+	v.authorizationURL = authorizationURL
+	v.tokenURL = tokenURL
+	log.Printf("auth: OIDC issuer=%s authorization=%s token=%s jwks=%s", issuer, authorizationURL, tokenURL, jwksURL)
+	return v, nil
+}
+
+func newVerifier(keyFunc jwt.Keyfunc, issuer, clientID string) *Verifier {
+	return &Verifier{keyFunc: keyFunc, issuer: issuer, clientID: clientID}
+}
+
+type discoveryDocument struct {
+	Issuer                string `json:"issuer"`
+	AuthorizationEndpoint string `json:"authorization_endpoint"`
+	TokenEndpoint         string `json:"token_endpoint"`
+	JWKSURI               string `json:"jwks_uri"`
+}
+
+func discover(issuer string) (*discoveryDocument, error) {
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(issuer + "/.well-known/openid-configuration") //nolint:gosec // issuer comes from operator config
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("discovery returned HTTP %d", resp.StatusCode)
+	}
+	var doc discoveryDocument
+	if err := json.NewDecoder(resp.Body).Decode(&doc); err != nil {
+		return nil, fmt.Errorf("invalid discovery document: %w", err)
+	}
+	return &doc, nil
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if strings.TrimSpace(v) != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // VerifyBearer extracts and verifies the JWT from the Authorization header.
@@ -70,45 +128,36 @@ func (v *Verifier) VerifyBearer(r *http.Request) (jwt.MapClaims, error) {
 	return v.VerifyToken(parts[1])
 }
 
-// VerifyToken validates signature and standard claims (iss, aud/azp, exp).
+// VerifyToken validates the signature (allowed algorithms only) and the
+// standard claims: iss must equal the issuer, aud must contain the client id
+// (string or array form — Entra ID uses a string), exp is required.
 func (v *Verifier) VerifyToken(tokenString string) (jwt.MapClaims, error) {
-	token, err := jwt.Parse(tokenString, v.jwks.Keyfunc)
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, v.keyFunc,
+		jwt.WithValidMethods(allowedSigningMethods),
+		jwt.WithIssuer(v.issuer),
+		jwt.WithAudience(v.clientID),
+		jwt.WithExpirationRequired(),
+		jwt.WithLeeway(30*time.Second),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("token parse/verify failed: %w", err)
 	}
 	if !token.Valid {
 		return nil, errors.New("invalid token")
 	}
+	return claims, nil
+}
 
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return nil, errors.New("invalid claims type")
+// VerifyIDToken verifies an ID token issued by the login flow, including its
+// nonce (replay protection).
+func (v *Verifier) VerifyIDToken(tokenString, expectedNonce string) (jwt.MapClaims, error) {
+	claims, err := v.VerifyToken(tokenString)
+	if err != nil {
+		return nil, err
 	}
-
-	// Basic claim checks
-	if iss, _ := claims["iss"].(string); iss == "" || !strings.EqualFold(iss, v.issuer) {
-		return nil, errors.New("issuer mismatch")
+	if nonce, _ := claims["nonce"].(string); expectedNonce == "" || nonce != expectedNonce {
+		return nil, errors.New("nonce mismatch")
 	}
-	// Either aud contains clientID or azp equals clientID
-	if aud, ok := claims["aud"].([]interface{}); ok {
-		found := false
-		for _, a := range aud {
-			if s, _ := a.(string); s == v.clientID {
-				found = true
-				break
-			}
-		}
-		if !found {
-			// fallback to string aud
-			if s, _ := claims["aud"].(string); s != v.clientID {
-				return nil, errors.New("audience mismatch")
-			}
-		}
-	} else if azp, _ := claims["azp"].(string); azp != "" {
-		if azp != v.clientID {
-			return nil, errors.New("authorized party mismatch")
-		}
-	}
-
 	return claims, nil
 }

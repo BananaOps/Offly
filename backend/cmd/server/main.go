@@ -174,18 +174,18 @@ func startRESTGateway(store storage.Storage, grpcAddr, httpAddr string) error {
 	// Auth config endpoint (always available for the frontend to know if SSO is enabled)
 	mainHandler.HandleFunc("/api/v1/auth/config", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		issuer := os.Getenv("AUTH_ISSUER_URL")
-		clientID := os.Getenv("AUTH_CLIENT_ID")
-		if issuer == "" {
-			issuer = ""
-		}
-		if clientID == "" {
-			clientID = ""
-		}
-		_, _ = w.Write([]byte("{\"enabled\":" + map[bool]string{true: "true", false: "false"}[authEnabled] + ",\"issuerUrl\":\"" + issuer + "\",\"clientId\":\"" + clientID + "\"}"))
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"enabled":   authEnabled,
+			"issuerUrl": os.Getenv("AUTH_ISSUER_URL"),
+			"clientId":  os.Getenv("AUTH_CLIENT_ID"),
+			// The browser starts the login here; the backend builds the provider
+			// URL (state, nonce, PKCE) from the discovered endpoints.
+			"loginUrl": "/api/v1/auth/login",
+		})
 	})
 
 	if authEnabled {
+		mainHandler.Handle("/api/v1/auth/login", auth.LoginHandler(v))
 		mainHandler.Handle("/api/v1/auth/callback", auth.CallbackHandler(store, v))
 		mainHandler.Handle("/api/v1/auth/me", corsMiddleware(auth.MeHandler(v)))
 		mainHandler.Handle("/api/v1/auth/logout", corsMiddleware(auth.LogoutHandler()))

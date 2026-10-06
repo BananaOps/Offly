@@ -20,6 +20,7 @@ function App() {
             enabled: !!cfg.enabled,
             issuerUrl: cfg.issuerUrl || '',
             clientId: cfg.clientId || '',
+            loginUrl: cfg.loginUrl || '/api/v1/auth/login',
           })
           if (cfg.enabled) await getCurrentUser()
         }

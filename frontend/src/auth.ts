@@ -1,8 +1,9 @@
-type AuthConfig = { enabled: boolean; issuerUrl: string; clientId: string }
+type AuthConfig = { enabled: boolean; issuerUrl: string; clientId: string; loginUrl: string }
 let RUNTIME_AUTH_CONFIG: AuthConfig = {
   enabled: false,
   issuerUrl: '',
   clientId: '',
+  loginUrl: '/api/v1/auth/login',
 }
 
 export function setAuthConfig(c: Partial<AuthConfig>) {
@@ -13,19 +14,12 @@ export function getAuthConfig(): AuthConfig {
   return RUNTIME_AUTH_CONFIG
 }
 
-// Start login by redirecting to Dex via backend
+// Start login: the backend builds the provider authorization request (discovered
+// endpoint, configured redirect URI and scopes, state/nonce/PKCE) and redirects.
 export async function startLogin(): Promise<void> {
-  const { issuerUrl, clientId } = getAuthConfig()
-  if (!issuerUrl || !clientId) throw new Error('SSO not configured')
-
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: 'http://localhost:8080/api/v1/auth/callback',
-    response_type: 'code',
-    scope: 'openid profile email groups',
-  })
-
-  window.location.href = `${issuerUrl}/auth?${params.toString()}`
+  const { enabled, loginUrl } = getAuthConfig()
+  if (!enabled) throw new Error('SSO not configured')
+  window.location.href = loginUrl || '/api/v1/auth/login'
 }
 
 // Check if user just logged in (via query param from backend redirect)

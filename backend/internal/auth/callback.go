@@ -1,213 +1,192 @@
 package auth
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"absence-management/internal/storage"
-
-	"github.com/google/uuid"
 )
 
-// CallbackHandler handles the OAuth2 callback from Dex
-// It exchanges the authorization code for tokens using the client secret
+// CallbackHandler handles the OAuth2 callback from the OIDC provider: it checks
+// the state, exchanges the authorization code (client secret + PKCE verifier)
+// for tokens, verifies the ID token (signature, iss, aud, exp, nonce), enforces
+// AUTH_ALLOWED_GROUPS, provisions the user and sets the session cookie.
 func CallbackHandler(store storage.Storage, v *Verifier) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Get authorization code from query params
+		if v == nil || v.tokenURL == "" {
+			http.Error(w, "Auth not configured", http.StatusServiceUnavailable)
+			return
+		}
+
+		// Provider-side errors (e.g. user cancelled, missing consent).
+		if e := r.URL.Query().Get("error"); e != "" {
+			http.Error(w, fmt.Sprintf("Login failed: %s %s", e, r.URL.Query().Get("error_description")), http.StatusUnauthorized)
+			return
+		}
+
 		code := r.URL.Query().Get("code")
 		if code == "" {
 			http.Error(w, "Missing authorization code", http.StatusBadRequest)
 			return
 		}
 
-		// Exchange code for tokens
-		issuerURL := os.Getenv("AUTH_ISSUER_URL")
-		clientID := os.Getenv("AUTH_CLIENT_ID")
-		clientSecret := os.Getenv("AUTH_CLIENT_SECRET")
+		// CSRF protection: the state returned by the provider must match ours.
+		expectedState := readFlowCookie(r, stateCookieName)
+		gotState := r.URL.Query().Get("state")
+		if expectedState == "" || subtle.ConstantTimeCompare([]byte(expectedState), []byte(gotState)) != 1 {
+			http.Error(w, "Invalid login state — please retry", http.StatusBadRequest)
+			return
+		}
+		nonce := readFlowCookie(r, nonceCookieName)
+		pkceVerifier := readFlowCookie(r, pkceVerifierCookieName)
+		for _, name := range []string{stateCookieName, nonceCookieName, pkceVerifierCookieName} {
+			clearFlowCookie(w, name)
+		}
 
-		if issuerURL == "" || clientID == "" || clientSecret == "" {
+		clientSecret := os.Getenv("AUTH_CLIENT_SECRET")
+		if clientSecret == "" {
 			http.Error(w, "Auth not configured", http.StatusInternalServerError)
 			return
 		}
 
-		// Validate issuerURL is a proper http/https URL before use
-		parsedIssuer, err := url.Parse(issuerURL)
-		if err != nil || (parsedIssuer.Scheme != "http" && parsedIssuer.Scheme != "https") || parsedIssuer.Host == "" {
-			http.Error(w, "Invalid auth issuer URL", http.StatusInternalServerError)
-			return
-		}
-
-		// Prepare token request
-		tokenURL := strings.TrimRight(issuerURL, "/") + "/token"
 		data := url.Values{}
 		data.Set("grant_type", "authorization_code")
 		data.Set("code", code)
-		data.Set("client_id", clientID)
+		data.Set("client_id", v.clientID)
 		data.Set("client_secret", clientSecret)
-		data.Set("redirect_uri", "http://localhost:8080/api/v1/auth/callback")
+		data.Set("redirect_uri", redirectURL())
+		if pkceVerifier != "" {
+			data.Set("code_verifier", pkceVerifier)
+		}
 
-		// Make token request using a client with timeout
 		client := &http.Client{Timeout: 10 * time.Second}
-		resp, err := client.PostForm(tokenURL, data) //nolint:gosec // URL is validated above and comes from operator config
+		resp, err := client.PostForm(v.tokenURL, data) //nolint:gosec // token URL comes from operator config / provider discovery
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to exchange token: %v", err), http.StatusInternalServerError)
+			http.Error(w, "Failed to exchange token", http.StatusBadGateway)
+			log.Printf("auth: token exchange failed: %v", err)
 			return
 		}
 		defer func() { _ = resp.Body.Close() }()
 
 		if resp.StatusCode != http.StatusOK {
-			body, _ := io.ReadAll(resp.Body)
-			http.Error(w, fmt.Sprintf("Token exchange failed: %s", string(body)), http.StatusUnauthorized)
+			body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+			log.Printf("auth: token exchange returned HTTP %d: %s", resp.StatusCode, string(body))
+			http.Error(w, "Token exchange failed", http.StatusUnauthorized)
 			return
 		}
 
-		// Parse token response
 		var tokenResp struct {
-			IDToken      string `json:"id_token"`
-			AccessToken  string `json:"access_token"`
-			RefreshToken string `json:"refresh_token"`
-			ExpiresIn    int    `json:"expires_in"`
+			IDToken   string `json:"id_token"`
+			ExpiresIn int    `json:"expires_in"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
 			http.Error(w, "Failed to parse token response", http.StatusInternalServerError)
 			return
 		}
-
 		if tokenResp.IDToken == "" {
 			http.Error(w, "No ID token in response", http.StatusInternalServerError)
 			return
 		}
 
-		// Verify the ID token
-		claims, err := v.VerifyToken(tokenResp.IDToken)
+		claims, err := v.VerifyIDToken(tokenResp.IDToken, nonce)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Invalid token: %v", err), http.StatusUnauthorized)
+			log.Printf("auth: invalid ID token: %v", err)
+			http.Error(w, "Invalid token", http.StatusUnauthorized)
 			return
 		}
 
-		// Extract user info from claims
-		email, _ := claims["email"].(string)
+		email := EmailFromClaims(claims)
 		if email == "" {
 			http.Error(w, "Email claim missing", http.StatusBadRequest)
 			return
 		}
-
-		// Use name from claims, fallback to username from email
-		name, _ := claims["name"].(string)
-		if name == "" {
-			// Try preferred_username
-			if username, ok := claims["preferred_username"].(string); ok && username != "" {
-				name = username
-			} else {
-				// Extract username from email (e.g., vincent.team@bananaops.tech -> vincent.team)
-				if atIndex := strings.IndexByte(email, '@'); atIndex > 0 {
-					name = email[:atIndex]
-				} else {
-					name = email
-				}
-			}
+		groups := GroupsFromClaims(claims)
+		if !IsAllowedIdentity(email, groups) {
+			log.Printf("auth: access denied for %s (not in AUTH_ALLOWED_GROUPS)", email)
+			http.Error(w, "Access denied: you are not a member of a group allowed to use Offly", http.StatusForbidden)
+			return
 		}
 
-		// Check if user exists
-		users, _ := store.GetUsers()
-		var existing *storage.User
-		for _, u := range users {
-			if u.Email == email {
-				existing = u
-				break
-			}
+		if _, err := upsertUser(store, email, NameFromClaims(claims, email)); err != nil {
+			http.Error(w, "Failed to create user", http.StatusInternalServerError)
+			return
 		}
 
-		if existing == nil {
-			// Create new user without department or team assignment
-			newUser := &storage.User{
-				ID:    uuid.New().String(),
-				Name:  name,
-				Email: email,
-			}
-			if err := store.CreateUser(newUser); err != nil {
-				http.Error(w, "Failed to create user", http.StatusInternalServerError)
-				return
-			}
-		} else {
-			// Update existing user's name in case it changed
-			existing.Name = name
-			_ = store.UpdateUser(existing)
+		maxAge := tokenResp.ExpiresIn
+		if maxAge <= 0 {
+			maxAge = 3600
 		}
-
-		// Set secure HTTP-only cookie with the ID token
 		// Requires HTTPS in production (Secure: true enforces TLS)
 		http.SetCookie(w, &http.Cookie{
-			Name:     "auth_token",
+			Name:     authTokenCookieName,
 			Value:    tokenResp.IDToken,
 			Path:     "/",
-			MaxAge:   tokenResp.ExpiresIn,
+			MaxAge:   maxAge,
 			HttpOnly: true,
 			Secure:   true,
 			SameSite: http.SameSiteLaxMode,
 		})
 
-		// Redirect to frontend
-		http.Redirect(w, r, "http://localhost:3000/?logged_in=true", http.StatusFound)
+		http.Redirect(w, r, postLoginRedirect(), http.StatusFound)
 	}
 }
 
-// MeHandler returns the current user info from the cookie
+// postLoginRedirect appends logged_in=true to AUTH_POST_LOGIN_REDIRECT_URL.
+func postLoginRedirect() string {
+	target := postLoginURL()
+	u, err := url.Parse(target)
+	if err != nil {
+		return target
+	}
+	q := u.Query()
+	q.Set("logged_in", "true")
+	u.RawQuery = q.Encode()
+	return u.String()
+}
+
+// MeHandler returns the current user info from the session cookie.
 func MeHandler(v *Verifier) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-
-		// Get token from cookie
-		cookie, err := r.Cookie("auth_token")
-		if err != nil || cookie.Value == "" {
+		unauthenticated := func() {
 			w.WriteHeader(http.StatusUnauthorized)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"authenticated": false})
-			return
 		}
 
-		// Verify token
+		cookie, err := r.Cookie(authTokenCookieName)
+		if err != nil || cookie.Value == "" || v == nil {
+			unauthenticated()
+			return
+		}
 		claims, err := v.VerifyToken(cookie.Value)
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{"authenticated": false})
+			unauthenticated()
 			return
 		}
 
-		email, _ := claims["email"].(string)
+		email := EmailFromClaims(claims)
+		groups := GroupsFromClaims(claims)
+		if email == "" || !IsAllowedIdentity(email, groups) {
+			unauthenticated()
+			return
+		}
 		name, _ := claims["name"].(string)
 		if name == "" {
 			name = email
-		}
-
-		role := "user"
-
-		// Check if user is admin based on AUTH_ADMIN_EMAILS env var
-		adminEmails := os.Getenv("AUTH_ADMIN_EMAILS")
-		if adminEmails == "" {
-			adminEmails = os.Getenv("ADMIN_EMAILS") // Fallback
-		}
-
-		if adminEmails != "" {
-			adminList := strings.Split(adminEmails, ",")
-			for _, admin := range adminList {
-				if strings.TrimSpace(admin) == email {
-					role = "admin"
-					break
-				}
-			}
 		}
 
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"authenticated": true,
 			"email":         email,
 			"name":          name,
-			"role":          role,
+			"role":          RoleFor(email, groups),
 		})
 	}
 }
@@ -216,7 +195,7 @@ func MeHandler(v *Verifier) http.HandlerFunc {
 func LogoutHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{
-			Name:     "auth_token",
+			Name:     authTokenCookieName,
 			Value:    "",
 			Path:     "/",
 			MaxAge:   -1,

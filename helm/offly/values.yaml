@@ -20,6 +20,36 @@ mongodb:
 
 replicaCount: 1
 
+# OIDC SSO with group-based RBAC — Dex, Microsoft Entra ID, Keycloak… (see SSO-README.md)
+auth:
+  enabled: false
+  # Entra ID: https://login.microsoftonline.com/<tenant-id>/v2.0
+  issuerUrl: ""
+  # Entra ID: the application (client) ID of the app registration
+  clientId: ""
+  # Client secret: reference an existing Secret (recommended), or set it inline
+  # and the chart creates the Secret (dev only).
+  existingSecret: ""
+  existingSecretKey: client-secret
+  clientSecret: ""
+  # Public URL of Offly. Redirect URI to register at the provider:
+  #   <publicUrl>/api/v1/auth/callback
+  publicUrl: ""
+  # Entra ID does not accept a "groups" scope (groups come from the app
+  # registration's "groups claim"); Dex needs it: "openid profile email groups".
+  scopes: "openid profile email"
+  # Claim carrying the groups (use "roles" to map Entra app roles instead).
+  groupsClaim: groups
+  # Groups granted the admin role (Entra ID: group object IDs).
+  adminGroups: []
+  # Groups allowed to log in; empty = any authenticated user of the provider.
+  allowedGroups: []
+  # Additional admins by email.
+  adminEmails: []
+
+# Extra environment variables for the offly container.
+extraEnv: []
+
 env:
   storageType: mongodb
   db:

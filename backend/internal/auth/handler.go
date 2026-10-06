@@ -36,60 +36,47 @@ func EnsureUserHandler(store storage.Storage, v *Verifier) http.HandlerFunc {
 			return
 		}
 
-		email, _ := claims["email"].(string)
+		email := EmailFromClaims(claims)
 		if email == "" {
-			// Dex may include email in ID token when scope includes email
 			w.WriteHeader(http.StatusBadRequest)
 			_ = json.NewEncoder(w).Encode(map[string]string{"error": "email claim missing"})
 			return
 		}
-
-		// Use name from claims, fallback to username from email
-		name, _ := claims["name"].(string)
-		if name == "" {
-			// Try preferred_username
-			if username, ok := claims["preferred_username"].(string); ok && username != "" {
-				name = username
-			} else {
-				// Extract username from email (e.g., vincent.team@bananaops.tech -> vincent.team)
-				if atIndex := strings.IndexByte(email, '@'); atIndex > 0 {
-					name = email[:atIndex]
-				} else {
-					name = email
-				}
-			}
+		if !IsAllowedIdentity(email, GroupsFromClaims(claims)) {
+			w.WriteHeader(http.StatusForbidden)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "not a member of an allowed group"})
+			return
 		}
 
-		// Check if user exists by email
-		users, _ := store.GetUsers()
-		var existing *storage.User
-		for _, u := range users {
-			if u.Email == email {
-				existing = u
-				break
-			}
-		}
-
-		var u *storage.User
-		if existing == nil {
-			// Create new user without department or team assignment
-			u = &storage.User{
-				ID:    uuid.New().String(),
-				Name:  name,
-				Email: email,
-			}
-			if err := store.CreateUser(u); err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to create user"})
-				return
-			}
-		} else {
-			// Update existing user's name in case it changed
-			existing.Name = name
-			_ = store.UpdateUser(existing)
-			u = existing
+		u, err := upsertUser(store, email, NameFromClaims(claims, email))
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": "failed to create user"})
+			return
 		}
 
 		_ = json.NewEncoder(w).Encode(resp{ID: u.ID, Name: u.Name, Email: u.Email, Country: u.Country})
 	}
+}
+
+// upsertUser returns the user matching email (case-insensitive), creating it
+// without department/team on first login and refreshing its name otherwise.
+func upsertUser(store storage.Storage, email, name string) (*storage.User, error) {
+	users, _ := store.GetUsers()
+	for _, u := range users {
+		if strings.EqualFold(u.Email, email) {
+			u.Name = name
+			_ = store.UpdateUser(u)
+			return u, nil
+		}
+	}
+	u := &storage.User{
+		ID:    uuid.New().String(),
+		Name:  name,
+		Email: email,
+	}
+	if err := store.CreateUser(u); err != nil {
+		return nil, err
+	}
+	return u, nil
 }
