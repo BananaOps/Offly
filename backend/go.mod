@@ -11,7 +11,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	go.mongodb.org/mongo-driver v1.17.10
 	google.golang.org/genproto/googleapis/api v0.0.0-20260911204522-f61a6ca850bd
-	google.golang.org/grpc v1.83.2
+	google.golang.org/grpc v1.85.0
 	google.golang.org/protobuf v1.36.12
 )
 
@@ -29,7 +29,7 @@ require (
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
-	golang.org/x/net v0.59.0 // indirect
+	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
